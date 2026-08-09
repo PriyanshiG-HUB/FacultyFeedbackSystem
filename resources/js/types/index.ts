@@ -9,6 +9,12 @@ export interface User {
 
 // 1. Admin/Dashboard
 export interface AdminDashboardProps {
+  hodInfo?: {
+    name: string;
+    role: string;
+    department: string;
+    departmentCode: string;
+  };
   stats: {
     label: string;
     value: string | number;
@@ -21,7 +27,12 @@ export interface AdminDashboardProps {
     submissions: number;
     avgRating: number;
   }[];
-  departmentPerformance: {
+  facultyPerformance: {
+    facultyName: string;
+    avgRating: number;
+    totalFeedback: number;
+  }[];
+  departmentPerformance?: {
     department: string;
     avgRating: number;
     totalFeedback: number;
@@ -205,6 +216,7 @@ export interface FeedbackImportIndexProps {
 
 // 13. Admin/Analytics/Index
 export interface AnalyticsIndexProps {
+  departmentName?: string;
   departmentRatings: {
     department: string;
     punctuality: number;
@@ -238,6 +250,7 @@ export interface ReportItem {
 }
 
 export interface ReportsIndexProps {
+  departmentName?: string;
   reports: ReportItem[];
 }
 
@@ -254,6 +267,7 @@ export interface CriticalCommentItem {
 }
 
 export interface CriticalCommentsIndexProps {
+  departmentName?: string;
   comments: CriticalCommentItem[];
 }
 
@@ -339,7 +353,7 @@ export interface FeedbackSubjectItem {
   credits?: number;
   type?: 'Core' | 'Elective';
   facultyOptions: FacultyOption[];
-  parameters: FeedbackParameter[];
+  parameters?: FeedbackParameter[];
   // Backwards compatibility fields if needed
   assignmentId?: number;
   facultyName?: string;
@@ -359,4 +373,5 @@ export interface StudentFeedbackShowProps {
   };
   subjects: FeedbackSubjectItem[];
   feedbackItems?: FeedbackSubjectItem[];
+  parameters?: FeedbackParameter[];
 }

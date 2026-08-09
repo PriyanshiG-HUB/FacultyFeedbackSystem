@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import StudentLayout from '../../../Layouts/StudentLayout';
-import { StudentFeedbackShowProps, FeedbackSubjectItem, FacultyOption } from '../../../types';
+import { StudentFeedbackShowProps, FeedbackSubjectItem, FacultyOption, FeedbackParameter } from '../../../types';
 import { Card } from '../../../Components/ui/Card';
 import { Button } from '../../../Components/ui/Button';
 import { useForm } from '../../../Components/shared/useForm';
@@ -28,7 +28,16 @@ const LIKERT_OPTIONS = [
   { value: 5, label: 'Strongly Agree' },
 ];
 
-export default function Show({ student, subjects: propSubjects, feedbackItems }: StudentFeedbackShowProps) {
+const DEFAULT_PARAMETERS: FeedbackParameter[] = [
+  { id: 'p1', statement: '1. The faculty explains concepts clearly.', description: 'Pacing, clarity, and real-world examples during lectures' },
+  { id: 'p2', statement: '2. The faculty demonstrates good subject knowledge.', description: 'Command over fundamental and advanced concepts' },
+  { id: 'p3', statement: '3. The faculty completes the syllabus effectively.', description: 'Structured coverage of curriculum and practical labs' },
+  { id: 'p4', statement: '4. The faculty provides useful study material.', description: 'Quality of notes, reference material, and practice problems' },
+  { id: 'p5', statement: '5. The faculty maintains punctuality and classroom engagement.', description: 'Regularity, interactive teaching, and addressing student questions' },
+];
+
+export default function Show({ student, subjects: propSubjects, feedbackItems, parameters: propParameters }: StudentFeedbackShowProps) {
+  const questionsList = propParameters || DEFAULT_PARAMETERS;
   // Normalize subjects array
   const subjectsList: FeedbackSubjectItem[] = propSubjects || feedbackItems || [];
 
@@ -88,7 +97,8 @@ export default function Show({ student, subjects: propSubjects, feedbackItems }:
     const errors: string[] = [];
 
     // Validate that all 5 questions are answered for this subject + faculty
-    subject.parameters.forEach((param) => {
+    const activeParams = subject.parameters || questionsList;
+    activeParams.forEach((param: FeedbackParameter) => {
       const ratingKey = `${subjectId}_${facultyId}_${param.id}`;
       if (!form.data.ratings[ratingKey]) {
         errors.push(`Please answer question "${param.statement || param.label}" for ${facultyObj?.name || 'selected faculty'}.`);
@@ -169,12 +179,12 @@ export default function Show({ student, subjects: propSubjects, feedbackItems }:
   const isAllSubjectsCompleted = totalFacultyCount > 0 && totalCompletedFacultyCount === totalFacultyCount;
 
   // Student details
-  const studentName = student?.name || 'Alexander Wright';
+  const studentName = student?.name || 'Alex Turner';
   const studentRole = student?.role || 'Student';
   const studentId = student?.studentId || 'STU-2022-045';
-  const studentRoll = student?.rollNumber || '22CE045';
-  const studentProgram = student?.program || 'B.Tech Computer Engineering';
-  const studentBatch = student?.batch || 'Batch 2022–2026';
+  const studentRoll = student?.rollNumber || '22IT045';
+  const studentProgram = student?.program || 'B.Tech (Information Technology)';
+  const studentBatch = student?.batch || 'Batch 2022-2026';
   const studentDivision = student?.division || 'Division A';
 
   if (isFinalSubmitted) {
@@ -409,7 +419,7 @@ export default function Show({ student, subjects: propSubjects, feedbackItems }:
                               Please rate the following statements for {selectedFacObj.name}:
                             </h4>
 
-                            {subject.parameters.map((param, qIdx) => {
+                            {(subject.parameters || questionsList).map((param: FeedbackParameter, qIdx: number) => {
                               const ratingKey = `${subjectId}_${selectedFacObj.id}_${param.id}`;
                               const currentRating = form.data.ratings[ratingKey];
 

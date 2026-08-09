@@ -18,10 +18,10 @@ export default function Index({ recentImports }: FeedbackImportIndexProps) {
       setSelectedFile(file);
       // Generate realistic preview rows
       setPreviewData([
-        { row: 1, rollNumber: '22CE001', studentName: 'Alexander Wright', subjectCode: 'CS701', status: 'Valid' },
-        { row: 2, rollNumber: '22CE002', studentName: 'Sophia Martinez', subjectCode: 'CS701', status: 'Valid' },
-        { row: 3, rollNumber: '22CE003', studentName: 'Ethan Hunt', subjectCode: 'CS701', status: 'Valid' },
-        { row: 4, rollNumber: 'INVALID_ID', studentName: 'Unknown Entry', subjectCode: 'CS701', status: 'Invalid Roll' },
+        { row: 1, rollNumber: '22IT001', studentName: 'Alexander Wright', subjectCode: 'IT701', status: 'Valid' },
+        { row: 2, rollNumber: '22IT002', studentName: 'Sophia Martinez', subjectCode: 'IT701', status: 'Valid' },
+        { row: 3, rollNumber: '22IT003', studentName: 'Ethan Hunt', subjectCode: 'IT701', status: 'Valid' },
+        { row: 4, rollNumber: 'INVALID_ID', studentName: 'Unknown Entry', subjectCode: 'IT701', status: 'Invalid Roll' },
       ]);
     }
   };

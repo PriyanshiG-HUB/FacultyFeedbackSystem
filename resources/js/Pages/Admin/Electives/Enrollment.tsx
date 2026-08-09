@@ -36,16 +36,16 @@ export default function Enrollment({ elective, availableStudents: initialStudent
             </Button>
           </Link>
           <div>
-            <h2 className="text-xl font-bold text-slate-100">{elective.subjectName}</h2>
-            <p className="text-xs text-slate-400">
-              Code: <span className="font-mono text-brand-400">{elective.subjectCode}</span> &bull; Batch: {elective.batch}
+            <h2 className="text-xl font-bold text-slate-900">{elective.subjectName}</h2>
+            <p className="text-xs text-slate-500">
+              Code: <span className="font-mono text-blue-700 font-bold">{elective.subjectCode}</span> &bull; Batch: {elective.batch}
             </p>
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl text-right">
-          <p className="text-[10px] text-slate-400 font-semibold uppercase">Total Enrolled</p>
-          <p className="text-lg font-extrabold text-emerald-400">
+        <div className="bg-white border border-slate-200 px-4 py-2 rounded-xl text-right shadow-2xs">
+          <p className="text-[10px] text-slate-500 font-semibold uppercase">Total Enrolled</p>
+          <p className="text-lg font-extrabold text-emerald-600">
             {enrolledCount} <span className="text-xs text-slate-500 font-normal">/ {students.length} Students</span>
           </p>
         </div>
@@ -63,16 +63,16 @@ export default function Enrollment({ elective, availableStudents: initialStudent
             <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
           </div>
 
-          <div className="bg-slate-900/90 border border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-800">
+          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-100 shadow-2xs">
             {filtered.map((s) => (
-              <div key={s.id} className="p-3.5 flex items-center justify-between hover:bg-slate-800/40 transition-colors">
+              <div key={s.id} className="p-3.5 flex items-center justify-between hover:bg-slate-50 transition-colors">
                 <div className="flex items-center gap-3">
-                  <span className="font-mono text-xs px-2 py-1 bg-slate-950 border border-slate-800 rounded text-slate-300">
+                  <span className="font-mono text-xs font-bold px-2 py-1 bg-blue-50 border border-blue-200 rounded text-blue-700">
                     {s.rollNumber}
                   </span>
                   <div>
-                    <p className="text-sm font-semibold text-slate-100">{s.name}</p>
-                    <p className="text-xs text-slate-400">{s.division}</p>
+                    <p className="text-sm font-bold text-slate-900">{s.name}</p>
+                    <p className="text-xs text-slate-500">{s.division}</p>
                   </div>
                 </div>
 

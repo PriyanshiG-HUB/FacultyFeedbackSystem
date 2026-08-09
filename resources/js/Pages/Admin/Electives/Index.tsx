@@ -11,7 +11,7 @@ export default function Index({ electives }: ElectivesIndexProps) {
     {
       header: 'Code',
       accessor: (row) => (
-        <span className="font-mono text-xs font-semibold px-2 py-1 bg-slate-900 border border-slate-800 rounded text-brand-400">
+        <span className="font-mono text-xs font-bold px-2 py-1 bg-blue-50 border border-blue-200 rounded text-blue-700">
           {row.subjectCode}
         </span>
       ),
@@ -19,7 +19,7 @@ export default function Index({ electives }: ElectivesIndexProps) {
     },
     {
       header: 'Elective Subject',
-      accessor: (row) => <span className="font-semibold text-slate-100">{row.subjectName}</span>,
+      accessor: (row) => <span className="font-bold text-slate-900">{row.subjectName}</span>,
       sortable: true,
     },
     {
@@ -31,8 +31,8 @@ export default function Index({ electives }: ElectivesIndexProps) {
       header: 'Target Batch & Sem',
       accessor: (row) => (
         <div className="text-xs">
-          <p className="text-slate-200">{row.batch}</p>
-          <p className="text-slate-400">Semester {row.semester}</p>
+          <p className="text-slate-800 font-medium">{row.batch}</p>
+          <p className="text-slate-500">Semester {row.semester}</p>
         </div>
       ),
       sortable: true,
@@ -44,14 +44,14 @@ export default function Index({ electives }: ElectivesIndexProps) {
         return (
           <div className="space-y-1 w-36">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-300 font-medium">
+              <span className="text-slate-700 font-semibold">
                 {row.enrolledCount} / {row.maxSeats}
               </span>
-              <span className="text-slate-400 font-mono text-[11px]">{percentage}%</span>
+              <span className="text-slate-500 font-mono text-[11px]">{percentage}%</span>
             </div>
-            <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+            <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
               <div
-                className="bg-brand-500 h-full rounded-full transition-all"
+                className="bg-blue-600 h-full rounded-full transition-all"
                 style={{ width: `${percentage}%` }}
               />
             </div>
@@ -66,8 +66,8 @@ export default function Index({ electives }: ElectivesIndexProps) {
     <AdminLayout title="Elective Courses Catalog" currentPath="#Admin/Electives/Index">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-slate-100">Elective Subject Management</h2>
-          <p className="text-xs text-slate-400">Manage elective offerings and student enrollment assignments</p>
+          <h2 className="text-xl font-bold text-slate-900">Elective Subject Management</h2>
+          <p className="text-xs text-slate-500">Manage elective offerings and student enrollment assignments</p>
         </div>
         <Link href="#Admin/Electives/Enrollment">
           <Button variant="primary">

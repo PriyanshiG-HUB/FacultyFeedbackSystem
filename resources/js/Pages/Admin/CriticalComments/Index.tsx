@@ -6,7 +6,7 @@ import { StatusBadge } from '../../../Components/ui/StatusBadge';
 import { Button } from '../../../Components/ui/Button';
 import { AlertTriangle, Star, CheckCircle, Clock } from 'lucide-react';
 
-export default function Index({ comments: initialComments }: CriticalCommentsIndexProps) {
+export default function Index({ departmentName = 'Computer Engineering', comments: initialComments }: CriticalCommentsIndexProps) {
   const [comments, setComments] = useState(initialComments);
 
   const toggleStatus = (id: number) => {
@@ -24,8 +24,8 @@ export default function Index({ comments: initialComments }: CriticalCommentsInd
         <span
           className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold ${
             row.severity === 'High'
-              ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
-              : 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+              ? 'bg-rose-50 text-rose-700 border border-rose-200'
+              : 'bg-amber-50 text-amber-700 border border-amber-200'
           }`}
         >
           <AlertTriangle className="w-3 h-3 mr-1" />
@@ -38,8 +38,8 @@ export default function Index({ comments: initialComments }: CriticalCommentsInd
       header: 'Faculty & Course',
       accessor: (row) => (
         <div>
-          <p className="font-semibold text-slate-100">{row.facultyName}</p>
-          <p className="text-xs text-slate-400">{row.subjectName}</p>
+          <p className="font-bold text-slate-900">{row.facultyName}</p>
+          <p className="text-xs text-slate-500">{row.subjectName}</p>
         </div>
       ),
       sortable: true,
@@ -47,8 +47,8 @@ export default function Index({ comments: initialComments }: CriticalCommentsInd
     {
       header: 'Rating Score',
       accessor: (row) => (
-        <div className="flex items-center gap-1 font-bold text-rose-400 text-xs bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
-          <Star className="w-3.5 h-3.5 fill-rose-400" />
+        <div className="flex items-center gap-1 font-bold text-rose-700 text-xs bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+          <Star className="w-3.5 h-3.5 fill-rose-400 text-rose-500" />
           <span>{row.rating}.0 / 5.0</span>
         </div>
       ),
@@ -56,7 +56,7 @@ export default function Index({ comments: initialComments }: CriticalCommentsInd
     },
     {
       header: 'Student Comment Text',
-      accessor: (row) => <span className="text-slate-300 italic text-xs">"{row.comment}"</span>,
+      accessor: (row) => <span className="text-slate-700 italic text-xs font-medium">"{row.comment}"</span>,
     },
     {
       header: 'Review Status',
@@ -68,8 +68,11 @@ export default function Index({ comments: initialComments }: CriticalCommentsInd
   return (
     <AdminLayout title="Critical Feedback Moderation" currentPath="#Admin/CriticalComments/Index">
       <div>
-        <h2 className="text-xl font-bold text-slate-100">Flagged Critical Feedback Comments</h2>
-        <p className="text-xs text-slate-400">Automated system moderation queue for low-rating feedback and actionable student concerns</p>
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-blue-50 border border-blue-200 rounded-full text-blue-700 text-[11px] font-bold uppercase tracking-wider mb-1">
+          HOD Portal &bull; {departmentName}
+        </div>
+        <h2 className="text-xl font-bold text-slate-900">{departmentName} — Flagged Critical Feedback</h2>
+        <p className="text-xs text-slate-500">Actionable student concerns and low-rating feedback moderation queue for {departmentName}</p>
       </div>
 
       <DataTable
@@ -99,3 +102,4 @@ export default function Index({ comments: initialComments }: CriticalCommentsInd
     </AdminLayout>
   );
 }
+

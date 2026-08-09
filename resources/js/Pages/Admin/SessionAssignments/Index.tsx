@@ -33,17 +33,17 @@ export default function Index({
   const columns: Column<SessionAssignmentItem>[] = [
     {
       header: 'Faculty Member',
-      accessor: (row) => <span className="font-semibold text-slate-100">{row.facultyName}</span>,
+      accessor: (row) => <span className="font-bold text-slate-900">{row.facultyName}</span>,
       sortable: true,
     },
     {
       header: 'Subject Code & Title',
       accessor: (row) => (
         <div>
-          <span className="font-mono text-xs font-semibold px-2 py-0.5 bg-slate-900 border border-slate-800 rounded text-brand-400 mr-2">
+          <span className="font-mono text-xs font-bold px-2 py-0.5 bg-blue-50 border border-blue-200 rounded text-blue-700 mr-2">
             {row.subjectCode}
           </span>
-          <span className="text-slate-200">{row.subjectName}</span>
+          <span className="text-slate-800 font-medium">{row.subjectName}</span>
         </div>
       ),
       sortable: true,
@@ -57,8 +57,8 @@ export default function Index({
       header: 'Division & Semester',
       accessor: (row) => (
         <div className="text-xs">
-          <p className="text-slate-200">{row.divisionName}</p>
-          <p className="text-slate-400">Semester {row.semester}</p>
+          <p className="text-slate-800 font-medium">{row.divisionName}</p>
+          <p className="text-slate-500">Semester {row.semester}</p>
         </div>
       ),
       sortable: true,
@@ -69,8 +69,8 @@ export default function Index({
     <AdminLayout title="Session Allocations" currentPath="#Admin/SessionAssignments/Index">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-slate-100">Faculty Session Allocations</h2>
-          <p className="text-xs text-slate-400">Map faculty members to subjects, student batches, and semester sessions</p>
+          <h2 className="text-xl font-bold text-slate-900">Faculty Session Allocations</h2>
+          <p className="text-xs text-slate-500">Map faculty members to subjects, student batches, and semester sessions</p>
         </div>
 
         <Button variant="primary" onClick={() => setIsModalOpen(true)}>

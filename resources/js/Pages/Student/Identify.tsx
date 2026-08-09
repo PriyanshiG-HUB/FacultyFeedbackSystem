@@ -45,7 +45,7 @@ export default function Identify({ error }: StudentIdentifyProps) {
           <div className="space-y-4">
             <Input
               label="Student Roll Number / Unique Identifier"
-              placeholder="e.g. 22CE045"
+              placeholder="e.g. 22IT045"
               value={form.data.rollNumber}
               onChange={(e) => form.setData('rollNumber', e.target.value.toUpperCase())}
               error={form.errors.rollNumber}

@@ -34,7 +34,7 @@ export default function Create({ hodOptions }: DepartmentsCreateProps) {
             Back to Departments
           </Button>
         </Link>
-        <h2 className="text-xl font-bold text-slate-100">Add New Department</h2>
+        <h2 className="text-xl font-bold text-slate-900">Add New Department</h2>
       </div>
 
       <Card title="Department Details Form" className="max-w-2xl">
@@ -43,7 +43,7 @@ export default function Create({ hodOptions }: DepartmentsCreateProps) {
             <div className="sm:col-span-2">
               <Input
                 label="Department Name"
-                placeholder="e.g. Computer Engineering"
+                placeholder="e.g. Information Technology"
                 value={form.data.name}
                 onChange={(e) => form.setData('name', e.target.value)}
                 error={form.errors.name}
@@ -53,7 +53,7 @@ export default function Create({ hodOptions }: DepartmentsCreateProps) {
             <div>
               <Input
                 label="Code / Acronym"
-                placeholder="e.g. COMP"
+                placeholder="e.g. IT"
                 value={form.data.code}
                 onChange={(e) => form.setData('code', e.target.value)}
                 error={form.errors.code}
@@ -77,25 +77,25 @@ export default function Create({ hodOptions }: DepartmentsCreateProps) {
           </Select>
 
           <div className="space-y-1">
-            <label className="block text-xs font-medium text-slate-300 uppercase tracking-wider">
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
               Department Overview / Description
             </label>
             <textarea
               rows={4}
               placeholder="Brief description of department scope, labs, and degree offerings..."
-              className="w-full px-3.5 py-2 bg-slate-900 border border-slate-700/80 rounded-lg text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30"
+              className="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               value={form.data.description}
               onChange={(e) => form.setData('description', e.target.value)}
             />
           </div>
 
           {form.recentlySuccessful && (
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-lg text-xs font-semibold">
+            <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg text-xs font-semibold">
               Department created successfully! Redirecting...
             </div>
           )}
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
             <Link href="#Admin/Departments/Index">
               <Button type="button" variant="outline">
                 Cancel

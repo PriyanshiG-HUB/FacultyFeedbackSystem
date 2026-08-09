@@ -9,8 +9,8 @@ interface TopbarProps {
 
 export const Topbar: React.FC<TopbarProps> = ({
   pageTitle = 'Dashboard',
-  userName = 'Dr. Robert Vance',
-  userRole = 'System Administrator',
+  userName = 'Dr. Grace Hopper',
+  userRole = 'HOD — Information Technology',
 }) => {
   return (
     <header className="h-16 bg-white/90 border-b border-slate-200/90 backdrop-blur-md sticky top-0 z-20 flex items-center justify-between px-8 shadow-2xs">

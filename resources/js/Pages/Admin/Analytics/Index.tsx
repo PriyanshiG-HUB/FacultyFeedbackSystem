@@ -15,6 +15,7 @@ import {
 } from 'recharts';
 
 export default function Index({
+  departmentName = 'Computer Engineering',
   departmentRatings,
   topFaculty,
   scoreDistribution,
@@ -22,12 +23,15 @@ export default function Index({
   return (
     <AdminLayout title="Analytics & Insights" currentPath="#Admin/Analytics/Index">
       <div>
-        <h2 className="text-xl font-bold text-slate-900">Institutional Feedback Analytics</h2>
-        <p className="text-xs text-slate-500">Deep-dive comparative performance metrics across parameters and departments</p>
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-blue-50 border border-blue-200 rounded-full text-blue-700 text-[11px] font-bold uppercase tracking-wider mb-1">
+          HOD Portal &bull; {departmentName}
+        </div>
+        <h2 className="text-xl font-bold text-slate-900">{departmentName} — Feedback Analytics</h2>
+        <p className="text-xs text-slate-500">Deep-dive performance metrics across subjects and parameters for {departmentName}</p>
       </div>
 
-      {/* Multi-parameter Department Comparison Chart */}
-      <Card title="Department Parameter Scores Comparison" subtitle="Scores breakdown out of 5.0 across key evaluation categories">
+      {/* Multi-parameter Subject Comparison Chart */}
+      <Card title={`Subject Parameter Scores Comparison (${departmentName})`} subtitle="Scores breakdown out of 5.0 across key evaluation categories">
         <div className="h-80 w-full pt-2">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={departmentRatings}>

@@ -10,7 +10,7 @@ export default function Index({ batches }: BatchesIndexProps) {
   const columns: Column<BatchItem>[] = [
     {
       header: 'Batch Title',
-      accessor: (row) => <span className="font-semibold text-slate-100">{row.name}</span>,
+      accessor: (row) => <span className="font-bold text-slate-900">{row.name}</span>,
       sortable: true,
     },
     {
@@ -26,7 +26,7 @@ export default function Index({ batches }: BatchesIndexProps) {
     {
       header: 'Current Semester',
       accessor: (row) => (
-        <span className="font-mono text-xs px-2 py-0.5 bg-slate-900 border border-slate-800 rounded text-brand-400">
+        <span className="font-mono text-xs font-bold px-2 py-0.5 bg-blue-50 border border-blue-200 rounded text-blue-700">
           Semester {row.currentSemester}
         </span>
       ),
@@ -43,8 +43,8 @@ export default function Index({ batches }: BatchesIndexProps) {
     <AdminLayout title="Student Batches" currentPath="#Admin/Batches/Index">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-slate-100">Batches & Graduating Classes</h2>
-          <p className="text-xs text-slate-400">Track active student cohorts and academic semester progress</p>
+          <h2 className="text-xl font-bold text-slate-900">Batches & Graduating Classes</h2>
+          <p className="text-xs text-slate-500">Track active student cohorts and academic semester progress</p>
         </div>
         <Button variant="primary" onClick={() => alert('Create Batch dialog')}>
           <Plus className="w-4 h-4 mr-1.5" />

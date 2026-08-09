@@ -9,7 +9,7 @@ export default function Index({ divisions }: DivisionsIndexProps) {
   const columns: Column<DivisionItem>[] = [
     {
       header: 'Division Name',
-      accessor: (row) => <span className="font-semibold text-slate-100">{row.name}</span>,
+      accessor: (row) => <span className="font-bold text-slate-900">{row.name}</span>,
       sortable: true,
     },
     {
@@ -20,7 +20,7 @@ export default function Index({ divisions }: DivisionsIndexProps) {
     {
       header: 'Academic Term',
       accessor: (row) => (
-        <span className="font-mono text-xs px-2 py-0.5 bg-slate-900 border border-slate-800 rounded text-slate-300">
+        <span className="font-mono text-xs font-bold px-2 py-0.5 bg-blue-50 border border-blue-200 rounded text-blue-700">
           {row.academicYear}
         </span>
       ),
@@ -28,7 +28,7 @@ export default function Index({ divisions }: DivisionsIndexProps) {
     },
     {
       header: 'Student Count',
-      accessor: (row) => <span>{row.studentCount} Students</span>,
+      accessor: (row) => <span className="text-slate-700 font-medium">{row.studentCount} Students</span>,
       sortable: true,
     },
   ];
@@ -37,8 +37,8 @@ export default function Index({ divisions }: DivisionsIndexProps) {
     <AdminLayout title="Academic Divisions" currentPath="#Admin/Divisions/Index">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-slate-100">Divisions & Sections</h2>
-          <p className="text-xs text-slate-400">Classroom division groupings for student cohort allocation</p>
+          <h2 className="text-xl font-bold text-slate-900">Divisions & Sections</h2>
+          <p className="text-xs text-slate-500">Classroom division groupings for student cohort allocation</p>
         </div>
         <Button variant="primary" onClick={() => alert('Create Division action')}>
           <Plus className="w-4 h-4 mr-1.5" />

@@ -41,7 +41,7 @@ export default function Index({ departments }: DepartmentsIndexProps) {
     {
       header: 'Dept Code',
       accessor: (row) => (
-        <span className="font-mono text-xs font-bold px-2 py-1 bg-indigo-50 border border-indigo-200 rounded text-indigo-700">
+        <span className="font-mono text-xs font-bold px-2 py-1 bg-blue-50 border border-blue-200 rounded text-blue-700">
           {row.code}
         </span>
       ),
@@ -59,12 +59,7 @@ export default function Index({ departments }: DepartmentsIndexProps) {
     },
     {
       header: 'Faculty Count',
-      accessor: (row) => <span>{row.facultyCount} Members</span>,
-      sortable: true,
-    },
-    {
-      header: 'Status',
-      accessor: (row) => <StatusBadge status={row.status} />,
+      accessor: (row) => <span className="font-medium text-slate-700">{row.facultyCount} Members</span>,
       sortable: true,
     },
   ];

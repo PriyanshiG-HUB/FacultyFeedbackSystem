@@ -18,7 +18,7 @@ export default function Index({ students }: StudentsIndexProps) {
     {
       header: 'Roll Number',
       accessor: (row) => (
-        <span className="font-mono text-xs font-semibold px-2 py-1 bg-slate-900 border border-slate-800 rounded text-brand-400">
+        <span className="font-mono text-xs font-bold px-2 py-1 bg-blue-50 border border-blue-200 rounded text-blue-700">
           {row.rollNumber}
         </span>
       ),
@@ -28,8 +28,8 @@ export default function Index({ students }: StudentsIndexProps) {
       header: 'Student Name',
       accessor: (row) => (
         <div>
-          <p className="font-semibold text-slate-100">{row.name}</p>
-          <p className="text-[11px] text-slate-400">{row.email}</p>
+          <p className="font-bold text-slate-900">{row.name}</p>
+          <p className="text-[11px] text-slate-500 font-medium">{row.email}</p>
         </div>
       ),
       sortable: true,
@@ -38,8 +38,8 @@ export default function Index({ students }: StudentsIndexProps) {
       header: 'Batch & Division',
       accessor: (row) => (
         <div className="text-xs">
-          <p className="text-slate-200">{row.batch}</p>
-          <p className="text-slate-400">{row.division}</p>
+          <p className="text-slate-800 font-medium">{row.batch}</p>
+          <p className="text-slate-500">{row.division}</p>
         </div>
       ),
       sortable: true,
@@ -60,17 +60,17 @@ export default function Index({ students }: StudentsIndexProps) {
     <AdminLayout title="Student Directory" currentPath="#Admin/Students/Index">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-100">Enrolled Students</h2>
-          <p className="text-xs text-slate-400">Student roster and feedback completion status</p>
+          <h2 className="text-xl font-bold text-slate-900">Enrolled Students</h2>
+          <p className="text-xs text-slate-500">Student roster and feedback completion status</p>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-xs">
+          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200 text-xs shadow-2xs">
             <Filter className="w-3.5 h-3.5 text-slate-400" />
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-transparent text-slate-200 focus:outline-none cursor-pointer"
+              className="bg-transparent text-slate-800 font-medium focus:outline-none cursor-pointer"
             >
               <option value="all">All Feedback Statuses</option>
               <option value="completed">Completed Feedback</option>

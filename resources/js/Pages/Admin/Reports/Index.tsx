@@ -4,9 +4,9 @@ import { ReportsIndexProps, ReportItem } from '../../../types';
 import { DataTable, Column } from '../../../Components/ui/DataTable';
 import { StatusBadge } from '../../../Components/ui/StatusBadge';
 import { Button } from '../../../Components/ui/Button';
-import { FileText, Download, CheckCircle, Send } from 'lucide-react';
+import { FileText, Download, Send } from 'lucide-react';
 
-export default function Index({ reports: initialReports }: ReportsIndexProps) {
+export default function Index({ departmentName = 'Computer Engineering', reports: initialReports }: ReportsIndexProps) {
   const [reports, setReports] = React.useState(initialReports);
 
   const togglePublish = (id: number) => {
@@ -26,10 +26,10 @@ export default function Index({ reports: initialReports }: ReportsIndexProps) {
       header: 'Report Title',
       accessor: (row) => (
         <div className="flex items-center gap-2.5">
-          <FileText className="w-4 h-4 text-brand-400" />
+          <FileText className="w-4 h-4 text-blue-600 shrink-0" />
           <div>
-            <p className="font-semibold text-slate-100">{row.title}</p>
-            <p className="text-[11px] text-slate-400">Generated on {row.generatedAt}</p>
+            <p className="font-bold text-slate-900">{row.title}</p>
+            <p className="text-[11px] text-slate-500">Generated on {row.generatedAt}</p>
           </div>
         </div>
       ),
@@ -39,15 +39,15 @@ export default function Index({ reports: initialReports }: ReportsIndexProps) {
       header: 'Academic Term',
       accessor: (row) => (
         <div className="text-xs">
-          <p className="text-slate-200">{row.academicYear}</p>
-          <p className="text-slate-400">{row.term}</p>
+          <p className="font-semibold text-slate-800">{row.academicYear}</p>
+          <p className="text-slate-500">{row.term}</p>
         </div>
       ),
       sortable: true,
     },
     {
       header: 'Sample Size',
-      accessor: (row) => <span>{row.totalResponses} Responses</span>,
+      accessor: (row) => <span className="font-semibold text-slate-700">{row.totalResponses} Responses</span>,
       sortable: true,
     },
     {
@@ -58,11 +58,14 @@ export default function Index({ reports: initialReports }: ReportsIndexProps) {
   ];
 
   return (
-    <AdminLayout title="Institutional Reports" currentPath="#Admin/Reports/Index">
-      <div className="flex items-center justify-between">
+    <AdminLayout title="Department Reports" currentPath="#Admin/Reports/Index">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-100">Generated Evaluation Reports</h2>
-          <p className="text-xs text-slate-400">Official institutional reports ready for publication and faculty download</p>
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-blue-50 border border-blue-200 rounded-full text-blue-700 text-[11px] font-bold uppercase tracking-wider mb-1">
+            HOD Portal &bull; {departmentName}
+          </div>
+          <h2 className="text-xl font-bold text-slate-900">{departmentName} — Evaluation Reports</h2>
+          <p className="text-xs text-slate-500">Official department evaluation reports ready for publication and faculty download</p>
         </div>
         <Button variant="primary" onClick={() => alert('Generate New Evaluation Report action')}>
           <Send className="w-4 h-4 mr-1.5" />
@@ -93,3 +96,4 @@ export default function Index({ reports: initialReports }: ReportsIndexProps) {
     </AdminLayout>
   );
 }
+
