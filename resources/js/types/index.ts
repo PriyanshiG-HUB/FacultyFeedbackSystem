@@ -319,26 +319,44 @@ export interface StudentIdentifyProps {
 // 21. Student/Feedback/Show
 export interface FeedbackParameter {
   id: string;
-  label: string;
-  description: string;
+  statement: string;
+  label?: string;
+  description?: string;
+}
+
+export interface FacultyOption {
+  id: number;
+  name: string;
+  designation: string;
+  department?: string;
 }
 
 export interface FeedbackSubjectItem {
-  assignmentId: number;
+  id: number;
   subjectCode: string;
   subjectName: string;
-  facultyName: string;
-  facultyDesignation: string;
   department: string;
+  credits?: number;
+  type?: 'Core' | 'Elective';
+  facultyOptions: FacultyOption[];
   parameters: FeedbackParameter[];
+  // Backwards compatibility fields if needed
+  assignmentId?: number;
+  facultyName?: string;
+  facultyDesignation?: string;
 }
 
 export interface StudentFeedbackShowProps {
   student: {
+    studentId: string;
     rollNumber: string;
     name: string;
+    role: string;
+    program: string;
     batch: string;
     division: string;
+    department?: string;
   };
-  feedbackItems: FeedbackSubjectItem[];
+  subjects: FeedbackSubjectItem[];
+  feedbackItems?: FeedbackSubjectItem[];
 }

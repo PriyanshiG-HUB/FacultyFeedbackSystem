@@ -23,7 +23,8 @@ export default function Identify({ error }: StudentIdentifyProps) {
 
   return (
     <StudentLayout>
-      <Card className="max-w-md mx-auto shadow-xl border-slate-200 bg-white">
+      <div className="w-full flex-1 flex items-center justify-center p-4 sm:p-6 my-auto">
+        <Card className="max-w-md w-full shadow-xl border-slate-200 bg-white">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="text-center space-y-2">
             <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center mx-auto shadow-2xs">
@@ -68,6 +69,7 @@ export default function Identify({ error }: StudentIdentifyProps) {
           </Button>
         </form>
       </Card>
-    </StudentLayout>
+    </div>
+  </StudentLayout>
   );
 }
