@@ -9,6 +9,7 @@ import AdminFacultyIndex from '../Pages/Admin/Faculty/Index';
 import AdminSubjectsIndex from '../Pages/Admin/Subjects/Index';
 import AdminDivisionsIndex from '../Pages/Admin/Divisions/Index';
 import AdminBatchesIndex from '../Pages/Admin/Batches/Index';
+import AdminAcademicYearsIndex from '../Pages/Admin/AcademicYears/Index';
 import AdminStudentsIndex from '../Pages/Admin/Students/Index';
 import AdminElectivesIndex from '../Pages/Admin/Electives/Index';
 import AdminElectiveEnrollment from '../Pages/Admin/Electives/Enrollment';
@@ -38,6 +39,7 @@ const componentRegistry: Record<string, React.ComponentType<any>> = {
   'Admin/Subjects/Index': AdminSubjectsIndex,
   'Admin/Divisions/Index': AdminDivisionsIndex,
   'Admin/Batches/Index': AdminBatchesIndex,
+  'Admin/AcademicYears/Index': AdminAcademicYearsIndex,
   'Admin/Students/Index': AdminStudentsIndex,
   'Admin/Electives/Index': AdminElectivesIndex,
   'Admin/Electives/Enrollment': AdminElectiveEnrollment,
@@ -57,12 +59,14 @@ const componentRegistry: Record<string, React.ComponentType<any>> = {
 export const DevPageRenderer: React.FC = () => {
   const [activePage, setActivePage] = useState<string>('Admin/Dashboard');
   const [devRoleMode, setDevRoleMode] = useState<string>('admin');
+  const [studentDivisionMode, setStudentDivisionMode] = useState<string>('Division A');
 
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '');
-      if (hash && componentRegistry[hash]) {
-        setActivePage(hash);
+      const routeKey = hash.split('?')[0];
+      if (routeKey && componentRegistry[routeKey]) {
+        setActivePage(routeKey);
       }
     };
 
@@ -84,7 +88,7 @@ export const DevPageRenderer: React.FC = () => {
   const userRole = isHodRole ? 'hod' : 'admin';
   
   let assignedDepartmentCode: string | null = null;
-  let hodInfo = baseProps.hodInfo || {
+  let hodInfo = {
     name: 'Administrator',
     role: 'System Administrator',
     department: 'All Departments',
@@ -94,38 +98,48 @@ export const DevPageRenderer: React.FC = () => {
   if (devRoleMode === 'hod_ce') {
     assignedDepartmentCode = 'CE';
     hodInfo = {
-      name: 'Dr. Alan Turing',
-      role: 'Head of Department (HOD)',
+      name: 'Dr. Robert Vance',
+      role: 'Head of Department',
       department: 'Computer Engineering',
       departmentCode: 'CE',
     };
   } else if (devRoleMode === 'hod_it') {
     assignedDepartmentCode = 'IT';
     hodInfo = {
-      name: 'Dr. Grace Hopper',
-      role: 'Head of Department (HOD)',
+      name: 'Dr. Sarah Jenkins',
+      role: 'Head of Department',
       department: 'Information Technology',
       departmentCode: 'IT',
     };
   } else if (devRoleMode === 'hod_cse') {
     assignedDepartmentCode = 'CSE';
     hodInfo = {
-      name: 'Dr. Donald Knuth',
-      role: 'Head of Department (HOD)',
+      name: 'Dr. Vikram Shah',
+      role: 'Head of Department',
       department: 'Computer Science & Engineering',
       departmentCode: 'CSE',
     };
-  } else {
+  } else if (devRoleMode === 'hod_aiml') {
+    assignedDepartmentCode = 'AIML';
     hodInfo = {
-      name: 'Administrator',
-      role: 'System Administrator',
-      department: 'All Departments',
-      departmentCode: 'ALL',
+      name: 'Dr. Anita Roy',
+      role: 'Head of Department',
+      department: 'Artificial Intelligence & Machine Learning',
+      departmentCode: 'AIML',
     };
   }
 
+  const studentProp = baseProps?.student
+    ? {
+        ...baseProps.student,
+        division: studentDivisionMode,
+        divisionCode: studentDivisionMode === 'Division A' ? 'IT-1' : 'IT-2',
+      }
+    : undefined;
+
   const activeProps = {
     ...baseProps,
+    ...(studentProp ? { student: studentProp } : {}),
     userRole,
     assignedDepartmentCode,
     hodInfo,
@@ -168,6 +182,7 @@ export const DevPageRenderer: React.FC = () => {
                 <option value="Admin/Subjects/Index">Admin &rarr; Subjects/Index</option>
                 <option value="Admin/Divisions/Index">Admin &rarr; Divisions/Index</option>
                 <option value="Admin/Batches/Index">Admin &rarr; Batches/Index</option>
+                <option value="Admin/AcademicYears/Index">Admin &rarr; AcademicYears/Index</option>
                 <option value="Admin/Students/Index">Admin &rarr; Students/Index</option>
                 <option value="Admin/Electives/Index">Admin &rarr; Electives/Index</option>
                 <option value="Admin/Electives/Enrollment">Admin &rarr; Electives/Enrollment</option>
@@ -204,6 +219,7 @@ export const DevPageRenderer: React.FC = () => {
               <option value="hod_ce">HOD &mdash; Computer Engineering</option>
               <option value="hod_it">HOD &mdash; Information Technology</option>
               <option value="hod_cse">HOD &mdash; CSE</option>
+              <option value="hod_aiml">HOD &mdash; AIML</option>
             </select>
           </div>
 

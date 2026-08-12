@@ -9,6 +9,7 @@ export const DEPARTMENTS_LIST: DepartmentOption[] = [
   { code: 'CE', name: 'Computer Engineering' },
   { code: 'IT', name: 'Information Technology' },
   { code: 'CSE', name: 'Computer Science & Engineering' },
+  { code: 'AIML', name: 'Artificial Intelligence & Machine Learning' },
   { code: 'ECE', name: 'Electronics & Communication' },
   { code: 'ME', name: 'Mechanical Engineering' },
 ];

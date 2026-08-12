@@ -44,6 +44,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath, isCollapsed = fal
         { name: 'Subjects', href: '#Admin/Subjects/Index', icon: BookOpen },
         { name: 'Divisions', href: '#Admin/Divisions/Index', icon: Layers },
         { name: 'Batches', href: '#Admin/Batches/Index', icon: GraduationCap },
+        { name: 'Academic Years', href: '#Admin/AcademicYears/Index', icon: CalendarRange },
         { name: 'Students', href: '#Admin/Students/Index', icon: StudentIcon },
       ],
     },

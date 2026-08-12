@@ -148,6 +148,43 @@ export interface BatchesIndexProps {
   filters?: { search?: string };
 }
 
+// 7b. Admin/AcademicYears/Index
+export interface AcademicYearCohortStudent {
+  rollNo: string;
+  name: string;
+  department: string;
+  batch: string;
+  semester: number;
+  division: string;
+  status: 'Active' | 'Inactive';
+}
+
+export interface AcademicYearCohort {
+  id: string;
+  semester: number;
+  semesterType: 'Odd' | 'Even';
+  batch: string;
+  department: string;
+  departmentCode: string;
+  studentCount: number;
+  students: AcademicYearCohortStudent[];
+}
+
+export interface AcademicYearItem {
+  id: string;
+  academicYear: string; // e.g. "2025-26"
+  semesterType: 'Odd' | 'Even';
+  semesters: number[]; // e.g. [1, 3, 5, 7]
+  activeCohortsCount: number;
+  cohorts: AcademicYearCohort[];
+}
+
+export interface AcademicYearsIndexProps {
+  userRole?: 'admin' | 'hod';
+  assignedDepartmentCode?: string | null;
+  academicYears: AcademicYearItem[];
+}
+
 // 8. Admin/Students/Index
 export interface StudentItem {
   id: number;
@@ -362,6 +399,10 @@ export interface FacultyOption {
   name: string;
   designation: string;
   department?: string;
+  departmentCode?: string;
+  division?: string;
+  divisionCode?: string;
+  subjectCode?: string;
 }
 
 export interface FeedbackSubjectItem {
@@ -369,6 +410,7 @@ export interface FeedbackSubjectItem {
   subjectCode: string;
   subjectName: string;
   department: string;
+  departmentCode?: string;
   credits?: number;
   type?: 'Core' | 'Elective';
   facultyOptions: FacultyOption[];
@@ -388,7 +430,9 @@ export interface StudentFeedbackShowProps {
     program: string;
     batch: string;
     division: string;
+    divisionCode?: string;
     department?: string;
+    departmentCode?: string;
   };
   subjects: FeedbackSubjectItem[];
   feedbackItems?: FeedbackSubjectItem[];

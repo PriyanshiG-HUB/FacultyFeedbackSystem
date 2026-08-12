@@ -6,6 +6,7 @@ import {
   SubjectsIndexProps,
   DivisionsIndexProps,
   BatchesIndexProps,
+  AcademicYearsIndexProps,
   StudentsIndexProps,
   ElectivesIndexProps,
   ElectiveEnrollmentProps,
@@ -137,6 +138,432 @@ export const mockPropsMap: Record<string, any> = {
       { id: 2, name: 'Batch 2023-2027 (B.Tech IT)', academicYear: '2025-26', currentSemester: 5, department: 'Information Technology', status: 'Active' },
     ],
   } as BatchesIndexProps,
+
+  'Admin/AcademicYears/Index': {
+    academicYears: [
+      {
+        id: '2025-26',
+        academicYear: '2025-26',
+        semesterType: 'Odd',
+        semesters: [1, 3, 5, 7],
+        activeCohortsCount: 16,
+        cohorts: [
+          // Computer Engineering (CE) - Odd
+          {
+            id: '2025-26-sem7-ce',
+            semester: 7,
+            semesterType: 'Odd',
+            batch: 'Batch 2022-2026',
+            department: 'Computer Engineering',
+            departmentCode: 'CE',
+            studentCount: 65,
+            students: [
+              { rollNo: '22CE001', name: 'David Miller', department: 'Computer Engineering', batch: 'Batch 2022-2026', semester: 7, division: 'CE-1', status: 'Active' },
+              { rollNo: '22CE002', name: 'Emma Watson', department: 'Computer Engineering', batch: 'Batch 2022-2026', semester: 7, division: 'CE-1', status: 'Active' },
+            ],
+          },
+          {
+            id: '2025-26-sem5-ce',
+            semester: 5,
+            semesterType: 'Odd',
+            batch: 'Batch 2023-2027',
+            department: 'Computer Engineering',
+            departmentCode: 'CE',
+            studentCount: 64,
+            students: [
+              { rollNo: '23CE001', name: 'Benjamin Taylor', department: 'Computer Engineering', batch: 'Batch 2023-2027', semester: 5, division: 'CE-1', status: 'Active' },
+            ],
+          },
+          {
+            id: '2025-26-sem3-ce',
+            semester: 3,
+            semesterType: 'Odd',
+            batch: 'Batch 2024-2028',
+            department: 'Computer Engineering',
+            departmentCode: 'CE',
+            studentCount: 70,
+            students: [
+              { rollNo: '24CE001', name: 'Charlotte Evans', department: 'Computer Engineering', batch: 'Batch 2024-2028', semester: 3, division: 'CE-1', status: 'Active' },
+            ],
+          },
+          {
+            id: '2025-26-sem1-ce',
+            semester: 1,
+            semesterType: 'Odd',
+            batch: 'Batch 2025-2029',
+            department: 'Computer Engineering',
+            departmentCode: 'CE',
+            studentCount: 72,
+            students: [
+              { rollNo: '25CE001', name: 'Henry Clark', department: 'Computer Engineering', batch: 'Batch 2025-2029', semester: 1, division: 'CE-1', status: 'Active' },
+            ],
+          },
+
+          // Computer Science & Engineering (CSE) - Odd
+          {
+            id: '2025-26-sem7-cse',
+            semester: 7,
+            semesterType: 'Odd',
+            batch: 'Batch 2022-2026',
+            department: 'Computer Science & Engineering',
+            departmentCode: 'CSE',
+            studentCount: 70,
+            students: [
+              { rollNo: '22CSE001', name: 'Lucas Scott', department: 'Computer Science & Engineering', batch: 'Batch 2022-2026', semester: 7, division: 'CSE-1', status: 'Active' },
+            ],
+          },
+          {
+            id: '2025-26-sem5-cse',
+            semester: 5,
+            semesterType: 'Odd',
+            batch: 'Batch 2023-2027',
+            department: 'Computer Science & Engineering',
+            departmentCode: 'CSE',
+            studentCount: 68,
+            students: [
+              { rollNo: '23CSE001', name: 'Amelia Harris', department: 'Computer Science & Engineering', batch: 'Batch 2023-2027', semester: 5, division: 'CSE-1', status: 'Active' },
+            ],
+          },
+          {
+            id: '2025-26-sem3-cse',
+            semester: 3,
+            semesterType: 'Odd',
+            batch: 'Batch 2024-2028',
+            department: 'Computer Science & Engineering',
+            departmentCode: 'CSE',
+            studentCount: 74,
+            students: [
+              { rollNo: '24CSE001', name: 'Mason White', department: 'Computer Science & Engineering', batch: 'Batch 2024-2028', semester: 3, division: 'CSE-1', status: 'Active' },
+            ],
+          },
+          {
+            id: '2025-26-sem1-cse',
+            semester: 1,
+            semesterType: 'Odd',
+            batch: 'Batch 2025-2029',
+            department: 'Computer Science & Engineering',
+            departmentCode: 'CSE',
+            studentCount: 76,
+            students: [
+              { rollNo: '25CSE001', name: 'Harper King', department: 'Computer Science & Engineering', batch: 'Batch 2025-2029', semester: 1, division: 'CSE-1', status: 'Active' },
+            ],
+          },
+
+          // Information Technology (IT) - Odd
+          {
+            id: '2025-26-sem7-it',
+            semester: 7,
+            semesterType: 'Odd',
+            batch: 'Batch 2022-2026',
+            department: 'Information Technology',
+            departmentCode: 'IT',
+            studentCount: 62,
+            students: [
+              { rollNo: '22IT001', name: 'Alex Turner', department: 'Information Technology', batch: 'Batch 2022-2026', semester: 7, division: 'IT-1', status: 'Active' },
+              { rollNo: '22IT002', name: 'Sophia Martinez', department: 'Information Technology', batch: 'Batch 2022-2026', semester: 7, division: 'IT-1', status: 'Active' },
+              { rollNo: '22IT021', name: 'Ethan Hunt', department: 'Information Technology', batch: 'Batch 2022-2026', semester: 7, division: 'IT-2', status: 'Active' },
+            ],
+          },
+          {
+            id: '2025-26-sem5-it',
+            semester: 5,
+            semesterType: 'Odd',
+            batch: 'Batch 2023-2027',
+            department: 'Information Technology',
+            departmentCode: 'IT',
+            studentCount: 68,
+            students: [
+              { rollNo: '23IT001', name: 'Liam Johnson', department: 'Information Technology', batch: 'Batch 2023-2027', semester: 5, division: 'IT-1', status: 'Active' },
+              { rollNo: '23IT002', name: 'Emma Watson', department: 'Information Technology', batch: 'Batch 2023-2027', semester: 5, division: 'IT-1', status: 'Active' },
+            ],
+          },
+          {
+            id: '2025-26-sem3-it',
+            semester: 3,
+            semesterType: 'Odd',
+            batch: 'Batch 2024-2028',
+            department: 'Information Technology',
+            departmentCode: 'IT',
+            studentCount: 71,
+            students: [
+              { rollNo: '24IT001', name: 'Oliver Smith', department: 'Information Technology', batch: 'Batch 2024-2028', semester: 3, division: 'IT-1', status: 'Active' },
+            ],
+          },
+          {
+            id: '2025-26-sem1-it',
+            semester: 1,
+            semesterType: 'Odd',
+            batch: 'Batch 2025-2029',
+            department: 'Information Technology',
+            departmentCode: 'IT',
+            studentCount: 75,
+            students: [
+              { rollNo: '25IT001', name: 'James Wilson', department: 'Information Technology', batch: 'Batch 2025-2029', semester: 1, division: 'IT-1', status: 'Active' },
+            ],
+          },
+
+          // Artificial Intelligence & Machine Learning (AIML) - Odd
+          {
+            id: '2025-26-sem7-aiml',
+            semester: 7,
+            semesterType: 'Odd',
+            batch: 'Batch 2022-2026',
+            department: 'Artificial Intelligence & Machine Learning',
+            departmentCode: 'AIML',
+            studentCount: 60,
+            students: [
+              { rollNo: '22AIML001', name: 'Aarav Patel', department: 'Artificial Intelligence & Machine Learning', batch: 'Batch 2022-2026', semester: 7, division: 'AIML-1', status: 'Active' },
+            ],
+          },
+          {
+            id: '2025-26-sem5-aiml',
+            semester: 5,
+            semesterType: 'Odd',
+            batch: 'Batch 2023-2027',
+            department: 'Artificial Intelligence & Machine Learning',
+            departmentCode: 'AIML',
+            studentCount: 64,
+            students: [
+              { rollNo: '23AIML001', name: 'Ananya Sharma', department: 'Artificial Intelligence & Machine Learning', batch: 'Batch 2023-2027', semester: 5, division: 'AIML-1', status: 'Active' },
+            ],
+          },
+          {
+            id: '2025-26-sem3-aiml',
+            semester: 3,
+            semesterType: 'Odd',
+            batch: 'Batch 2024-2028',
+            department: 'Artificial Intelligence & Machine Learning',
+            departmentCode: 'AIML',
+            studentCount: 66,
+            students: [
+              { rollNo: '24AIML001', name: 'Rohan Gupta', department: 'Artificial Intelligence & Machine Learning', batch: 'Batch 2024-2028', semester: 3, division: 'AIML-1', status: 'Active' },
+            ],
+          },
+          {
+            id: '2025-26-sem1-aiml',
+            semester: 1,
+            semesterType: 'Odd',
+            batch: 'Batch 2025-2029',
+            department: 'Artificial Intelligence & Machine Learning',
+            departmentCode: 'AIML',
+            studentCount: 70,
+            students: [
+              { rollNo: '25AIML001', name: 'Diya Verma', department: 'Artificial Intelligence & Machine Learning', batch: 'Batch 2025-2029', semester: 1, division: 'AIML-1', status: 'Active' },
+            ],
+          },
+        ],
+      },
+      {
+        id: '2026-27',
+        academicYear: '2026-27',
+        semesterType: 'Even',
+        semesters: [2, 4, 6, 8],
+        activeCohortsCount: 16,
+        cohorts: [
+          // Computer Engineering (CE) - Even
+          {
+            id: '2026-27-sem8-ce',
+            semester: 8,
+            semesterType: 'Even',
+            batch: 'Batch 2022-2026',
+            department: 'Computer Engineering',
+            departmentCode: 'CE',
+            studentCount: 65,
+            students: [
+              { rollNo: '22CE001', name: 'David Miller', department: 'Computer Engineering', batch: 'Batch 2022-2026', semester: 8, division: 'CE-1', status: 'Active' },
+            ],
+          },
+          {
+            id: '2026-27-sem6-ce',
+            semester: 6,
+            semesterType: 'Even',
+            batch: 'Batch 2023-2027',
+            department: 'Computer Engineering',
+            departmentCode: 'CE',
+            studentCount: 64,
+            students: [
+              { rollNo: '23CE001', name: 'Benjamin Taylor', department: 'Computer Engineering', batch: 'Batch 2023-2027', semester: 6, division: 'CE-1', status: 'Active' },
+            ],
+          },
+          {
+            id: '2026-27-sem4-ce',
+            semester: 4,
+            semesterType: 'Even',
+            batch: 'Batch 2024-2028',
+            department: 'Computer Engineering',
+            departmentCode: 'CE',
+            studentCount: 70,
+            students: [
+              { rollNo: '24CE001', name: 'Charlotte Evans', department: 'Computer Engineering', batch: 'Batch 2024-2028', semester: 4, division: 'CE-1', status: 'Active' },
+            ],
+          },
+          {
+            id: '2026-27-sem2-ce',
+            semester: 2,
+            semesterType: 'Even',
+            batch: 'Batch 2025-2029',
+            department: 'Computer Engineering',
+            departmentCode: 'CE',
+            studentCount: 72,
+            students: [
+              { rollNo: '25CE001', name: 'Henry Clark', department: 'Computer Engineering', batch: 'Batch 2025-2029', semester: 2, division: 'CE-1', status: 'Active' },
+            ],
+          },
+
+          // Computer Science & Engineering (CSE) - Even
+          {
+            id: '2026-27-sem8-cse',
+            semester: 8,
+            semesterType: 'Even',
+            batch: 'Batch 2022-2026',
+            department: 'Computer Science & Engineering',
+            departmentCode: 'CSE',
+            studentCount: 70,
+            students: [
+              { rollNo: '22CSE001', name: 'Lucas Scott', department: 'Computer Science & Engineering', batch: 'Batch 2022-2026', semester: 8, division: 'CSE-1', status: 'Active' },
+            ],
+          },
+          {
+            id: '2026-27-sem6-cse',
+            semester: 6,
+            semesterType: 'Even',
+            batch: 'Batch 2023-2027',
+            department: 'Computer Science & Engineering',
+            departmentCode: 'CSE',
+            studentCount: 68,
+            students: [
+              { rollNo: '23CSE001', name: 'Amelia Harris', department: 'Computer Science & Engineering', batch: 'Batch 2023-2027', semester: 6, division: 'CSE-1', status: 'Active' },
+            ],
+          },
+          {
+            id: '2026-27-sem4-cse',
+            semester: 4,
+            semesterType: 'Even',
+            batch: 'Batch 2024-2028',
+            department: 'Computer Science & Engineering',
+            departmentCode: 'CSE',
+            studentCount: 74,
+            students: [
+              { rollNo: '24CSE001', name: 'Mason White', department: 'Computer Science & Engineering', batch: 'Batch 2024-2028', semester: 4, division: 'CSE-1', status: 'Active' },
+            ],
+          },
+          {
+            id: '2026-27-sem2-cse',
+            semester: 2,
+            semesterType: 'Even',
+            batch: 'Batch 2025-2029',
+            department: 'Computer Science & Engineering',
+            departmentCode: 'CSE',
+            studentCount: 76,
+            students: [
+              { rollNo: '25CSE001', name: 'Harper King', department: 'Computer Science & Engineering', batch: 'Batch 2025-2029', semester: 2, division: 'CSE-1', status: 'Active' },
+            ],
+          },
+
+          // Information Technology (IT) - Even
+          {
+            id: '2026-27-sem8-it',
+            semester: 8,
+            semesterType: 'Even',
+            batch: 'Batch 2022-2026',
+            department: 'Information Technology',
+            departmentCode: 'IT',
+            studentCount: 62,
+            students: [
+              { rollNo: '22IT001', name: 'Alex Turner', department: 'Information Technology', batch: 'Batch 2022-2026', semester: 8, division: 'IT-1', status: 'Active' },
+              { rollNo: '22IT002', name: 'Sophia Martinez', department: 'Information Technology', batch: 'Batch 2022-2026', semester: 8, division: 'IT-1', status: 'Active' },
+            ],
+          },
+          {
+            id: '2026-27-sem6-it',
+            semester: 6,
+            semesterType: 'Even',
+            batch: 'Batch 2023-2027',
+            department: 'Information Technology',
+            departmentCode: 'IT',
+            studentCount: 68,
+            students: [
+              { rollNo: '23IT001', name: 'Liam Johnson', department: 'Information Technology', batch: 'Batch 2023-2027', semester: 6, division: 'IT-1', status: 'Active' },
+            ],
+          },
+          {
+            id: '2026-27-sem4-it',
+            semester: 4,
+            semesterType: 'Even',
+            batch: 'Batch 2024-2028',
+            department: 'Information Technology',
+            departmentCode: 'IT',
+            studentCount: 71,
+            students: [
+              { rollNo: '24IT001', name: 'Oliver Smith', department: 'Information Technology', batch: 'Batch 2024-2028', semester: 4, division: 'IT-1', status: 'Active' },
+            ],
+          },
+          {
+            id: '2026-27-sem2-it',
+            semester: 2,
+            semesterType: 'Even',
+            batch: 'Batch 2025-2029',
+            department: 'Information Technology',
+            departmentCode: 'IT',
+            studentCount: 75,
+            students: [
+              { rollNo: '25IT001', name: 'James Wilson', department: 'Information Technology', batch: 'Batch 2025-2029', semester: 2, division: 'IT-1', status: 'Active' },
+            ],
+          },
+
+          // Artificial Intelligence & Machine Learning (AIML) - Even
+          {
+            id: '2026-27-sem8-aiml',
+            semester: 8,
+            semesterType: 'Even',
+            batch: 'Batch 2022-2026',
+            department: 'Artificial Intelligence & Machine Learning',
+            departmentCode: 'AIML',
+            studentCount: 60,
+            students: [
+              { rollNo: '22AIML001', name: 'Aarav Patel', department: 'Artificial Intelligence & Machine Learning', batch: 'Batch 2022-2026', semester: 8, division: 'AIML-1', status: 'Active' },
+            ],
+          },
+          {
+            id: '2026-27-sem6-aiml',
+            semester: 6,
+            semesterType: 'Even',
+            batch: 'Batch 2023-2027',
+            department: 'Artificial Intelligence & Machine Learning',
+            departmentCode: 'AIML',
+            studentCount: 64,
+            students: [
+              { rollNo: '23AIML001', name: 'Ananya Sharma', department: 'Artificial Intelligence & Machine Learning', batch: 'Batch 2023-2027', semester: 6, division: 'AIML-1', status: 'Active' },
+            ],
+          },
+          {
+            id: '2026-27-sem4-aiml',
+            semester: 4,
+            semesterType: 'Even',
+            batch: 'Batch 2024-2028',
+            department: 'Artificial Intelligence & Machine Learning',
+            departmentCode: 'AIML',
+            studentCount: 66,
+            students: [
+              { rollNo: '24AIML001', name: 'Rohan Gupta', department: 'Artificial Intelligence & Machine Learning', batch: 'Batch 2024-2028', semester: 4, division: 'AIML-1', status: 'Active' },
+            ],
+          },
+          {
+            id: '2026-27-sem2-aiml',
+            semester: 2,
+            semesterType: 'Even',
+            batch: 'Batch 2025-2029',
+            department: 'Artificial Intelligence & Machine Learning',
+            departmentCode: 'AIML',
+            studentCount: 70,
+            students: [
+              { rollNo: '25AIML001', name: 'Diya Verma', department: 'Artificial Intelligence & Machine Learning', batch: 'Batch 2025-2029', semester: 2, division: 'AIML-1', status: 'Active' },
+            ],
+          },
+        ],
+      },
+    ],
+  } as AcademicYearsIndexProps,
 
   'Admin/Students/Index': {
     students: [
@@ -289,8 +716,10 @@ export const mockPropsMap: Record<string, any> = {
       name: 'Alex Turner',
       program: 'B.Tech Information Technology',
       department: 'Information Technology',
+      departmentCode: 'IT',
       batch: 'Batch 2022-2026',
       division: 'Division A',
+      divisionCode: 'IT-1',
     },
   } as StudentIdentifyProps,
 
@@ -302,8 +731,10 @@ export const mockPropsMap: Record<string, any> = {
       role: 'Student',
       program: 'B.Tech (Information Technology)',
       department: 'Information Technology',
+      departmentCode: 'IT',
       batch: 'Batch 2022-2026',
       division: 'Division A',
+      divisionCode: 'IT-1',
     },
     academicYear: '2025-26',
     term: 'Odd Semester (Sem 7)',
@@ -315,9 +746,11 @@ export const mockPropsMap: Record<string, any> = {
         credits: 4,
         type: 'Core',
         department: 'Information Technology',
+        departmentCode: 'IT',
         facultyOptions: [
-          { id: 1, name: 'Dr. Sarah Jenkins', designation: 'Professor', department: 'Information Technology' },
-          { id: 2, name: 'Prof. Michael Chang', designation: 'Associate Professor', department: 'Information Technology' },
+          { id: 1, name: 'Dr. Sarah Jenkins', designation: 'Professor', department: 'Information Technology', departmentCode: 'IT', division: 'Division A', divisionCode: 'IT-1', subjectCode: 'IT701' },
+          { id: 2, name: 'Prof. Sagar Patel', designation: 'Assistant Professor', department: 'Information Technology', departmentCode: 'IT', division: 'Division A', divisionCode: 'IT-1', subjectCode: 'IT701' },
+          { id: 3, name: 'Prof. Nishat Shaikh', designation: 'Associate Professor', department: 'Information Technology', departmentCode: 'IT', division: 'Division B', divisionCode: 'IT-2', subjectCode: 'IT701' },
         ],
       },
       {
@@ -327,8 +760,11 @@ export const mockPropsMap: Record<string, any> = {
         credits: 4,
         type: 'Core',
         department: 'Information Technology',
+        departmentCode: 'IT',
         facultyOptions: [
-          { id: 3, name: 'Dr. Robert Smith', designation: 'Professor', department: 'Information Technology' },
+          { id: 4, name: 'Dr. Robert Smith', designation: 'Professor', department: 'Information Technology', departmentCode: 'IT', division: 'Division A', divisionCode: 'IT-1', subjectCode: 'IT702' },
+          { id: 5, name: 'Prof. Amit Shah', designation: 'Associate Professor', department: 'Information Technology', departmentCode: 'IT', division: 'Division A', divisionCode: 'IT-1', subjectCode: 'IT702' },
+          { id: 6, name: 'Dr. Emily Brown', designation: 'Professor', department: 'Information Technology', departmentCode: 'IT', division: 'Division B', divisionCode: 'IT-2', subjectCode: 'IT702' },
         ],
       },
       {
@@ -338,9 +774,10 @@ export const mockPropsMap: Record<string, any> = {
         credits: 3,
         type: 'Core',
         department: 'Information Technology',
+        departmentCode: 'IT',
         facultyOptions: [
-          { id: 4, name: 'Dr. Emily Brown', designation: 'Professor', department: 'Information Technology' },
-          { id: 5, name: 'Dr. David Wilson', designation: 'Assistant Professor', department: 'Information Technology' },
+          { id: 7, name: 'Dr. David Wilson', designation: 'Assistant Professor', department: 'Information Technology', departmentCode: 'IT', division: 'Division A', divisionCode: 'IT-1', subjectCode: 'IT703' },
+          { id: 8, name: 'Prof. Alan Turing', designation: 'Professor', department: 'Information Technology', departmentCode: 'IT', division: 'Division B', divisionCode: 'IT-2', subjectCode: 'IT703' },
         ],
       },
       {
@@ -350,8 +787,10 @@ export const mockPropsMap: Record<string, any> = {
         credits: 4,
         type: 'Core',
         department: 'Information Technology',
+        departmentCode: 'IT',
         facultyOptions: [
-          { id: 6, name: 'Prof. Alan Turing', designation: 'Professor', department: 'Information Technology' },
+          { id: 9, name: 'Dr. Claude Shannon', designation: 'Professor', department: 'Information Technology', departmentCode: 'IT', division: 'Division A', divisionCode: 'IT-1', subjectCode: 'IT704' },
+          { id: 10, name: 'Dr. Grace Hopper', designation: 'Associate Professor', department: 'Information Technology', departmentCode: 'IT', division: 'Division B', divisionCode: 'IT-2', subjectCode: 'IT704' },
         ],
       },
       {
@@ -361,9 +800,9 @@ export const mockPropsMap: Record<string, any> = {
         credits: 4,
         type: 'Core',
         department: 'Information Technology',
+        departmentCode: 'IT',
         facultyOptions: [
-          { id: 7, name: 'Dr. Claude Shannon', designation: 'Professor', department: 'Information Technology' },
-          { id: 8, name: 'Dr. Grace Hopper', designation: 'Associate Professor', department: 'Information Technology' },
+          { id: 11, name: 'Prof. James Gosling', designation: 'Assistant Professor', department: 'Information Technology', departmentCode: 'IT', division: 'Division A', divisionCode: 'IT-1', subjectCode: 'IT705' },
         ],
       },
       {
@@ -373,19 +812,9 @@ export const mockPropsMap: Record<string, any> = {
         credits: 3,
         type: 'Core',
         department: 'Information Technology',
+        departmentCode: 'IT',
         facultyOptions: [
-          { id: 9, name: 'Prof. James Gosling', designation: 'Assistant Professor', department: 'Information Technology' },
-        ],
-      },
-      {
-        id: 7,
-        subjectCode: 'IT707',
-        subjectName: 'Web Development & Cloud Architecture',
-        credits: 3,
-        type: 'Elective',
-        department: 'Information Technology',
-        facultyOptions: [
-          { id: 10, name: 'Dr. Linus Torvalds', designation: 'Professor', department: 'Information Technology' },
+          { id: 12, name: 'Dr. Linus Torvalds', designation: 'Professor', department: 'Information Technology', departmentCode: 'IT', division: 'Division A', divisionCode: 'IT-1', subjectCode: 'IT706' },
         ],
       },
     ],
