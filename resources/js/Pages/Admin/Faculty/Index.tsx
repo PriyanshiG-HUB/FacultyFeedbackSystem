@@ -9,9 +9,28 @@ import { Input, Select } from '../../../Components/ui/Input';
 import { useForm } from '../../../Components/shared/useForm';
 import { Plus, Mail, Filter } from 'lucide-react';
 
-export default function Index({ faculty, departments }: FacultyIndexProps) {
-  const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>('all');
+import { getDepartmentName, filterItemsByDepartment } from '../../../utils/departmentScope';
+
+export default function Index({
+  userRole = 'admin',
+  assignedDepartmentCode = null,
+  faculty,
+  departments,
+}: FacultyIndexProps & { userRole?: 'admin' | 'hod'; assignedDepartmentCode?: string | null }) {
+  const isAdministrator = userRole === 'admin';
+  const initialFilter = !isAdministrator && assignedDepartmentCode
+    ? getDepartmentName(assignedDepartmentCode)
+    : 'all';
+
+  const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>(initialFilter);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Synchronize filter when role/assigned department prop changes
+  React.useEffect(() => {
+    if (!isAdministrator && assignedDepartmentCode) {
+      setSelectedDeptFilter(getDepartmentName(assignedDepartmentCode));
+    }
+  }, [isAdministrator, assignedDepartmentCode]);
 
   const form = useForm({
     name: '',
@@ -21,8 +40,12 @@ export default function Index({ faculty, departments }: FacultyIndexProps) {
   });
 
   const filteredFaculty = faculty.filter((f) => {
+    if (!isAdministrator && assignedDepartmentCode) {
+      const targetDeptName = getDepartmentName(assignedDepartmentCode).toLowerCase();
+      return f.department.toLowerCase().includes(targetDeptName) || targetDeptName.includes(f.department.toLowerCase());
+    }
     if (selectedDeptFilter === 'all') return true;
-    return f.department === selectedDeptFilter;
+    return f.department.toLowerCase() === selectedDeptFilter.toLowerCase();
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -71,35 +94,52 @@ export default function Index({ faculty, departments }: FacultyIndexProps) {
   ];
 
   return (
-    <AdminLayout title="Faculty Directory" currentPath="#Admin/Faculty/Index">
+    <AdminLayout
+      title="Faculty Directory"
+      currentPath="#Admin/Faculty/Index"
+      userRole={userRole}
+      departmentScope={isAdministrator ? 'All Departments' : getDepartmentName(assignedDepartmentCode)}
+    >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-slate-900">Faculty Members</h2>
-          <p className="text-xs text-slate-500">View and manage teaching staff across all academic departments</p>
+          <p className="text-xs text-slate-500">
+            {isAdministrator
+              ? 'View and manage teaching staff across all academic departments'
+              : `View faculty members assigned to ${getDepartmentName(assignedDepartmentCode)}`}
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Department Filter */}
-          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200 text-xs shadow-2xs">
-            <Filter className="w-3.5 h-3.5 text-slate-400" />
-            <select
-              value={selectedDeptFilter}
-              onChange={(e) => setSelectedDeptFilter(e.target.value)}
-              className="bg-transparent text-slate-800 font-medium focus:outline-none cursor-pointer"
-            >
-              <option value="all">All Departments</option>
-              {departments.map((dept) => (
-                <option key={dept.id} value={dept.name}>
-                  {dept.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Department Filter for Admin vs Scope Indicator for HOD */}
+          {isAdministrator ? (
+            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200 text-xs shadow-2xs">
+              <Filter className="w-3.5 h-3.5 text-slate-400" />
+              <select
+                value={selectedDeptFilter}
+                onChange={(e) => setSelectedDeptFilter(e.target.value)}
+                className="bg-transparent text-slate-800 font-medium focus:outline-none cursor-pointer"
+              >
+                <option value="all">All Departments</option>
+                {departments.map((dept) => (
+                  <option key={dept.id} value={dept.name}>
+                    {dept.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <span className="px-3 py-1 bg-blue-50 text-blue-800 font-extrabold text-xs rounded-lg border border-blue-200">
+              Scope: {getDepartmentName(assignedDepartmentCode)} Only
+            </span>
+          )}
 
-          <Button variant="primary" onClick={() => setIsModalOpen(true)}>
-            <Plus className="w-4 h-4 mr-1.5" />
-            Register Faculty
-          </Button>
+          {isAdministrator && (
+            <Button variant="primary" onClick={() => setIsModalOpen(true)}>
+              <Plus className="w-4 h-4 mr-1.5" />
+              Register Faculty
+            </Button>
+          )}
         </div>
       </div>
 

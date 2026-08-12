@@ -6,8 +6,27 @@ import { StatusBadge } from '../../../Components/ui/StatusBadge';
 import { Button } from '../../../Components/ui/Button';
 import { FileText, Download, Send } from 'lucide-react';
 
-export default function Index({ departmentName = 'Computer Engineering', reports: initialReports }: ReportsIndexProps) {
+import { getDepartmentName, ADMIN_DEPARTMENT_OPTIONS } from '../../../utils/departmentScope';
+import { Filter } from 'lucide-react';
+
+export default function Index({
+  userRole = 'admin',
+  assignedDepartmentCode = null,
+  departmentName = 'Computer Engineering',
+  reports: initialReports,
+}: ReportsIndexProps & { userRole?: 'admin' | 'hod'; assignedDepartmentCode?: string | null }) {
+  const isAdministrator = userRole === 'admin';
+  const [selectedDeptCode, setSelectedDeptCode] = React.useState<string>(
+    assignedDepartmentCode || 'ALL'
+  );
+
   const [reports, setReports] = React.useState(initialReports);
+
+  const currentDeptName = isAdministrator
+    ? selectedDeptCode === 'ALL'
+      ? 'All Departments'
+      : getDepartmentName(selectedDeptCode)
+    : departmentName || getDepartmentName(assignedDepartmentCode);
 
   const togglePublish = (id: number) => {
     setReports((prev) =>
@@ -58,19 +77,46 @@ export default function Index({ departmentName = 'Computer Engineering', reports
   ];
 
   return (
-    <AdminLayout title="Department Reports" currentPath="#Admin/Reports/Index">
+    <AdminLayout
+      title="Department Evaluation Reports"
+      currentPath="#Admin/Reports/Index"
+      userRole={userRole}
+      departmentScope={currentDeptName}
+    >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-blue-50 border border-blue-200 rounded-full text-blue-700 text-[11px] font-bold uppercase tracking-wider mb-1">
-            HOD Portal &bull; {departmentName}
+            {isAdministrator ? 'ADMINISTRATOR SCOPE' : 'HOD SCOPE'} &bull; {currentDeptName}
           </div>
-          <h2 className="text-xl font-bold text-slate-900">{departmentName} — Evaluation Reports</h2>
-          <p className="text-xs text-slate-500">Official department evaluation reports ready for publication and faculty download</p>
+          <h2 className="text-xl font-bold text-slate-900">{currentDeptName} — Evaluation Reports</h2>
+          <p className="text-xs text-slate-500">
+            Official department evaluation reports ready for publication and faculty download
+          </p>
         </div>
-        <Button variant="primary" onClick={() => alert('Generate New Evaluation Report action')}>
-          <Send className="w-4 h-4 mr-1.5" />
-          Generate New Report
-        </Button>
+
+        <div className="flex items-center gap-3">
+          {isAdministrator && (
+            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200 text-xs shadow-2xs">
+              <Filter className="w-3.5 h-3.5 text-slate-400" />
+              <select
+                value={selectedDeptCode}
+                onChange={(e) => setSelectedDeptCode(e.target.value)}
+                className="bg-transparent text-slate-800 font-medium focus:outline-none cursor-pointer"
+              >
+                {ADMIN_DEPARTMENT_OPTIONS.map((d) => (
+                  <option key={d.code} value={d.code}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <Button variant="primary" onClick={() => alert('Generate New Evaluation Report action')}>
+            <Send className="w-4 h-4 mr-1.5" />
+            Generate New Report
+          </Button>
+        </div>
       </div>
 
       <DataTable

@@ -56,7 +56,7 @@ const componentRegistry: Record<string, React.ComponentType<any>> = {
 
 export const DevPageRenderer: React.FC = () => {
   const [activePage, setActivePage] = useState<string>('Admin/Dashboard');
-  const [isHeaderExpanded, setIsHeaderExpanded] = useState<boolean>(true);
+  const [devRoleMode, setDevRoleMode] = useState<string>('admin');
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -77,13 +77,66 @@ export const DevPageRenderer: React.FC = () => {
   };
 
   const PageComponent = componentRegistry[activePage] || AdminDashboard;
-  const props = mockPropsMap[activePage] || mockPropsMap['Admin/Dashboard'];
+  const baseProps = mockPropsMap[activePage] || mockPropsMap['Admin/Dashboard'];
+
+  // Role Scope Mock Props Generation
+  const isHodRole = devRoleMode.startsWith('hod_');
+  const userRole = isHodRole ? 'hod' : 'admin';
+  
+  let assignedDepartmentCode: string | null = null;
+  let hodInfo = baseProps.hodInfo || {
+    name: 'Administrator',
+    role: 'System Administrator',
+    department: 'All Departments',
+    departmentCode: 'ALL',
+  };
+
+  if (devRoleMode === 'hod_ce') {
+    assignedDepartmentCode = 'CE';
+    hodInfo = {
+      name: 'Dr. Alan Turing',
+      role: 'Head of Department (HOD)',
+      department: 'Computer Engineering',
+      departmentCode: 'CE',
+    };
+  } else if (devRoleMode === 'hod_it') {
+    assignedDepartmentCode = 'IT';
+    hodInfo = {
+      name: 'Dr. Grace Hopper',
+      role: 'Head of Department (HOD)',
+      department: 'Information Technology',
+      departmentCode: 'IT',
+    };
+  } else if (devRoleMode === 'hod_cse') {
+    assignedDepartmentCode = 'CSE';
+    hodInfo = {
+      name: 'Dr. Donald Knuth',
+      role: 'Head of Department (HOD)',
+      department: 'Computer Science & Engineering',
+      departmentCode: 'CSE',
+    };
+  } else {
+    hodInfo = {
+      name: 'Administrator',
+      role: 'System Administrator',
+      department: 'All Departments',
+      departmentCode: 'ALL',
+    };
+  }
+
+  const activeProps = {
+    ...baseProps,
+    userRole,
+    assignedDepartmentCode,
+    hodInfo,
+    departmentName: hodInfo.department,
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col relative">
       {/* Dev Harness Header Bar - Embedded at the top header */}
       <header className="sticky top-0 z-50 bg-slate-900 text-slate-100 border-b border-slate-800 shadow-md">
-        <div className="px-4 py-2 flex items-center justify-between gap-4 text-xs">
+        <div className="px-4 py-2 flex flex-wrap items-center justify-between gap-3 text-xs">
           {/* Brand & Active Inertia Route */}
           <div className="flex items-center gap-2.5">
             <div className="p-1.5 rounded-lg bg-indigo-600 text-white">
@@ -98,14 +151,14 @@ export const DevPageRenderer: React.FC = () => {
           </div>
 
           {/* Controller Page Selector Dropdown */}
-          <div className="flex items-center gap-2 flex-1 max-w-md justify-center">
+          <div className="flex items-center gap-2 flex-1 max-w-sm justify-center">
             <label className="hidden md:inline-block text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">
-              Switch Page:
+              Page:
             </label>
             <select
               value={activePage}
               onChange={(e) => changePage(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 hover:border-indigo-500 rounded-lg px-3 py-1.5 text-xs text-slate-100 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer transition-all"
+              className="w-full bg-slate-800 border border-slate-700 hover:border-indigo-500 rounded-lg px-2.5 py-1 text-xs text-slate-100 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer transition-all"
             >
               <optgroup label="ADMIN CONTROLLERS">
                 <option value="Admin/Dashboard">Admin &rarr; Dashboard</option>
@@ -137,12 +190,32 @@ export const DevPageRenderer: React.FC = () => {
             </select>
           </div>
 
+          {/* Dev Role Preview Switcher Dropdown */}
+          <div className="flex items-center gap-2">
+            <label className="hidden lg:inline-block text-[11px] font-bold text-amber-400 uppercase tracking-wider whitespace-nowrap">
+              Preview Access Level:
+            </label>
+            <select
+              value={devRoleMode}
+              onChange={(e) => setDevRoleMode(e.target.value)}
+              className="bg-amber-950/80 border border-amber-600/70 hover:border-amber-400 rounded-lg px-2.5 py-1 text-xs text-amber-200 font-extrabold focus:outline-none cursor-pointer"
+            >
+              <option value="admin">Administrator &mdash; All Departments</option>
+              <option value="hod_ce">HOD &mdash; Computer Engineering</option>
+              <option value="hod_it">HOD &mdash; Information Technology</option>
+              <option value="hod_cse">HOD &mdash; CSE</option>
+            </select>
+          </div>
+
           {/* Role Shortcut Badges & Compact Toggle */}
           <div className="flex items-center gap-2">
             <button
-              onClick={() => changePage('Admin/Dashboard')}
+              onClick={() => {
+                setDevRoleMode('admin');
+                changePage('Admin/Dashboard');
+              }}
               className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all ${
-                activePage.startsWith('Admin/')
+                userRole === 'admin'
                   ? 'bg-indigo-600 text-white shadow-xs'
                   : 'bg-slate-800 text-slate-400 hover:text-slate-200'
               }`}
@@ -174,7 +247,7 @@ export const DevPageRenderer: React.FC = () => {
       </header>
 
       {/* Render Active Inertia Page with Injected Controller Props */}
-      <PageComponent {...props} />
+      <PageComponent {...activeProps} />
     </div>
   );
 };

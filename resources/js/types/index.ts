@@ -7,14 +7,28 @@ export interface User {
   role: 'admin' | 'faculty' | 'student';
 }
 
+export interface DepartmentSummary {
+  code: string;
+  name: string;
+  hod: string;
+  studentCount: number;
+  facultyCount: number;
+  avgRating: number;
+  completionRate: number;
+}
+
 // 1. Admin/Dashboard
 export interface AdminDashboardProps {
+  userRole?: 'admin' | 'hod';
+  assignedDepartmentCode?: string | null;
+  activeDepartmentCode?: string | null;
   hodInfo?: {
     name: string;
     role: string;
     department: string;
     departmentCode: string;
   };
+  departmentOverviews?: DepartmentSummary[];
   stats: {
     label: string;
     value: string | number;
@@ -55,10 +69,15 @@ export interface DepartmentItem {
   code: string;
   hod: string;
   facultyCount: number;
+  studentCount?: number;
+  avgRating?: number;
+  completionRate?: number;
   status: 'Active' | 'Inactive';
 }
 
 export interface DepartmentsIndexProps {
+  userRole?: 'admin' | 'hod';
+  assignedDepartmentCode?: string | null;
   departments: DepartmentItem[];
   filters?: { search?: string };
 }

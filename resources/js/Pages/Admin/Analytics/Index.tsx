@@ -14,20 +14,60 @@ import {
   Legend,
 } from 'recharts';
 
+import { getDepartmentName, ADMIN_DEPARTMENT_OPTIONS } from '../../../utils/departmentScope';
+import { Filter } from 'lucide-react';
+
 export default function Index({
+  userRole = 'admin',
+  assignedDepartmentCode = null,
   departmentName = 'Computer Engineering',
   departmentRatings,
   topFaculty,
   scoreDistribution,
-}: AnalyticsIndexProps) {
+}: AnalyticsIndexProps & { userRole?: 'admin' | 'hod'; assignedDepartmentCode?: string | null }) {
+  const isAdministrator = userRole === 'admin';
+  const [selectedDeptCode, setSelectedDeptCode] = React.useState<string>(
+    assignedDepartmentCode || 'ALL'
+  );
+
+  const currentDeptName = isAdministrator
+    ? selectedDeptCode === 'ALL'
+      ? 'All Departments'
+      : getDepartmentName(selectedDeptCode)
+    : departmentName || getDepartmentName(assignedDepartmentCode);
+
   return (
-    <AdminLayout title="Analytics & Insights" currentPath="#Admin/Analytics/Index">
-      <div>
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-blue-50 border border-blue-200 rounded-full text-blue-700 text-[11px] font-bold uppercase tracking-wider mb-1">
-          HOD Portal &bull; {departmentName}
+    <AdminLayout
+      title="Analytics & Insights"
+      currentPath="#Admin/Analytics/Index"
+      userRole={userRole}
+      departmentScope={currentDeptName}
+    >
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-blue-50 border border-blue-200 rounded-full text-blue-700 text-[11px] font-bold uppercase tracking-wider mb-1">
+            {isAdministrator ? 'ADMINISTRATOR SCOPE' : 'HOD SCOPE'} &bull; {currentDeptName}
+          </div>
+          <h2 className="text-xl font-bold text-slate-900">{currentDeptName} — Feedback Analytics</h2>
+          <p className="text-xs text-slate-500">Deep-dive performance metrics across subjects and parameters for {currentDeptName}</p>
         </div>
-        <h2 className="text-xl font-bold text-slate-900">{departmentName} — Feedback Analytics</h2>
-        <p className="text-xs text-slate-500">Deep-dive performance metrics across subjects and parameters for {departmentName}</p>
+
+        {isAdministrator && (
+          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200 text-xs shadow-2xs">
+            <Filter className="w-3.5 h-3.5 text-slate-400" />
+            <select
+              value={selectedDeptCode}
+              onChange={(e) => setSelectedDeptCode(e.target.value)}
+              className="bg-transparent text-slate-800 font-medium focus:outline-none cursor-pointer"
+            >
+              {ADMIN_DEPARTMENT_OPTIONS.map((d) => (
+                <option key={d.code} value={d.code}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Multi-parameter Subject Comparison Chart */}
