@@ -16,6 +16,8 @@ interface DataTableProps<T> {
   onSearchChange?: (val: string) => void;
   actions?: (row: T) => React.ReactNode;
   headerAction?: React.ReactNode;
+  onRowClick?: (row: T) => void;
+  selectedRowKey?: (row: T) => boolean;
 }
 
 export function DataTable<T extends Record<string, any>>({
@@ -25,6 +27,8 @@ export function DataTable<T extends Record<string, any>>({
   onSearchChange,
   actions,
   headerAction,
+  onRowClick,
+  selectedRowKey,
 }: DataTableProps<T>) {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortColumn, setSortColumn] = useState<keyof T | null>(null);
@@ -129,18 +133,31 @@ export function DataTable<T extends Record<string, any>>({
             </thead>
             <tbody className="divide-y divide-slate-100">
               {paginatedData.length > 0 ? (
-                paginatedData.map((row, rowIdx) => (
-                  <tr key={rowIdx} className="hover:bg-slate-50/80 transition-colors">
-                    {columns.map((col, colIdx) => (
-                      <td key={colIdx} className={`px-4 py-3.5 ${col.className || ''}`}>
-                        {typeof col.accessor === 'function'
-                          ? col.accessor(row)
-                          : String(row[col.accessor] ?? '')}
-                      </td>
-                    ))}
-                    {actions && <td className="px-4 py-3.5 text-right">{actions(row)}</td>}
-                  </tr>
-                ))
+                paginatedData.map((row, rowIdx) => {
+                  const isSelected = selectedRowKey ? selectedRowKey(row) : false;
+                  return (
+                    <tr
+                      key={rowIdx}
+                      onClick={() => onRowClick && onRowClick(row)}
+                      className={`transition-colors ${
+                        onRowClick ? 'cursor-pointer' : ''
+                      } ${
+                        isSelected
+                          ? 'bg-indigo-50/70 border-l-4 border-l-indigo-600 font-medium'
+                          : 'hover:bg-slate-50/80'
+                      }`}
+                    >
+                      {columns.map((col, colIdx) => (
+                        <td key={colIdx} className={`px-4 py-3.5 ${col.className || ''}`}>
+                          {typeof col.accessor === 'function'
+                            ? col.accessor(row)
+                            : String(row[col.accessor] ?? '')}
+                        </td>
+                      ))}
+                      {actions && <td className="px-4 py-3.5 text-right">{actions(row)}</td>}
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
                   <td

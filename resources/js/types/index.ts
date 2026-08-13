@@ -88,6 +88,26 @@ export interface DepartmentsCreateProps {
 }
 
 // 4. Admin/Faculty/Index
+export interface FacultyFeedbackDetails {
+  overallScore: number;
+  totalResponses: number;
+  parameterScores: {
+    punctuality: number;
+    subjectKnowledge: number;
+    clarityOfTeaching: number;
+    studyMaterial: number;
+  };
+  scoreDistribution?: {
+    rating: string;
+    count: number;
+  }[];
+  subjectScores?: {
+    subjectCode: string;
+    subjectName: string;
+    score: number;
+  }[];
+}
+
 export interface FacultyItem {
   id: number;
   name: string;
@@ -95,6 +115,7 @@ export interface FacultyItem {
   department: string;
   designation: string;
   status: 'Active' | 'On Leave';
+  feedbackDetails?: FacultyFeedbackDetails;
 }
 
 export interface FacultyIndexProps {
