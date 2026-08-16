@@ -23,11 +23,11 @@ import {
 } from 'lucide-react';
 
 const LIKERT_OPTIONS = [
-  { value: 1, label: 'Strongly Disagree' },
-  { value: 2, label: 'Disagree' },
-  { value: 3, label: 'Neutral' },
-  { value: 4, label: 'Agree' },
   { value: 5, label: 'Strongly Agree' },
+  { value: 4, label: 'Agree' },
+  { value: 3, label: 'Neutral' },
+  { value: 2, label: 'Disagree' },
+  { value: 1, label: 'Strongly Disagree' },
 ];
 
 const DEFAULT_PARAMETERS: FeedbackParameter[] = [

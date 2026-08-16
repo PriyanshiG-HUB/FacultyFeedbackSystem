@@ -1,3 +1,4 @@
+import { INITIAL_MOCK_SUBMISSIONS } from '../utils/feedbackExclusionStore';
 import {
   AdminDashboardProps,
   DepartmentsIndexProps,
@@ -849,9 +850,11 @@ export const mockPropsMap: Record<string, any> = {
   'Admin/CriticalComments/Index': {
     departmentName: 'Information Technology',
     comments: [
-      { id: 1, facultyName: 'Dr. Robert Smith', subjectName: 'Design & Analysis of Algorithms', rating: 2, comment: 'Pacing during dynamic programming derivations was slightly too fast.', severity: 'Medium', date: '2026-08-06', status: 'Pending' },
-      { id: 2, facultyName: 'Prof. Michael Chang', subjectName: 'Database Management Systems', rating: 2, comment: 'Lab server connection issues during B+ Tree indexing assignment.', severity: 'Medium', date: '2026-08-05', status: 'Reviewed' },
+      { id: 1, facultyName: 'Dr. Sarah Jenkins', subjectName: 'Database Management Systems', rating: 1, comment: 'The explanation was difficult to follow and pacing was too fast during SQL joins.', severity: 'High', date: '2026-08-10', status: 'Pending' },
+      { id: 2, facultyName: 'Prof. Sagar Patel', subjectName: 'Java Programming & OOP', rating: 1, comment: 'Very difficult to follow multithreading and garbage collection topics.', severity: 'High', date: '2026-08-08', status: 'Pending' },
+      { id: 3, facultyName: 'Dr. Robert Smith', subjectName: 'Design & Analysis of Algorithms', rating: 2, comment: 'Pacing during dynamic programming derivations was slightly too fast.', severity: 'Medium', date: '2026-08-06', status: 'Pending' },
     ],
+    submissions: INITIAL_MOCK_SUBMISSIONS,
   } as CriticalCommentsIndexProps,
 
   'Admin/Settings/Index': {

@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import FacultyLayout from '../../../Layouts/FacultyLayout';
 import { FacultyReportShowProps } from '../../../types';
 import { Card } from '../../../Components/ui/Card';
 import { Button } from '../../../Components/ui/Button';
 import Link from '../../../Components/shared/Link';
-import { ArrowLeft, Star, Download } from 'lucide-react';
+import { ArrowLeft, Star, Download, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -14,8 +14,34 @@ import {
   Tooltip,
   CartesianGrid,
 } from 'recharts';
+import {
+  getMergedSubmissions,
+  calculateFacultyOverallScore,
+} from '../../../utils/feedbackExclusionStore';
 
 export default function Show({ report }: FacultyReportShowProps) {
+  const [submissions, setSubmissions] = useState(() => getMergedSubmissions());
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setSubmissions(getMergedSubmissions());
+    };
+    window.addEventListener('feedback_exclusion_updated', handleUpdate);
+    return () => window.removeEventListener('feedback_exclusion_updated', handleUpdate);
+  }, []);
+
+  const courseSubmissions = useMemo(() => {
+    return submissions.filter(
+      (s) => s.subjectCode === report.subjectCode || s.subjectName.toLowerCase() === report.subjectName.toLowerCase()
+    );
+  }, [submissions, report]);
+
+  const courseStats = useMemo(() => {
+    return calculateFacultyOverallScore(courseSubmissions.length > 0 ? courseSubmissions : submissions);
+  }, [courseSubmissions, submissions]);
+
+  const effectiveScore = courseStats.includedCount > 0 ? courseStats.averageScore : report.overallScore;
+
   const handleDownload = () => {
     alert(`Downloading official evaluation report PDF for ${report.subjectName}`);
   };
@@ -53,34 +79,52 @@ export default function Show({ report }: FacultyReportShowProps) {
       {/* KPI Banner */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         <Card className="bg-gradient-to-br from-amber-50/80 to-amber-100/30 border-amber-200">
-          <span className="text-xs font-bold text-amber-800 uppercase tracking-wider">Overall Average Score</span>
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-amber-800 uppercase tracking-wider">Overall Average Score</span>
+            <span className="text-[10px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
+              HOD Moderated
+            </span>
+          </div>
           <div className="flex items-baseline gap-2 mt-2">
-            <span className="text-3xl font-extrabold text-amber-900">{report.overallScore.toFixed(2)}</span>
+            <span className="text-3xl font-extrabold text-amber-900">{effectiveScore.toFixed(2)}</span>
             <span className="text-xs text-amber-700 font-medium">/ 5.0 Rating</span>
           </div>
+          <p className="text-[11px] text-amber-800/80 font-medium mt-1">
+            Calculated from {courseStats.includedCount} included student submissions
+          </p>
         </Card>
 
         <Card>
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Responses Recorded</span>
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Submissions Considered</span>
           <div className="flex items-baseline gap-2 mt-2">
-            <span className="text-3xl font-extrabold text-slate-900">{report.respondedStudents}</span>
-            <span className="text-xs text-slate-500 font-medium">/ {report.totalStudents} Enrolled</span>
+            <span className="text-3xl font-extrabold text-slate-900">{courseStats.includedCount}</span>
+            <span className="text-xs text-slate-500 font-medium">/ {courseStats.totalSubmissions} Total Submitted</span>
           </div>
+          {courseStats.excludedCount > 0 ? (
+            <p className="text-[11px] font-bold text-rose-600 mt-1">
+              ({courseStats.excludedCount} complete submission{courseStats.excludedCount > 1 ? 's' : ''} excluded from score by HOD)
+            </p>
+          ) : (
+            <p className="text-[11px] text-slate-400 font-medium mt-1">100% of submitted forms considered</p>
+          )}
         </Card>
 
         <Card>
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Response Completion Rate</span>
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Effective Response Rate</span>
           <div className="flex items-baseline gap-2 mt-2">
             <span className="text-3xl font-extrabold text-emerald-700">
-              {Math.round((report.respondedStudents / report.totalStudents) * 100)}%
+              {Math.round((courseStats.includedCount / (report.totalStudents || 65)) * 100)}%
             </span>
             <span className="text-xs text-emerald-600 font-bold">High Confidence</span>
           </div>
+          <p className="text-[11px] text-slate-400 font-medium mt-1">
+            {courseStats.includedCount} active submissions out of {report.totalStudents} enrolled
+          </p>
         </Card>
       </div>
 
       {/* Category Parameter Breakdown Chart */}
-      <Card title="Category Metric Breakdown" subtitle="Detailed evaluation rating per category metric">
+      <Card title="Category Metric Breakdown" subtitle="Detailed evaluation rating per category metric (Included submissions)">
         <div className="h-72 w-full pt-2">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={report.metrics} layout="vertical">

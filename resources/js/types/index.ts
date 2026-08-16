@@ -331,7 +331,34 @@ export interface ReportsIndexProps {
   reports: ReportItem[];
 }
 
-// 15. Admin/CriticalComments/Index
+// 15. Admin/CriticalComments/Index (HOD Feedback Moderation & Submission Exclusion)
+export interface QuestionAnswerItem {
+  questionId: number;
+  questionText: string;
+  rating: number; // 1 to 5
+  ratingLabel: string;
+  comment?: string;
+}
+
+export interface FeedbackSubmissionItem {
+  id: string; // e.g. "FS-101"
+  studentRoll: string;
+  facultyId: string;
+  facultyName: string;
+  subjectCode: string;
+  subjectName: string;
+  academicYear: string;
+  semester: number;
+  division: string;
+  departmentCode: string;
+  submittedAt: string;
+  evaluationStatus: 'included' | 'excluded';
+  exclusionReason?: string | null;
+  excludedBy?: string | null;
+  excludedAt?: string | null;
+  answers: QuestionAnswerItem[];
+}
+
 export interface CriticalCommentItem {
   id: number;
   facultyName: string;
@@ -345,7 +372,10 @@ export interface CriticalCommentItem {
 
 export interface CriticalCommentsIndexProps {
   departmentName?: string;
-  comments: CriticalCommentItem[];
+  userRole?: 'admin' | 'hod';
+  assignedDepartmentCode?: string | null;
+  comments?: CriticalCommentItem[];
+  submissions?: FeedbackSubmissionItem[];
 }
 
 // 16. Admin/Settings/Index
