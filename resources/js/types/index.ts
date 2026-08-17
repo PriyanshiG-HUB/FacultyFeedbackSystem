@@ -484,8 +484,47 @@ export interface StudentFeedbackShowProps {
     divisionCode?: string;
     department?: string;
     departmentCode?: string;
+    semester?: number;
   };
   subjects: FeedbackSubjectItem[];
   feedbackItems?: FeedbackSubjectItem[];
   parameters?: FeedbackParameter[];
+  academicYear?: string;
+  term?: string;
 }
+
+// 22. Admin/Feedback/PublishForm
+export interface PublishedFormQuestionItem {
+  id: number;
+  statement: string;
+  description?: string;
+}
+
+export interface PublishedFormItem {
+  id: string;
+  title: string;
+  academicYear: string;
+  semester: number;
+  departmentCode: string;
+  departmentName: string;
+  division: string;
+  batch: string;
+  facultyId: string | number;
+  facultyName: string;
+  facultyDesignation?: string;
+  subjectCode: string;
+  subjectName: string;
+  questions: PublishedFormQuestionItem[];
+  status: 'Published' | 'Unpublished';
+  createdBy: string;
+  createdAt: string;
+  publishedAt?: string;
+}
+
+export interface PublishFormIndexProps {
+  userRole?: 'admin' | 'hod';
+  assignedDepartmentCode?: string | null;
+  departmentName?: string;
+  forms?: PublishedFormItem[];
+}
+

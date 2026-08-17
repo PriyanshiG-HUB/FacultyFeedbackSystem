@@ -1014,4 +1014,11 @@ export const mockPropsMap: Record<string, any> = {
       },
     ],
   } as StudentFeedbackShowProps,
+
+  'Admin/Feedback/PublishForm': {
+    userRole: 'hod',
+    assignedDepartmentCode: 'IT',
+    departmentName: 'Information Technology',
+  },
 };
+

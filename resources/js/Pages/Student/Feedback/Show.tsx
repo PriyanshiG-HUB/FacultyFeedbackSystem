@@ -1,9 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import StudentLayout from '../../../Layouts/StudentLayout';
-import { StudentFeedbackShowProps, FeedbackSubjectItem, FacultyOption, FeedbackParameter } from '../../../types';
+import { StudentFeedbackShowProps, FeedbackSubjectItem, FacultyOption, FeedbackParameter, PublishedFormItem } from '../../../types';
 import { Card } from '../../../Components/ui/Card';
 import { Button } from '../../../Components/ui/Button';
 import { Modal } from '../../../Components/ui/Modal';
+import { StatusBadge } from '../../../Components/ui/StatusBadge';
+import {
+  getPublishedForms,
+  subscribeToPublishedForms,
+} from '../../../utils/publishedFormsStore';
+import { saveSubmissionToStore, SYSTEM_QUESTIONS } from '../../../utils/feedbackExclusionStore';
 import {
   CheckCircle2,
   User,
@@ -20,6 +26,11 @@ import {
   HelpCircle,
   UserCheck,
   Check,
+  FileCheck,
+  Clock,
+  Calendar,
+  Layers,
+  GraduationCap,
 } from 'lucide-react';
 
 const LIKERT_OPTIONS = [
@@ -30,46 +41,41 @@ const LIKERT_OPTIONS = [
   { value: 1, label: 'Strongly Disagree' },
 ];
 
-const DEFAULT_PARAMETERS: FeedbackParameter[] = [
-  { id: 'p1', statement: '1. The faculty explains concepts clearly.', description: 'Pacing, clarity, and real-world examples during lectures' },
-  { id: 'p2', statement: '2. The faculty demonstrates good subject knowledge.', description: 'Command over fundamental and advanced concepts' },
-  { id: 'p3', statement: '3. The faculty completes the syllabus effectively.', description: 'Structured coverage of curriculum and practical labs' },
-  { id: 'p4', statement: '4. The faculty provides useful study material.', description: 'Quality of notes, reference material, and practice problems' },
-  { id: 'p5', statement: '5. The faculty maintains punctuality and classroom engagement.', description: 'Regularity, interactive teaching, and addressing student questions' },
-];
+const DEFAULT_PARAMETERS: FeedbackParameter[] = SYSTEM_QUESTIONS.map((q) => ({
+  id: `p${q.id}`,
+  statement: `${q.id}. ${q.text}`,
+  description: 'Parameter evaluation scale 1 to 5',
+}));
 
-// Helper to safely read completed faculty IDs from sessionStorage
-const getCompletedFacultyIds = (): string[] => {
+// Read completed form submission keys from localStorage
+const getSubmittedFormKeys = (): string[] => {
   try {
-    const raw = sessionStorage.getItem('studentFeedbackCompleted');
+    const raw = localStorage.getItem('student_submitted_form_keys');
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        return parsed.map(String);
-      }
+      if (Array.isArray(parsed)) return parsed.map(String);
     }
   } catch (e) {
-    console.error('Error reading studentFeedbackCompleted from sessionStorage:', e);
+    console.error('Error reading submitted form keys:', e);
   }
   return [];
 };
 
-// Helper to save a completed faculty ID to sessionStorage
-const saveCompletedFacultyId = (facId: string | number) => {
+// Save completed submission key to localStorage
+const saveSubmittedFormKey = (key: string) => {
   try {
-    const current = getCompletedFacultyIds();
-    const strId = String(facId);
-    if (!current.includes(strId)) {
-      const updated = [...current, strId];
-      sessionStorage.setItem('studentFeedbackCompleted', JSON.stringify(updated));
+    const current = getSubmittedFormKeys();
+    if (!current.includes(key)) {
+      const updated = [...current, key];
+      localStorage.setItem('student_submitted_form_keys', JSON.stringify(updated));
       window.dispatchEvent(new Event('storage'));
     }
   } catch (e) {
-    console.error('Error saving studentFeedbackCompleted to sessionStorage:', e);
+    console.error('Error saving submitted form key:', e);
   }
 };
 
-// Helper to parse query parameters from window.location.hash (e.g. #Student/Feedback/Show?facultyId=1)
+// Helper to parse query parameters from hash
 const getQueryParamsFromHash = () => {
   const hash = window.location.hash;
   const queryStringIndex = hash.indexOf('?');
@@ -81,118 +87,141 @@ const getQueryParamsFromHash = () => {
 };
 
 export default function Show({ student, subjects: propSubjects, feedbackItems, parameters: propParameters }: StudentFeedbackShowProps) {
-  const questionsList = propParameters || DEFAULT_PARAMETERS;
-  const subjectsList: FeedbackSubjectItem[] = propSubjects || feedbackItems || [];
+  // Student Information
+  const studentRoll = student?.rollNumber || '22IT045';
+  const studentName = student?.name || 'Alex Turner';
+  const studentDept = (student?.departmentCode || student?.department || 'IT').toUpperCase();
+  const studentDivision = student?.division || 'Division A';
+  const studentBatch = student?.batch || 'Batch 2022-2026';
+  const studentSem = student?.semester || 5;
 
-  // Completed faculty IDs state synced with sessionStorage
-  const [completedIds, setCompletedIds] = useState<string[]>(getCompletedFacultyIds());
+  // Published Forms & Realtime Sync State
+  const [publishedForms, setPublishedForms] = useState<PublishedFormItem[]>(getPublishedForms());
+  const [submittedFormKeys, setSubmittedFormKeys] = useState<string[]>(getSubmittedFormKeys());
 
-  // Active faculty ID in dedicated questionnaire mode
-  const [activeFacultyId, setActiveFacultyId] = useState<string | null>(
-    getQueryParamsFromHash().get('facultyId')
+  // Active form questionnaire state when opening a specific form
+  const [activeFormId, setActiveFormId] = useState<string | null>(
+    getQueryParamsFromHash().get('formId')
   );
 
-  // Ratings for current questionnaire: { [paramId]: number }
+  // Ratings for active questionnaire: { [qId]: number }
   const [ratings, setRatings] = useState<Record<string, number>>({});
-  // Per-question comments: { [paramId]: string }
+  // Question comments: { [qId]: string }
   const [questionComments, setQuestionComments] = useState<Record<string, string>>({});
-  const [commentText, setCommentText] = useState<string>('');
 
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState<boolean>(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
-  // Sync state with hash changes and sessionStorage storage events
+  // Sync state with store updates and hash changes
   useEffect(() => {
-    const handleHashAndStorage = () => {
-      setCompletedIds(getCompletedFacultyIds());
+    const handleSync = () => {
+      setPublishedForms(getPublishedForms());
+      setSubmittedFormKeys(getSubmittedFormKeys());
       const queryParams = getQueryParamsFromHash();
-      const facId = queryParams.get('facultyId');
-      setActiveFacultyId(facId);
+      const fId = queryParams.get('formId');
+      setActiveFormId(fId);
     };
 
-    handleHashAndStorage();
-    window.addEventListener('hashchange', handleHashAndStorage);
-    window.addEventListener('storage', handleHashAndStorage);
+    handleSync();
+    const unsubStore = subscribeToPublishedForms(handleSync);
+    window.addEventListener('hashchange', handleSync);
+    window.addEventListener('storage', handleSync);
 
     return () => {
-      window.removeEventListener('hashchange', handleHashAndStorage);
-      window.removeEventListener('storage', handleHashAndStorage);
+      unsubStore();
+      window.removeEventListener('hashchange', handleSync);
+      window.removeEventListener('storage', handleSync);
     };
   }, []);
 
-  // Find active faculty and associated subject details when in Questionnaire Mode
-  let activeFaculty: FacultyOption | null = null;
-  let activeSubject: FeedbackSubjectItem | null = null;
+  // Filter forms targeting this student that are currently PUBLISHED
+  const eligiblePublishedForms = publishedForms.filter((form) => {
+    // MUST BE PUBLISHED (Unpublished forms are completely hidden)
+    if (form.status !== 'Published') return false;
 
-  if (activeFacultyId) {
-    for (const sub of subjectsList) {
-      const foundFac = sub.facultyOptions?.find((f) => String(f.id) === String(activeFacultyId));
-      if (foundFac) {
-        activeFaculty = foundFac;
-        activeSubject = sub;
-        break;
-      }
-    }
-  }
+    // Check Department Match
+    const formDept = (form.departmentCode || '').toUpperCase();
+    const isDeptMatch =
+      formDept === 'ALL' ||
+      formDept === studentDept ||
+      (studentDept === 'IT' && (formDept === 'IT' || form.departmentName?.includes('Information'))) ||
+      (studentDept === 'CE' && (formDept === 'CE' || form.departmentName?.includes('Computer')));
 
-  const activeParams = activeSubject?.parameters || questionsList;
-  const totalQuestionsCount = activeParams.length;
-  const answeredQuestionsCount = activeParams.filter((p) => !!ratings[p.id]).length;
-  const isFacultyAlreadyCompleted = activeFacultyId ? completedIds.includes(String(activeFacultyId)) : false;
+    if (!isDeptMatch) return false;
 
-  // Handle open feedback form in NEW TAB
-  const handleOpenFeedbackInNewTab = (facId: number) => {
-    window.open(`#Student/Feedback/Show?facultyId=${facId}`, '_blank');
+    // Check Semester Match (matches student semester or default 5/7)
+    const isSemMatch =
+      !form.semester ||
+      form.semester === studentSem ||
+      form.semester === 5 ||
+      form.semester === 7;
+
+    return isSemMatch;
+  });
+
+  // Find active form object if in Questionnaire view mode
+  const activeForm = activeFormId ? publishedForms.find((f) => f.id === activeFormId) : null;
+  const isCurrentFormSubmitted = activeForm ? submittedFormKeys.includes(`${studentRoll}_${activeForm.id}`) : false;
+
+  // Open feedback questionnaire for a published form
+  const handleOpenFormQuestionnaire = (formId: string) => {
+    setActiveFormId(formId);
+    window.location.hash = `#Student/Feedback/Show?formId=${formId}`;
   };
 
-  // Return to Faculty Selection
-  const handleBackToSelection = () => {
+  // Return to forms list
+  const handleBackToList = () => {
+    setActiveFormId(null);
     setRatings({});
     setQuestionComments({});
-    setCommentText('');
     setValidationErrors([]);
     window.location.hash = '#Student/Feedback/Show';
   };
 
-  // Rating radio button selection handler
-  const handleRatingSelect = (paramId: string, value: number) => {
+  // Handle rating radio button click
+  const handleRatingSelect = (qId: string | number, value: number) => {
     setRatings((prev) => ({
       ...prev,
-      [paramId]: value,
+      [String(qId)]: value,
     }));
     if (validationErrors.length > 0) setValidationErrors([]);
   };
 
-  // Per-question comment text handler
-  const handleQuestionCommentChange = (paramId: string, text: string) => {
+  // Handle comment text input
+  const handleCommentChange = (qId: string | number, text: string) => {
     setQuestionComments((prev) => ({
       ...prev,
-      [paramId]: text,
+      [String(qId)]: text,
     }));
     if (validationErrors.length > 0) setValidationErrors([]);
   };
 
-  // Submit button click -> validate required ratings AND conditional comments for Strongly Disagree
+  // Pre-submit validation
   const handlePreSubmitValidation = (e: React.FormEvent) => {
     e.preventDefault();
-    const errors: string[] = [];
+    if (!activeForm) return;
 
-    activeParams.forEach((param: FeedbackParameter, idx: number) => {
-      const rating = ratings[param.id];
+    const errors: string[] = [];
+    const questions = activeForm.questions && activeForm.questions.length > 0
+      ? activeForm.questions
+      : SYSTEM_QUESTIONS.map((q) => ({ id: q.id, statement: q.text }));
+
+    questions.forEach((q, idx) => {
+      const qKey = String(q.id);
+      const rating = ratings[qKey];
       if (!rating) {
-        errors.push(`Question ${idx + 1}: "${param.statement || param.label}" is required.`);
+        errors.push(`Question ${idx + 1}: Please select a rating.`);
       } else if (rating === 1) {
-        const comment = (questionComments[param.id] || '').trim();
-        if (comment === '') {
-          errors.push(`Question ${idx + 1}: Please provide a comment when selecting Strongly Disagree.`);
+        const comment = (questionComments[qKey] || '').trim();
+        if (!comment) {
+          errors.push(`Question ${idx + 1}: Please provide a constructive comment explaining why you selected 'Strongly Disagree'.`);
         }
       }
     });
 
     if (errors.length > 0) {
       setValidationErrors(errors);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
@@ -200,80 +229,56 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
     setIsConfirmModalOpen(true);
   };
 
-  // Final confirmation modal submission action
+  // Confirm submission & record
   const handleConfirmSubmission = () => {
-    if (!activeFacultyId) return;
+    if (!activeForm) return;
 
-    // Persist completion state in sessionStorage
-    saveCompletedFacultyId(activeFacultyId);
+    const submissionKey = `${studentRoll}_${activeForm.id}`;
+    saveSubmittedFormKey(submissionKey);
+
+    // Save to feedback store
+    const questions = activeForm.questions && activeForm.questions.length > 0
+      ? activeForm.questions
+      : SYSTEM_QUESTIONS.map((q) => ({ id: q.id, statement: q.text }));
+
+    const answers = questions.map((q) => {
+      const qKey = String(q.id);
+      const r = ratings[qKey] || 3;
+      return {
+        questionId: Number(q.id),
+        questionText: q.statement,
+        rating: r,
+        ratingLabel: r === 5 ? 'Strongly Agree' : r === 4 ? 'Agree' : r === 3 ? 'Neutral' : r === 2 ? 'Disagree' : 'Strongly Disagree',
+        comment: questionComments[qKey] || undefined,
+      };
+    });
+
+    saveSubmissionToStore({
+      studentRoll,
+      facultyId: String(activeForm.facultyId),
+      facultyName: activeForm.facultyName,
+      subjectCode: activeForm.subjectCode,
+      subjectName: activeForm.subjectName,
+      academicYear: activeForm.academicYear,
+      semester: activeForm.semester,
+      division: studentDivision,
+      departmentCode: studentDept,
+      answers,
+    });
 
     setIsConfirmModalOpen(false);
-    setSuccessToast(`Feedback for ${activeFaculty?.name || 'Faculty Member'} submitted successfully!`);
+    setSuccessToast(`Feedback for ${activeForm.facultyName} (${activeForm.subjectName}) submitted successfully!`);
 
-    // Reset questionnaire form state
-    setRatings({});
-    setQuestionComments({});
-    setCommentText('');
-
-    // Redirect CURRENT tab to Faculty Selection page
     setTimeout(() => {
       setSuccessToast(null);
-      window.location.hash = '#Student/Feedback/Show';
-    }, 1200);
+      handleBackToList();
+    }, 1500);
   };
 
-  // Student details
-  const studentName = student?.name || 'Alex Turner';
-  const studentRoll = student?.rollNumber || '22IT045';
-  const studentProgram = student?.program || 'B.Tech (Information Technology)';
-  const studentBatch = student?.batch || 'Batch 2022-2026';
-  const studentDivision = student?.division || 'Division A';
-  const studentDept = student?.departmentCode || student?.department || 'IT';
-  const studentDivCode = student?.divisionCode || student?.division || 'IT-1';
-
-  // Helper to filter faculty options for a subject based on student's department + division
-  const getFilteredFacultyForSubject = (subject: FeedbackSubjectItem): FacultyOption[] => {
-    const rawOptions = subject.facultyOptions || [];
-    return rawOptions.filter((fac) => {
-      // Check department match
-      const facDept = fac.departmentCode || fac.department;
-      const deptMatch =
-        !facDept ||
-        facDept === studentDept ||
-        facDept === student?.department ||
-        (studentDept === 'IT' && facDept === 'Information Technology') ||
-        (facDept === 'IT' && student?.department === 'Information Technology');
-
-      // Check division match
-      const facDiv = fac.divisionCode || fac.division;
-      const divMatch =
-        !facDiv ||
-        facDiv === studentDivCode ||
-        facDiv === studentDivision ||
-        (studentDivCode === 'IT-1' && facDiv === 'Division A') ||
-        (studentDivision === 'Division A' && facDiv === 'IT-1') ||
-        (studentDivCode === 'IT-2' && facDiv === 'Division B') ||
-        (studentDivision === 'Division B' && facDiv === 'IT-2');
-
-      return deptMatch && divMatch;
-    });
-  };
-
-  // Calculate overall portal completion counts scoped to current student's division
-  const totalFacultyInPortal = subjectsList.reduce(
-    (acc, s) => acc + getFilteredFacultyForSubject(s).length,
-    0
-  );
-  const totalCompletedCount = subjectsList.reduce((acc, s) => {
-    const assigned = getFilteredFacultyForSubject(s);
-    const doneInSubject = assigned.filter((f) => completedIds.includes(String(f.id)));
-    return acc + doneInSubject.length;
-  }, 0);
-
   // =========================================================================
-  // VIEW MODE A: FACULTY SELECTION LIST PAGE (no facultyId in URL/hash)
+  // VIEW MODE A: LIST OF PUBLISHED FEEDBACK FORMS FOR STUDENT
   // =========================================================================
-  if (!activeFacultyId) {
+  if (!activeFormId) {
     return (
       <StudentLayout studentInfo={{ rollNumber: studentRoll, division: studentDivision }}>
         <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
@@ -281,144 +286,189 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-indigo-50 border border-indigo-100 rounded-full text-indigo-700 text-[11px] font-bold uppercase tracking-wider">
-                <BookOpen className="w-3 h-3 text-indigo-600" /> Course & Faculty Evaluation
+                <BookOpen className="w-3.5 h-3.5 text-indigo-600" /> Student Evaluation Portal
               </div>
-              <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Select Faculty for Feedback</h1>
+              <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Faculty Feedback Forms</h1>
               <p className="text-xs text-slate-500">
-                Click <strong className="text-indigo-600">Give Feedback</strong> to open the evaluation questionnaire for a faculty member in a new tab.
+                View and submit feedback for active evaluation forms published by your Head of Department.
               </p>
             </div>
 
-            {/* Progress Counter Pill */}
-            <div className="bg-white border border-slate-200 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-700 shadow-2xs self-start sm:self-auto flex items-center gap-2">
-              <span className="text-slate-500">Overall Progress:</span>
-              <span className="font-extrabold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
-                {totalCompletedCount} / {totalFacultyInPortal} Completed
-              </span>
+            {/* Student Identity Badge */}
+            <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-2xs text-xs space-y-1 shrink-0">
+              <div className="flex items-center gap-2">
+                <UserCheck className="w-4 h-4 text-emerald-600" />
+                <span className="font-extrabold text-slate-900">{studentName}</span>
+                <span className="font-mono text-[11px] text-slate-500 bg-slate-100 px-1.5 rounded">
+                  {studentRoll}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 font-medium">
+                {studentDept} &bull; Semester {studentSem} &bull; {studentDivision}
+              </p>
             </div>
           </div>
 
           {/* Success Toast */}
           {successToast && (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center gap-3 shadow-xs animate-fadeIn text-xs text-emerald-800 font-bold">
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center gap-3 shadow-xs text-xs text-emerald-800 font-bold animate-pulse">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
               <span>{successToast}</span>
             </div>
           )}
 
-          {/* Enrolled Subjects & Faculty Roster List */}
-          <div className="space-y-4">
-            {subjectsList.map((subject, sIdx) => {
-              const facultyOptions = getFilteredFacultyForSubject(subject);
+          {/* MAIN CHECK: IF NO PUBLISHED FORMS AVAILABLE FOR STUDENT */}
+          {eligiblePublishedForms.length === 0 ? (
+            <Card className="p-8 sm:p-12 text-center max-w-xl mx-auto space-y-4 my-8 bg-white border-slate-200 shadow-sm rounded-2xl">
+              <div className="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center mx-auto shadow-2xs">
+                <FileCheck className="w-8 h-8 text-indigo-600" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-extrabold text-slate-900">
+                  No current feedback form available.
+                </h3>
+                <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                  There are currently no active feedback collection forms published by the Head of Department for your academic target group ({studentDept} &bull; Semester {studentSem}).
+                </p>
+              </div>
+              <div className="pt-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-semibold">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  Status: Evaluation Window Closed
+                </span>
+              </div>
+            </Card>
+          ) : (
+            /* PUBLISHED FORMS ROSTER LIST */
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">
+                  Active Published Feedback Forms ({eligiblePublishedForms.length})
+                </h2>
+                <span className="text-xs text-emerald-600 font-bold flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                  Live Evaluation Window Open
+                </span>
+              </div>
 
-              return (
-                <div key={subject.id || sIdx} className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-2xs">
-                  {/* Subject Title Header */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded border border-indigo-200">
-                        {subject.subjectCode}
-                      </span>
-                      <div>
-                        <h3 className="text-base font-extrabold text-slate-900 leading-tight">
-                          {subject.subjectName}
-                        </h3>
-                        <p className="text-[11px] text-slate-500 font-medium">
-                          {subject.department} &bull; {subject.credits} Credits ({subject.type || 'Core'})
-                        </p>
+              <div className="grid grid-cols-1 gap-4">
+                {eligiblePublishedForms.map((form) => {
+                  const isSubmitted = submittedFormKeys.includes(`${studentRoll}_${form.id}`);
+
+                  return (
+                    <div
+                      key={form.id}
+                      className={`bg-white border rounded-2xl p-5 space-y-4 shadow-2xs transition-all ${
+                        isSubmitted
+                          ? 'border-emerald-200/80 bg-emerald-50/20'
+                          : 'border-slate-200 hover:border-indigo-300 hover:shadow-md'
+                      }`}
+                    >
+                      {/* Top Form Header */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                        <div className="flex items-center gap-3">
+                          <span className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded border border-indigo-200">
+                            {form.subjectCode}
+                          </span>
+                          <div>
+                            <h3 className="text-base font-extrabold text-slate-900 leading-tight">
+                              {form.subjectName}
+                            </h3>
+                            <p className="text-[11px] text-slate-500 font-medium">
+                              Semester {form.semester} &bull; {form.departmentName} ({form.academicYear})
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Status Badge */}
+                        <div className="self-start sm:self-auto">
+                          {isSubmitted ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-extrabold">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                              Submitted
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-300 text-xs font-extrabold">
+                              <Clock className="w-3.5 h-3.5 text-amber-600" />
+                              Pending Submission
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
 
-                    <span className="text-[11px] text-slate-400 font-medium self-start sm:self-auto">
-                      {facultyOptions.length} Assigned Faculty
-                    </span>
-                  </div>
-
-                  {/* Faculty Roster Grid */}
-                  <div className="grid grid-cols-1 gap-3">
-                    {facultyOptions.length === 0 ? (
-                      <div className="p-4 rounded-xl border border-slate-200/80 bg-slate-50 text-slate-500 text-xs font-medium text-center">
-                        No faculty assigned for your division.
-                      </div>
-                    ) : (
-                      facultyOptions.map((fac) => {
-                        const isCompleted = completedIds.includes(String(fac.id));
-
-                        return (
+                      {/* Faculty Details & Action Button */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1">
+                        <div className="flex items-center gap-3">
                           <div
-                            key={fac.id}
-                            className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all ${
-                              isCompleted
-                                ? 'bg-emerald-50/40 border-emerald-200/80'
-                                : 'bg-slate-50/60 border-slate-200 hover:border-indigo-300 hover:bg-white'
+                            className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 shadow-2xs ${
+                              isSubmitted
+                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                : 'bg-indigo-100 text-indigo-700 border border-indigo-200'
                             }`}
                           >
-                            <div className="flex items-center gap-3">
-                              <div
-                                className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
-                                  isCompleted
-                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                                    : 'bg-indigo-100 text-indigo-700 border border-indigo-200'
-                                }`}
-                              >
-                                {fac.name.charAt(0)}
-                              </div>
-                              <div>
-                                <p className="text-sm font-bold text-slate-900">{fac.name}</p>
-                                <p className="text-xs text-slate-500 font-medium">{fac.designation}</p>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-3 self-start sm:self-center">
-                              {isCompleted ? (
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-100/90 text-emerald-800 border border-emerald-300 text-xs font-extrabold shadow-2xs">
-                                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                                  ✓ Feedback Completed
-                                </span>
-                              ) : (
-                                <Button
-                                  variant="primary"
-                                  size="sm"
-                                  onClick={() => handleOpenFeedbackInNewTab(fac.id)}
-                                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-sm shadow-indigo-600/20 px-4 py-2"
-                                >
-                                  <span>Give Feedback</span>
-                                  <ExternalLink className="w-3.5 h-3.5 ml-1.5" />
-                                </Button>
-                              )}
-                            </div>
+                            {form.facultyName.charAt(0)}
                           </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                          <div>
+                            <span className="text-xs text-slate-400 font-semibold block uppercase tracking-wider text-[10px]">
+                              Evaluating Faculty:
+                            </span>
+                            <p className="text-sm font-extrabold text-slate-900">{form.facultyName}</p>
+                            <p className="text-xs text-slate-500 font-medium">
+                              {form.facultyDesignation || 'Faculty Member'} &bull; {form.questions.length} Evaluation Criteria
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Action Button */}
+                        <div>
+                          {isSubmitted ? (
+                            <button
+                              disabled
+                              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-100 text-slate-500 font-bold text-xs border border-slate-200 cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                              <Check className="w-4 h-4 text-emerald-600" />
+                              <span>Feedback Submitted</span>
+                            </button>
+                          ) : (
+                            <Button
+                              variant="primary"
+                              size="md"
+                              onClick={() => handleOpenFormQuestionnaire(form.id)}
+                              className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold shadow-md shadow-indigo-600/20 px-5 py-2.5"
+                            >
+                              <span>Give Feedback</span>
+                              <ChevronRight className="w-4 h-4 ml-1" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </StudentLayout>
     );
   }
 
   // =========================================================================
-  // VIEW MODE B: DEDICATED QUESTIONNAIRE PAGE (for selected faculty member)
+  // VIEW MODE B: DEDICATED QUESTIONNAIRE PAGE (for active Published Form)
   // =========================================================================
-
-  // If faculty ID in URL was invalid or already completed
-  if (!activeFaculty || !activeSubject) {
+  if (!activeForm) {
     return (
       <StudentLayout studentInfo={{ rollNumber: studentRoll, division: studentDivision }}>
         <div className="w-full max-w-xl mx-auto px-4 py-12 text-center space-y-4">
           <Card className="p-8 space-y-4 bg-white border-slate-200 shadow-lg">
             <AlertCircle className="w-10 h-10 text-amber-500 mx-auto" />
-            <h2 className="text-lg font-bold text-slate-900">Faculty Selection Not Found</h2>
+            <h2 className="text-lg font-bold text-slate-900">Feedback Form Not Found</h2>
             <p className="text-xs text-slate-500">
-              The requested faculty member evaluation was not found or is invalid.
+              The requested evaluation form was not found or has been unpublished by the Head of Department.
             </p>
-            <Button variant="primary" onClick={handleBackToSelection}>
+            <Button variant="primary" onClick={handleBackToList}>
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Return to Faculty Selection
+              Return to Form Selection
             </Button>
           </Card>
         </div>
@@ -426,7 +476,7 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
     );
   }
 
-  if (isFacultyAlreadyCompleted) {
+  if (isCurrentFormSubmitted) {
     return (
       <StudentLayout studentInfo={{ rollNumber: studentRoll, division: studentDivision }}>
         <div className="w-full max-w-xl mx-auto px-4 py-12 text-center space-y-4">
@@ -435,12 +485,12 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
             <div className="space-y-1">
               <h2 className="text-xl font-extrabold text-slate-900">Feedback Already Submitted</h2>
               <p className="text-xs text-slate-600">
-                You have already completed the evaluation for <strong className="text-slate-900">{activeFaculty.name}</strong> ({activeSubject.subjectName}).
+                You have already completed the evaluation for <strong className="text-slate-900">{activeForm.facultyName}</strong> ({activeForm.subjectName}).
               </p>
             </div>
-            <Button variant="primary" onClick={handleBackToSelection} className="bg-indigo-600 hover:bg-indigo-700">
+            <Button variant="primary" onClick={handleBackToList} className="bg-indigo-600 hover:bg-indigo-700">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Faculty Selection
+              Return to Active Forms
             </Button>
           </Card>
         </div>
@@ -448,251 +498,188 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
     );
   }
 
-  const progressPercent = Math.round((answeredQuestionsCount / totalQuestionsCount) * 100);
+  const questionsToRender = activeForm.questions && activeForm.questions.length > 0
+    ? activeForm.questions
+    : SYSTEM_QUESTIONS.map((q) => ({ id: q.id, statement: q.text }));
+
+  const totalQuestions = questionsToRender.length;
+  const answeredCount = questionsToRender.filter((q) => !!ratings[String(q.id)]).length;
 
   return (
     <StudentLayout studentInfo={{ rollNumber: studentRoll, division: studentDivision }}>
-      <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* Navigation & Back Action Bar */}
-        <div className="flex items-center justify-between">
+      <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        {/* Navigation & Title Header */}
+        <div className="flex items-center justify-between gap-4 border-b border-slate-200 pb-4">
           <button
-            onClick={handleBackToSelection}
-            className="inline-flex items-center text-xs font-bold text-slate-600 hover:text-indigo-600 bg-white border border-slate-200 hover:border-indigo-300 px-3.5 py-2 rounded-xl transition-all shadow-2xs cursor-pointer"
+            onClick={handleBackToList}
+            className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-indigo-600 transition-colors"
           >
-            <ArrowLeft className="w-4 h-4 mr-2 text-slate-400 group-hover:text-indigo-600" />
-            <span>Back to Faculty Selection</span>
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Active Forms</span>
           </button>
 
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-extrabold">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-            Strict Anonymity Guaranteed
+          <span className="text-xs font-extrabold text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-200">
+            Progress: {answeredCount} / {totalQuestions} Answered
           </span>
         </div>
 
-        {/* Dedicated Faculty Header Banner */}
-        <div className="bg-gradient-to-r from-[#193073] via-[#1e3a8a] to-[#254cb8] rounded-2xl p-6 text-white shadow-md border border-blue-800/80 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <span className="inline-block px-2.5 py-0.5 bg-white/15 backdrop-blur-md text-blue-100 rounded-full text-[10px] font-bold uppercase tracking-wider mb-2 border border-white/20">
-                COURSE EVALUATION QUESTIONNAIRE
-              </span>
-              <h1 className="text-2xl font-extrabold tracking-tight text-white">{activeFaculty.name}</h1>
-              <p className="text-xs text-blue-100 font-semibold mt-0.5">
-                {activeFaculty.designation} &bull; {activeSubject.subjectName} ({activeSubject.subjectCode})
-              </p>
-              <p className="text-[11px] text-blue-200 mt-1">
-                Department: {activeSubject.department}
-              </p>
+        {/* Target Form Summary Header Card */}
+        <Card className="p-6 bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 text-white border-blue-900 shadow-xl space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-white/10 text-white flex items-center justify-center font-extrabold text-lg border border-white/20">
+                {activeForm.facultyName.charAt(0)}
+              </div>
+              <div>
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-300">
+                  Target Faculty Member
+                </span>
+                <h1 className="text-xl font-extrabold tracking-tight">{activeForm.facultyName}</h1>
+                <p className="text-xs text-slate-300 font-medium">
+                  {activeForm.facultyDesignation || 'Professor'} &bull; {activeForm.departmentName}
+                </p>
+              </div>
             </div>
 
-            {/* Live Question Progress Card */}
-            <div className="bg-white/10 backdrop-blur-md p-3.5 rounded-xl border border-white/20 text-right shrink-0">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-blue-200 block">Question Progress</span>
-              <span className="text-lg font-extrabold text-white font-mono block">
-                {answeredQuestionsCount} / {totalQuestionsCount}
+            <div className="sm:text-right space-y-1 border-t sm:border-t-0 border-white/10 pt-3 sm:pt-0">
+              <span className="font-mono text-xs font-bold text-amber-300 bg-amber-950/60 px-2.5 py-1 rounded border border-amber-600/60 inline-block">
+                {activeForm.subjectCode}
               </span>
-              <span className="text-[10px] text-emerald-300 font-bold block">{progressPercent}% Answered</span>
+              <h2 className="text-sm font-bold text-white leading-tight">{activeForm.subjectName}</h2>
+              <p className="text-[11px] text-slate-400">
+                Semester {activeForm.semester} &bull; Academic Year {activeForm.academicYear}
+              </p>
             </div>
           </div>
+        </Card>
 
-          {/* Sticky/Header Animated Progress Bar */}
-          <div className="w-full bg-blue-950/60 h-2 rounded-full overflow-hidden border border-white/10">
-            <div
-              className="bg-gradient-to-r from-emerald-400 to-teal-300 h-full transition-all duration-300 ease-out"
-              style={{ width: `${progressPercent}%` }}
-            ></div>
-          </div>
-        </div>
-
-        {/* Validation Errors Alert Banner */}
+        {/* Validation Errors Alert */}
         {validationErrors.length > 0 && (
-          <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 flex items-start gap-3 shadow-xs animate-shake">
-            <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-            <div className="space-y-1 text-xs text-rose-800">
-              <h4 className="font-extrabold text-rose-900 text-sm">Please complete all required evaluation statements:</h4>
-              <ul className="list-disc list-inside space-y-0.5 font-medium text-rose-700">
-                {validationErrors.map((err, idx) => (
-                  <li key={idx}>{err}</li>
-                ))}
-              </ul>
+          <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl space-y-1 text-xs text-rose-700 font-semibold shadow-xs">
+            <div className="flex items-center gap-2 font-bold text-rose-800">
+              <AlertCircle className="w-4 h-4 text-rose-600" />
+              <span>Please resolve the following validation issues:</span>
             </div>
+            <ul className="list-disc list-inside space-y-0.5 text-[11px] pl-5">
+              {validationErrors.map((err, idx) => (
+                <li key={idx}>{err}</li>
+              ))}
+            </ul>
           </div>
         )}
 
         {/* Questionnaire Form */}
         <form onSubmit={handlePreSubmitValidation} className="space-y-6">
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-6 shadow-xs">
-            <div className="border-b border-slate-100 pb-3">
-              <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-500">
-                Evaluation Statements for {activeFaculty.name}
-              </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Rate each statement on a scale from 1 (Strongly Disagree) to 5 (Strongly Agree).
-              </p>
-            </div>
+          {questionsToRender.map((param, index) => {
+            const qKey = String(param.id);
+            const currentRating = ratings[qKey];
+            const isStronglyDisagree = currentRating === 1;
 
-            {activeParams.map((param: FeedbackParameter, qIdx: number) => {
-              const currentRating = ratings[param.id];
-              const isStronglyDisagree = currentRating === 1;
-              const paramComment = questionComments[param.id] || '';
-              const isCommentMissing = isStronglyDisagree && paramComment.trim() === '';
-
-              return (
-                <div
-                  key={param.id}
-                  id={`question_block_${param.id}`}
-                  className={`p-4 sm:p-5 rounded-xl border transition-all space-y-3 ${
-                    isCommentMissing && validationErrors.length > 0
-                      ? 'bg-rose-50/40 border-rose-300 ring-1 ring-rose-400'
-                      : currentRating
-                      ? 'bg-indigo-50/20 border-indigo-200/80'
-                      : 'bg-slate-50/50 border-slate-200 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className="space-y-1">
-                    <h4 className="text-sm font-bold text-slate-900">
-                      {param.statement || `${qIdx + 1}. ${param.label}`} <span className="text-rose-500">*</span>
-                    </h4>
-                    {param.description && <p className="text-xs text-slate-500">{param.description}</p>}
-                  </div>
-
-                  <fieldset>
-                    <legend className="sr-only">{param.statement || param.label}</legend>
-                    <div className="grid grid-cols-1 sm:grid-cols-5 gap-2.5">
-                      {LIKERT_OPTIONS.map((opt) => {
-                        const isChecked = currentRating === opt.value;
-                        return (
-                          <label
-                            key={opt.value}
-                            className={`flex items-center gap-2.5 p-3 rounded-xl border text-xs font-medium cursor-pointer transition-all select-none ${
-                              isChecked
-                                ? 'border-indigo-600 bg-indigo-50/90 text-indigo-950 font-bold shadow-xs ring-1 ring-indigo-500'
-                                : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-100/50 text-slate-700'
-                            }`}
-                          >
-                            <input
-                              type="radio"
-                              name={`radio_${param.id}`}
-                              value={opt.value}
-                              checked={isChecked}
-                              onChange={() => handleRatingSelect(param.id, opt.value)}
-                              className="w-4 h-4 text-indigo-600 border-slate-300 focus:ring-indigo-500 focus:ring-offset-0 cursor-pointer"
-                            />
-                            <span className="leading-snug">{opt.label}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </fieldset>
-
-                  {/* Conditional Required Comment Box when Strongly Disagree is selected */}
-                  {isStronglyDisagree && (
-                    <div className="mt-3 pt-3 border-t border-rose-200/70 space-y-1.5 animate-fadeIn">
-                      <div className="flex items-center justify-between text-xs font-bold">
-                        <label htmlFor={`comment_${param.id}`} className="text-slate-800 flex items-center gap-1.5">
-                          <span>Comment</span>
-                          <span className="text-rose-600 font-extrabold bg-rose-50 px-2 py-0.5 rounded border border-rose-200 text-[10px]">
-                            * Required
-                          </span>
-                        </label>
-                        <span className="text-[10px] text-slate-500 font-medium">Please explain your rating choice</span>
-                      </div>
-
-                      <textarea
-                        id={`comment_${param.id}`}
-                        rows={2}
-                        placeholder="Please explain why you selected Strongly Disagree for this statement..."
-                        value={paramComment}
-                        onChange={(e) => handleQuestionCommentChange(param.id, e.target.value)}
-                        className={`w-full px-3.5 py-2.5 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none shadow-2xs transition-all ${
-                          isCommentMissing && validationErrors.length > 0
-                            ? 'border-2 border-rose-500 bg-rose-50/50 focus:ring-2 focus:ring-rose-500/20'
-                            : 'border border-slate-300 bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20'
-                        }`}
-                      />
-
-                      {isCommentMissing && validationErrors.length > 0 && (
-                        <p className="text-[11px] font-bold text-rose-600 flex items-center gap-1 mt-1">
-                          <AlertCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                          <span>⚠ Please provide a comment when selecting Strongly Disagree.</span>
-                        </p>
-                      )}
-                    </div>
-                  )}
+            return (
+              <Card key={param.id} className="p-5 sm:p-6 space-y-4 border-slate-200 shadow-2xs hover:border-slate-300 transition-all">
+                {/* Question Title */}
+                <div className="space-y-1">
+                  <span className="text-[11px] font-extrabold text-indigo-600 uppercase tracking-wider">
+                    Question {index + 1} of {totalQuestions}
+                  </span>
+                  <h3 className="text-sm font-extrabold text-slate-900 leading-snug">
+                    {param.statement}
+                  </h3>
                 </div>
-              );
-            })}
 
-            {/* Constructive Comment Box (Optional) */}
-            <div className="space-y-2 pt-2 border-t border-slate-100">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                Constructive Comments for {activeFaculty.name} (Optional)
-              </label>
-              <textarea
-                rows={3}
-                placeholder={`Share specific comments regarding lectures, pacing, or teaching style for ${activeFaculty.name}...`}
-                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-2xs"
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-              />
-            </div>
-          </div>
+                {/* Likert Scale Radio Options */}
+                <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 pt-2">
+                  {LIKERT_OPTIONS.map((option) => {
+                    const isSelected = currentRating === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => handleRatingSelect(qKey, option.value)}
+                        className={`p-3 rounded-xl border text-center flex flex-col items-center justify-center gap-1 transition-all ${
+                          isSelected
+                            ? 'bg-indigo-600 text-white font-extrabold border-indigo-600 shadow-md shadow-indigo-600/30 ring-2 ring-indigo-600/20'
+                            : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 font-semibold'
+                        }`}
+                      >
+                        <span className="text-sm font-bold">{option.value}</span>
+                        <span className="text-[10px] leading-tight opacity-90">{option.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
 
-          {/* Bottom Action Footer */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-slate-200 p-4 rounded-2xl shadow-xs">
-            <span className="text-xs text-slate-500 font-medium">
-              Progress: <strong className="text-indigo-700">{answeredQuestionsCount} of {totalQuestionsCount}</strong> required statements completed.
-            </span>
+                {/* Conditional Feedback Comment box */}
+                {isStronglyDisagree && (
+                  <div className="pt-3 border-t border-slate-100 space-y-2">
+                    <label className="block text-xs font-bold text-rose-700">
+                      Constructive Feedback Comment Required *
+                    </label>
+                    <textarea
+                      rows={2}
+                      placeholder="Please explain the specific area needing improvement for this rating..."
+                      value={questionComments[qKey] || ''}
+                      onChange={(e) => handleCommentChange(qKey, e.target.value)}
+                      className="w-full p-3 bg-rose-50/50 border border-rose-200 rounded-xl text-xs text-slate-800 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500"
+                    />
+                  </div>
+                )}
+              </Card>
+            );
+          })}
 
-            <div className="flex items-center gap-3">
-              <Button type="button" variant="outline" onClick={handleBackToSelection}>
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                variant="primary"
-                size="lg"
-                className="bg-indigo-600 hover:bg-indigo-700 border-indigo-600 text-white font-bold shadow-md shadow-indigo-600/20 px-8"
-              >
-                <Send className="w-4 h-4 mr-2" />
-                Submit Feedback for {activeFaculty.name}
-              </Button>
-            </div>
+          {/* Submit Action */}
+          <div className="pt-4 flex items-center justify-between border-t border-slate-200">
+            <Button type="button" variant="outline" onClick={handleBackToList}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold shadow-lg shadow-indigo-600/30 px-8"
+            >
+              <Send className="w-4 h-4 mr-2" />
+              <span>Submit Evaluation Feedback</span>
+            </Button>
           </div>
         </form>
-
-        {/* Confirmation Modal */}
-        <Modal
-          isOpen={isConfirmModalOpen}
-          onClose={() => setIsConfirmModalOpen(false)}
-          title={`Submit Feedback for ${activeFaculty.name}?`}
-          maxWidth="md"
-        >
-          <div className="space-y-4 text-xs">
-            <p className="text-slate-600 text-sm">
-              Are you sure you want to submit your evaluation for <strong className="text-slate-900">{activeFaculty.name}</strong> ({activeSubject.subjectName})?
-            </p>
-            <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 font-medium leading-relaxed">
-              Once submitted, your ratings and comments cannot be edited or resubmitted for this evaluation cycle.
-            </div>
-
-            <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
-              <Button type="button" variant="outline" onClick={() => setIsConfirmModalOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                variant="primary"
-                onClick={handleConfirmSubmission}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold"
-              >
-                <Check className="w-4 h-4 mr-1.5" />
-                Confirm & Submit Feedback
-              </Button>
-            </div>
-          </div>
-        </Modal>
       </div>
+
+      {/* Confirmation Modal */}
+      <Modal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        title="Confirm Feedback Submission"
+      >
+        <div className="space-y-4 text-xs text-slate-600">
+          <p>
+            Are you sure you want to submit your evaluation for{' '}
+            <strong className="text-slate-900">{activeForm?.facultyName}</strong> ({activeForm?.subjectName})?
+          </p>
+          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+            <div className="flex items-center gap-1.5 text-emerald-700 font-bold">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <span>Anonymity Guaranteed</span>
+            </div>
+            <p className="text-[11px] text-slate-500">
+              Your response will be recorded without your student identity attached. Once submitted, you cannot edit or re-submit this evaluation.
+            </p>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="outline" onClick={() => setIsConfirmModalOpen(false)}>
+              Back to Questionnaire
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleConfirmSubmission}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold"
+            >
+              Confirm &amp; Submit
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </StudentLayout>
   );
 }

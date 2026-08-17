@@ -17,6 +17,7 @@ import {
   GraduationCap as StudentIcon,
   PanelLeftClose,
   PanelLeftOpen,
+  Send,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -33,6 +34,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath, isCollapsed = fal
         { name: 'Dashboard', href: '#Admin/Dashboard', icon: LayoutDashboard },
         { name: 'Analytics', href: '#Admin/Analytics/Index', icon: BarChart3 },
         { name: 'Reports', href: '#Admin/Reports/Index', icon: FileText },
+      ],
+    },
+    {
+      title: 'FEEDBACK',
+      items: [
+        { name: 'Publish Form', href: '#Admin/Feedback/PublishForm', icon: Send },
         { name: 'Critical Feedback', href: '#Admin/CriticalComments/Index', icon: AlertTriangle },
       ],
     },

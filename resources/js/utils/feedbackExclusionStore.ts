@@ -403,7 +403,17 @@ export const saveSubmissionOverridesMap = (map: Record<string, SubmissionOverrid
 
 export const getMergedSubmissions = (): FeedbackSubmissionItem[] => {
   const overrides = getSubmissionOverridesMap();
-  return INITIAL_MOCK_SUBMISSIONS.map((item) => {
+  let customSubmissions: FeedbackSubmissionItem[] = [];
+  try {
+    const rawCustom = localStorage.getItem('faculty_feedback_custom_submissions');
+    if (rawCustom) {
+      customSubmissions = JSON.parse(rawCustom);
+    }
+  } catch (e) {}
+
+  const allSubmissions = [...customSubmissions, ...INITIAL_MOCK_SUBMISSIONS];
+
+  return allSubmissions.map((item) => {
     if (overrides[item.id]) {
       return {
         ...item,
@@ -412,6 +422,40 @@ export const getMergedSubmissions = (): FeedbackSubmissionItem[] => {
     }
     return item;
   });
+};
+
+export const saveSubmissionToStore = (data: Partial<FeedbackSubmissionItem>): FeedbackSubmissionItem => {
+  let customSubmissions: FeedbackSubmissionItem[] = [];
+  try {
+    const rawCustom = localStorage.getItem('faculty_feedback_custom_submissions');
+    if (rawCustom) {
+      customSubmissions = JSON.parse(rawCustom);
+    }
+  } catch (e) {}
+
+  const newSub: FeedbackSubmissionItem = {
+    id: data.id || `FS-LIVE-${Date.now().toString().slice(-4)}`,
+    studentRoll: data.studentRoll || '22IT045',
+    facultyId: String(data.facultyId || 'FAC_JENKINS'),
+    facultyName: data.facultyName || 'Dr. Sarah Jenkins',
+    subjectCode: data.subjectCode || 'IT501',
+    subjectName: data.subjectName || 'Data Structures & Algorithms',
+    academicYear: data.academicYear || '2025-26',
+    semester: Number(data.semester) || 5,
+    division: data.division || 'IT-1',
+    departmentCode: data.departmentCode || 'IT',
+    submittedAt: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+    evaluationStatus: 'included',
+    answers: data.answers || [],
+  };
+
+  const updated = [newSub, ...customSubmissions];
+  try {
+    localStorage.setItem('faculty_feedback_custom_submissions', JSON.stringify(updated));
+    window.dispatchEvent(new Event('storage'));
+  } catch (e) {}
+
+  return newSub;
 };
 
 export const excludeSubmission = (
