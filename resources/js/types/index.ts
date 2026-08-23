@@ -145,12 +145,31 @@ export interface DivisionItem {
   id: number;
   name: string;
   department: string;
-  academicYear: string;
+  batch: string;
+  currentSemester: number;
   studentCount: number;
+  status?: 'Active' | 'Inactive';
 }
 
 export interface DivisionsIndexProps {
   divisions: DivisionItem[];
+  filters?: { search?: string };
+}
+
+// 6b. Admin/Sections/Index
+export interface SectionItem {
+  id: number;
+  name: string;
+  division: string;
+  batch: string;
+  currentSemester: number;
+  department: string;
+  studentCount: number;
+  status: 'Active' | 'Inactive';
+}
+
+export interface SectionsIndexProps {
+  sections: SectionItem[];
   filters?: { search?: string };
 }
 
@@ -177,6 +196,7 @@ export interface AcademicYearCohortStudent {
   batch: string;
   semester: number;
   division: string;
+  section?: string;
   status: 'Active' | 'Inactive';
 }
 
@@ -213,7 +233,9 @@ export interface StudentItem {
   name: string;
   email: string;
   batch: string;
+  currentSemester?: number;
   division: string;
+  section?: string;
   department: string;
   feedbackStatus: 'Completed' | 'Pending';
 }
@@ -246,6 +268,7 @@ export interface ElectiveEnrollmentStudent {
   rollNumber: string;
   name: string;
   division: string;
+  section?: string;
   isEnrolled: boolean;
 }
 
@@ -267,7 +290,9 @@ export interface SessionAssignmentItem {
   subjectCode: string;
   batchName: string;
   divisionName: string;
+  sectionName?: string;
   semester: number;
+  department?: string;
 }
 
 export interface SessionAssignmentsIndexProps {

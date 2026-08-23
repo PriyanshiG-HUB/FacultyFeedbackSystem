@@ -118,8 +118,8 @@ export default function PublishForm({
   const [academicYear, setAcademicYear] = useState<string>('2025-26');
   const [semester, setSemester] = useState<number>(5);
   const [deptCode, setDeptCode] = useState<string>(activeDeptCode);
-  const [division, setDivision] = useState<string>('Division A');
-  const [batch, setBatch] = useState<string>('Batch 2022-2026');
+  const [division, setDivision] = useState<string>('Division 1');
+  const [batch, setBatch] = useState<string>('2022-26');
   const [facultyId, setFacultyId] = useState<string>('');
   const [subjectCode, setSubjectCode] = useState<string>('');
   const [selectedQuestions, setSelectedQuestions] = useState<number[]>([1, 2, 3, 4, 5]);
@@ -167,8 +167,8 @@ export default function PublishForm({
     setAcademicYear('2025-26');
     setSemester(5);
     setDeptCode(assignedDepartmentCode || 'IT');
-    setDivision('Division A');
-    setBatch('Batch 2022-2026');
+    setDivision('Division 1');
+    setBatch('2022-26');
 
     const facList = MOCK_FACULTY_BY_DEPT[assignedDepartmentCode || 'IT'] || MOCK_FACULTY_BY_DEPT['IT'];
     const subList = MOCK_SUBJECTS_BY_DEPT[assignedDepartmentCode || 'IT'] || MOCK_SUBJECTS_BY_DEPT['IT'];
@@ -649,30 +649,29 @@ export default function PublishForm({
 
               {/* Division */}
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Division</label>
+                <label className="block text-slate-700 font-bold mb-1">Division Target</label>
                 <select
                   value={division}
                   onChange={(e) => setDivision(e.target.value)}
                   className="w-full p-2 bg-white border border-slate-300 rounded-lg font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500"
                 >
-                  <option value="Division A">Division A (IT-1)</option>
-                  <option value="Division B">Division B (IT-2)</option>
-                  <option value="Division C">Division C</option>
+                  <option value="Division 1">Division 1</option>
+                  <option value="Division 2">Division 2</option>
                   <option value="All Divisions">All Divisions</option>
                 </select>
               </div>
 
               {/* Batch */}
               <div className="sm:col-span-2">
-                <label className="block text-slate-700 font-bold mb-1">Batch</label>
+                <label className="block text-slate-700 font-bold mb-1">Graduation Batch Target</label>
                 <select
                   value={batch}
                   onChange={(e) => setBatch(e.target.value)}
                   className="w-full p-2 bg-white border border-slate-300 rounded-lg font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500"
                 >
-                  <option value="Batch 2022-2026">Batch 2022-2026</option>
-                  <option value="A1">Batch A1</option>
-                  <option value="B1">Batch B1</option>
+                  <option value="2022-26">Batch 2022-26</option>
+                  <option value="2023-27">Batch 2023-27</option>
+                  <option value="2024-28">Batch 2024-28</option>
                   <option value="All Batches">All Batches</option>
                 </select>
               </div>

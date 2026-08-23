@@ -6,6 +6,7 @@ import {
   FacultyIndexProps,
   SubjectsIndexProps,
   DivisionsIndexProps,
+  SectionsIndexProps,
   BatchesIndexProps,
   AcademicYearsIndexProps,
   StudentsIndexProps,
@@ -320,15 +321,27 @@ export const mockPropsMap: Record<string, any> = {
 
   'Admin/Divisions/Index': {
     divisions: [
-      { id: 1, name: 'Division A', department: 'Information Technology', academicYear: '2025-26', studentCount: 65 },
-      { id: 2, name: 'Division B', department: 'Information Technology', academicYear: '2025-26', studentCount: 62 },
+      { id: 1, name: 'Division 1', department: 'Information Technology', batch: '2022-26', currentSemester: 7, studentCount: 65, status: 'Active' },
+      { id: 2, name: 'Division 2', department: 'Information Technology', batch: '2022-26', currentSemester: 7, studentCount: 62, status: 'Active' },
     ],
   } as DivisionsIndexProps,
 
+  'Admin/Sections/Index': {
+    sections: [
+      { id: 1, name: 'A1', division: 'Division 1', batch: '2022-26', currentSemester: 7, department: 'Information Technology', studentCount: 22, status: 'Active' },
+      { id: 2, name: 'B1', division: 'Division 1', batch: '2022-26', currentSemester: 7, department: 'Information Technology', studentCount: 22, status: 'Active' },
+      { id: 3, name: 'C1', division: 'Division 1', batch: '2022-26', currentSemester: 7, department: 'Information Technology', studentCount: 21, status: 'Active' },
+      { id: 4, name: 'A2', division: 'Division 2', batch: '2022-26', currentSemester: 7, department: 'Information Technology', studentCount: 21, status: 'Active' },
+      { id: 5, name: 'B2', division: 'Division 2', batch: '2022-26', currentSemester: 7, department: 'Information Technology', studentCount: 21, status: 'Active' },
+      { id: 6, name: 'C2', division: 'Division 2', batch: '2022-26', currentSemester: 7, department: 'Information Technology', studentCount: 20, status: 'Active' },
+    ],
+  } as SectionsIndexProps,
+
   'Admin/Batches/Index': {
     batches: [
-      { id: 1, name: 'Batch 2022-2026 (B.Tech IT)', academicYear: '2025-26', currentSemester: 7, department: 'Information Technology', status: 'Active' },
-      { id: 2, name: 'Batch 2023-2027 (B.Tech IT)', academicYear: '2025-26', currentSemester: 5, department: 'Information Technology', status: 'Active' },
+      { id: 1, name: '2022-26 (B.Tech IT)', academicYear: '2025-26', currentSemester: 7, department: 'Information Technology', status: 'Active' },
+      { id: 2, name: '2023-27 (B.Tech IT)', academicYear: '2025-26', currentSemester: 5, department: 'Information Technology', status: 'Active' },
+      { id: 3, name: '2024-28 (B.Tech IT)', academicYear: '2025-26', currentSemester: 3, department: 'Information Technology', status: 'Active' },
     ],
   } as BatchesIndexProps,
 
@@ -760,20 +773,20 @@ export const mockPropsMap: Record<string, any> = {
 
   'Admin/Students/Index': {
     students: [
-      { id: 1, rollNumber: '22IT001', name: 'Alexander Wright', email: 'a.wright@student.univ.edu', batch: 'Batch 2022-2026', division: 'Division A', department: 'Information Technology', feedbackStatus: 'Completed' },
-      { id: 2, rollNumber: '22IT002', name: 'Sophia Martinez', email: 's.martinez@student.univ.edu', batch: 'Batch 2022-2026', division: 'Division A', department: 'Information Technology', feedbackStatus: 'Completed' },
-      { id: 3, rollNumber: '22IT003', name: 'Ethan Hunt', email: 'e.hunt@student.univ.edu', batch: 'Batch 2022-2026', division: 'Division B', department: 'Information Technology', feedbackStatus: 'Pending' },
-      { id: 4, rollNumber: '22CE001', name: 'David Miller', email: 'd.miller@student.univ.edu', batch: 'Batch 2022-2026', division: 'Division A', department: 'Computer Engineering', feedbackStatus: 'Completed' },
-      { id: 5, rollNumber: '22CE002', name: 'Emma Watson', email: 'e.watson@student.univ.edu', batch: 'Batch 2022-2026', division: 'Division A', department: 'Computer Engineering', feedbackStatus: 'Completed' },
-      { id: 6, rollNumber: '22CS001', name: 'Lucas Scott', email: 'l.scott@student.univ.edu', batch: 'Batch 2022-2026', division: 'Division A', department: 'Computer Science & Engineering', feedbackStatus: 'Completed' },
-      { id: 7, rollNumber: '22EC001', name: 'Olivia Brown', email: 'o.brown@student.univ.edu', batch: 'Batch 2022-2026', division: 'Division A', department: 'Electronics & Communication', feedbackStatus: 'Pending' },
-      { id: 8, rollNumber: '22ME001', name: 'Noah Davis', email: 'n.davis@student.univ.edu', batch: 'Batch 2022-2026', division: 'Division A', department: 'Mechanical Engineering', feedbackStatus: 'Completed' },
+      { id: 1, rollNumber: '22IT001', name: 'Alexander Wright', email: 'a.wright@student.univ.edu', batch: '2022-26', currentSemester: 7, division: 'Division 1', section: 'A1', department: 'Information Technology', feedbackStatus: 'Completed' },
+      { id: 2, rollNumber: '22IT002', name: 'Sophia Martinez', email: 's.martinez@student.univ.edu', batch: '2022-26', currentSemester: 7, division: 'Division 1', section: 'B1', department: 'Information Technology', feedbackStatus: 'Completed' },
+      { id: 3, rollNumber: '22IT003', name: 'Ethan Hunt', email: 'e.hunt@student.univ.edu', batch: '2022-26', currentSemester: 7, division: 'Division 2', section: 'A2', department: 'Information Technology', feedbackStatus: 'Pending' },
+      { id: 4, rollNumber: '22CE001', name: 'David Miller', email: 'd.miller@student.univ.edu', batch: '2022-26', currentSemester: 7, division: 'Division 1', section: 'A1', department: 'Computer Engineering', feedbackStatus: 'Completed' },
+      { id: 5, rollNumber: '22CE002', name: 'Emma Watson', email: 'e.watson@student.univ.edu', batch: '2022-26', currentSemester: 7, division: 'Division 1', section: 'B1', department: 'Computer Engineering', feedbackStatus: 'Completed' },
+      { id: 6, rollNumber: '22CS001', name: 'Lucas Scott', email: 'l.scott@student.univ.edu', batch: '2022-26', currentSemester: 7, division: 'Division 1', section: 'A1', department: 'Computer Science & Engineering', feedbackStatus: 'Completed' },
+      { id: 7, rollNumber: '22EC001', name: 'Olivia Brown', email: 'o.brown@student.univ.edu', batch: '2022-26', currentSemester: 7, division: 'Division 1', section: 'A1', department: 'Electronics & Communication', feedbackStatus: 'Pending' },
+      { id: 8, rollNumber: '22ME001', name: 'Noah Davis', email: 'n.davis@student.univ.edu', batch: '2022-26', currentSemester: 7, division: 'Division 1', section: 'A1', department: 'Mechanical Engineering', feedbackStatus: 'Completed' },
     ],
   } as StudentsIndexProps,
 
   'Admin/Electives/Index': {
     electives: [
-      { id: 1, subjectCode: 'IT707', subjectName: 'Web Development & Cloud Architecture', department: 'Information Technology', batch: 'Batch 2022-2026', semester: 7, enrolledCount: 48, maxSeats: 60 },
+      { id: 1, subjectCode: 'IT707', subjectName: 'Web Development & Cloud Architecture', department: 'Information Technology', batch: '2022-26', semester: 7, enrolledCount: 48, maxSeats: 60 },
     ],
   } as ElectivesIndexProps,
 
@@ -782,18 +795,18 @@ export const mockPropsMap: Record<string, any> = {
       id: 1,
       subjectCode: 'IT707',
       subjectName: 'Web Development & Cloud Architecture',
-      batch: 'Batch 2022-2026',
+      batch: '2022-26',
     },
     availableStudents: [
-      { id: 101, rollNumber: '22IT001', name: 'Alexander Wright', division: 'Division A', isEnrolled: true },
-      { id: 102, rollNumber: '22IT002', name: 'Sophia Martinez', division: 'Division A', isEnrolled: true },
+      { id: 101, rollNumber: '22IT001', name: 'Alexander Wright', division: 'Division 1', section: 'A1', isEnrolled: true },
+      { id: 102, rollNumber: '22IT002', name: 'Sophia Martinez', division: 'Division 1', section: 'B1', isEnrolled: true },
     ],
   } as ElectiveEnrollmentProps,
 
   'Admin/SessionAssignments/Index': {
     assignments: [
-      { id: 1, facultyName: 'Dr. Sarah Jenkins', subjectName: 'Database Management Systems', subjectCode: 'IT701', batchName: 'Batch 2022-2026', divisionName: 'Division A', semester: 7 },
-      { id: 2, facultyName: 'Prof. Michael Chang', subjectName: 'Database Management Systems', subjectCode: 'IT701', batchName: 'Batch 2022-2026', divisionName: 'Division A', semester: 7 },
+      { id: 1, facultyName: 'Dr. Sarah Jenkins', subjectName: 'Database Management Systems', subjectCode: 'IT701', batchName: '2022-26', divisionName: 'Division 1', sectionName: 'A1', semester: 7, department: 'Information Technology' },
+      { id: 2, facultyName: 'Prof. Michael Chang', subjectName: 'Database Management Systems', subjectCode: 'IT701', batchName: '2022-26', divisionName: 'Division 1', sectionName: 'All', semester: 7, department: 'Information Technology' },
     ],
     facultyList: [
       { id: 1, name: 'Dr. Sarah Jenkins' },
@@ -803,7 +816,9 @@ export const mockPropsMap: Record<string, any> = {
       { id: 1, name: 'Database Management Systems', code: 'IT701' },
     ],
     batchList: [
-      { id: 1, name: 'Batch 2022-2026' },
+      { id: 1, name: '2022-26' },
+      { id: 2, name: '2023-27' },
+      { id: 3, name: '2024-28' },
     ],
   } as SessionAssignmentsIndexProps,
 
@@ -912,8 +927,9 @@ export const mockPropsMap: Record<string, any> = {
       program: 'B.Tech Information Technology',
       department: 'Information Technology',
       departmentCode: 'IT',
-      batch: 'Batch 2022-2026',
-      division: 'Division A',
+      batch: '2022-26',
+      division: 'Division 1',
+      section: 'A1',
       divisionCode: 'IT-1',
     },
   } as StudentIdentifyProps,
@@ -927,8 +943,9 @@ export const mockPropsMap: Record<string, any> = {
       program: 'B.Tech (Information Technology)',
       department: 'Information Technology',
       departmentCode: 'IT',
-      batch: 'Batch 2022-2026',
-      division: 'Division A',
+      batch: '2022-26',
+      division: 'Division 1',
+      section: 'A1',
       divisionCode: 'IT-1',
     },
     academicYear: '2025-26',

@@ -8,6 +8,7 @@ import AdminDepartmentsCreate from '../Pages/Admin/Departments/Create';
 import AdminFacultyIndex from '../Pages/Admin/Faculty/Index';
 import AdminSubjectsIndex from '../Pages/Admin/Subjects/Index';
 import AdminDivisionsIndex from '../Pages/Admin/Divisions/Index';
+import AdminSectionsIndex from '../Pages/Admin/Sections/Index';
 import AdminBatchesIndex from '../Pages/Admin/Batches/Index';
 import AdminAcademicYearsIndex from '../Pages/Admin/AcademicYears/Index';
 import AdminStudentsIndex from '../Pages/Admin/Students/Index';
@@ -39,6 +40,7 @@ const componentRegistry: Record<string, React.ComponentType<any>> = {
   'Admin/Faculty/Index': AdminFacultyIndex,
   'Admin/Subjects/Index': AdminSubjectsIndex,
   'Admin/Divisions/Index': AdminDivisionsIndex,
+  'Admin/Sections/Index': AdminSectionsIndex,
   'Admin/Batches/Index': AdminBatchesIndex,
   'Admin/AcademicYears/Index': AdminAcademicYearsIndex,
   'Admin/Students/Index': AdminStudentsIndex,
@@ -61,7 +63,7 @@ const componentRegistry: Record<string, React.ComponentType<any>> = {
 export const DevPageRenderer: React.FC = () => {
   const [activePage, setActivePage] = useState<string>('Admin/Dashboard');
   const [devRoleMode, setDevRoleMode] = useState<string>('admin');
-  const [studentDivisionMode, setStudentDivisionMode] = useState<string>('Division A');
+  const [studentDivisionMode, setStudentDivisionMode] = useState<string>('Division 1');
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -183,6 +185,7 @@ export const DevPageRenderer: React.FC = () => {
                 <option value="Admin/Faculty/Index">Admin &rarr; Faculty/Index</option>
                 <option value="Admin/Subjects/Index">Admin &rarr; Subjects/Index</option>
                 <option value="Admin/Divisions/Index">Admin &rarr; Divisions/Index</option>
+                <option value="Admin/Sections/Index">Admin &rarr; Sections/Index</option>
                 <option value="Admin/Batches/Index">Admin &rarr; Batches/Index</option>
                 <option value="Admin/AcademicYears/Index">Admin &rarr; AcademicYears/Index</option>
                 <option value="Admin/Students/Index">Admin &rarr; Students/Index</option>
