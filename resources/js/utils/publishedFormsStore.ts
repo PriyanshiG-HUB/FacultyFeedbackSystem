@@ -14,9 +14,13 @@ export const INITIAL_PUBLISHED_FORMS: PublishedFormItem[] = [
     departmentName: 'Information Technology',
     division: 'Division 1',
     batch: '2022-26',
+    faculties: [
+      { id: 'FAC_JENKINS', name: 'Dr. Sarah Jenkins', designation: 'Professor & HOD' },
+      { id: 'FAC_NISHAT', name: 'Prof. Nishat Shaikh', designation: 'Associate Professor' },
+    ],
     facultyId: 'FAC_JENKINS',
-    facultyName: 'Dr. Sarah Jenkins',
-    facultyDesignation: 'Professor',
+    facultyName: 'Dr. Sarah Jenkins, Prof. Nishat Shaikh',
+    facultyDesignation: 'Professor & HOD',
     subjectCode: 'IT501',
     subjectName: 'Data Structures & Algorithms',
     questions: SYSTEM_QUESTIONS.map((q) => ({ id: q.id, statement: q.text })),
@@ -34,8 +38,12 @@ export const INITIAL_PUBLISHED_FORMS: PublishedFormItem[] = [
     departmentName: 'Information Technology',
     division: 'Division 1',
     batch: '2022-26',
+    faculties: [
+      { id: 'FAC_SAGAR', name: 'Prof. Sagar Patel', designation: 'Assistant Professor' },
+      { id: 'FAC_GOSLING', name: 'Prof. James Gosling', designation: 'Assistant Professor' },
+    ],
     facultyId: 'FAC_SAGAR',
-    facultyName: 'Prof. Sagar Patel',
+    facultyName: 'Prof. Sagar Patel, Prof. James Gosling',
     facultyDesignation: 'Assistant Professor',
     subjectCode: 'IT502',
     subjectName: 'Database Management Systems',
@@ -53,9 +61,12 @@ export const INITIAL_PUBLISHED_FORMS: PublishedFormItem[] = [
     departmentName: 'Information Technology',
     division: 'Division 1',
     batch: '2022-26',
+    faculties: [
+      { id: 'FAC_JENKINS', name: 'Dr. Sarah Jenkins', designation: 'Professor & HOD' },
+    ],
     facultyId: 'FAC_JENKINS',
     facultyName: 'Dr. Sarah Jenkins',
-    facultyDesignation: 'Professor',
+    facultyDesignation: 'Professor & HOD',
     subjectCode: 'IT701',
     subjectName: 'Database Management Systems',
     questions: SYSTEM_QUESTIONS.map((q) => ({ id: q.id, statement: q.text })),
@@ -73,8 +84,12 @@ export const INITIAL_PUBLISHED_FORMS: PublishedFormItem[] = [
     departmentName: 'Computer Engineering',
     division: 'Division 1',
     batch: '2022-26',
+    faculties: [
+      { id: 'FAC_TURING', name: 'Dr. Alan Turing', designation: 'Professor & HOD' },
+      { id: 'FAC_RITCHIE', name: 'Dr. Dennis Ritchie', designation: 'Professor' },
+    ],
     facultyId: 'FAC_TURING',
-    facultyName: 'Dr. Alan Turing',
+    facultyName: 'Dr. Alan Turing, Dr. Dennis Ritchie',
     facultyDesignation: 'Professor & HOD',
     subjectCode: 'CE501',
     subjectName: 'Theory of Computation',
@@ -128,6 +143,18 @@ export const savePublishedForm = (formData: Partial<PublishedFormItem>): Publish
 
   const existingIndex = current.findIndex((f) => f.id === id);
 
+  const facultiesList = formData.faculties && formData.faculties.length > 0
+    ? formData.faculties
+    : [
+        {
+          id: formData.facultyId || 'FAC_JENKINS',
+          name: formData.facultyName || 'Dr. Sarah Jenkins',
+          designation: formData.facultyDesignation || 'Professor',
+        },
+      ];
+
+  const formattedFacultyNames = facultiesList.map((f) => f.name).join(', ');
+
   const newForm: PublishedFormItem = {
     id,
     title: formData.title || `Faculty Feedback — Semester ${formData.semester || 5} (${formData.subjectName || 'Subject'})`,
@@ -135,11 +162,12 @@ export const savePublishedForm = (formData: Partial<PublishedFormItem>): Publish
     semester: Number(formData.semester) || 5,
     departmentCode: formData.departmentCode || 'IT',
     departmentName: formData.departmentName || 'Information Technology',
-    division: formData.division || 'Division A',
-    batch: formData.batch || 'Batch 2022-2026',
-    facultyId: formData.facultyId || 'FAC_JENKINS',
-    facultyName: formData.facultyName || 'Dr. Sarah Jenkins',
-    facultyDesignation: formData.facultyDesignation || 'Professor',
+    division: formData.division || 'Division 1',
+    batch: formData.batch || '2022-26',
+    faculties: facultiesList,
+    facultyId: facultiesList[0]?.id || 'FAC_JENKINS',
+    facultyName: formattedFacultyNames,
+    facultyDesignation: facultiesList[0]?.designation || 'Faculty',
     subjectCode: formData.subjectCode || 'IT501',
     subjectName: formData.subjectName || 'Data Structures & Algorithms',
     questions: formData.questions && formData.questions.length > 0

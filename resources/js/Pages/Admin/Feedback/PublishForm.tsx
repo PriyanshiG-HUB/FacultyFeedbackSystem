@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../../Layouts/AdminLayout';
-import { PublishFormIndexProps, PublishedFormItem, PublishedFormQuestionItem } from '../../../types';
+import { PublishFormIndexProps, PublishedFormItem, PublishedFormFacultyItem } from '../../../types';
 import { Card } from '../../../Components/ui/Card';
 import { Button } from '../../../Components/ui/Button';
-import { Input } from '../../../Components/ui/Input';
 import { Modal } from '../../../Components/ui/Modal';
 import { StatusBadge } from '../../../Components/ui/StatusBadge';
 import { StatCard } from '../../../Components/ui/StatCard';
@@ -14,7 +13,6 @@ import {
   deletePublishedForm,
   subscribeToPublishedForms,
 } from '../../../utils/publishedFormsStore';
-import { SYSTEM_QUESTIONS } from '../../../utils/feedbackExclusionStore';
 import { filterItemsByDepartment, DEPARTMENTS_LIST, getDepartmentName } from '../../../utils/departmentScope';
 import {
   Send,
@@ -26,15 +24,9 @@ import {
   Trash2,
   Edit,
   GraduationCap,
-  BookOpen,
   User,
-  Layers,
-  Calendar,
-  Sparkles,
-  HelpCircle,
   FileCheck,
-  Building2,
-  Check,
+  X,
 } from 'lucide-react';
 
 const MOCK_FACULTY_BY_DEPT: Record<string, { id: string; name: string; designation: string }[]> = {
@@ -102,27 +94,28 @@ export default function PublishForm({
   userRole = 'admin',
   assignedDepartmentCode = null,
   departmentName = 'Information Technology',
-  forms: initialForms,
 }: PublishFormIndexProps) {
   const [forms, setForms] = useState<PublishedFormItem[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedSemFilter, setSelectedSemFilter] = useState<string>('ALL');
-  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('ALL');
+  const [selectedDivFilter, setSelectedDivFilter] = useState<string>('ALL');
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingFormId, setEditingFormId] = useState<string | null>(null);
 
-  // Form Fields
+  // Academic Target Fields
   const activeDeptCode = assignedDepartmentCode || 'IT';
   const [academicYear, setAcademicYear] = useState<string>('2025-26');
   const [semester, setSemester] = useState<number>(5);
   const [deptCode, setDeptCode] = useState<string>(activeDeptCode);
   const [division, setDivision] = useState<string>('Division 1');
   const [batch, setBatch] = useState<string>('2022-26');
-  const [facultyId, setFacultyId] = useState<string>('');
+
+  // Faculty & Subject Fields
   const [subjectCode, setSubjectCode] = useState<string>('');
-  const [selectedQuestions, setSelectedQuestions] = useState<number[]>([1, 2, 3, 4, 5]);
+  const [selectedFaculties, setSelectedFaculties] = useState<PublishedFormFacultyItem[]>([]);
+  const [pendingFacultyId, setPendingFacultyId] = useState<string>('');
   const [formStatus, setFormStatus] = useState<'Published' | 'Unpublished'>('Published');
 
   // Error & Toast State
@@ -142,19 +135,6 @@ export default function PublishForm({
     return () => unsubscribe();
   }, [assignedDepartmentCode]);
 
-  // Set default faculty and subject based on department
-  useEffect(() => {
-    const facList = MOCK_FACULTY_BY_DEPT[deptCode] || MOCK_FACULTY_BY_DEPT['IT'];
-    const subList = MOCK_SUBJECTS_BY_DEPT[deptCode] || MOCK_SUBJECTS_BY_DEPT['IT'];
-
-    if (facList.length > 0 && !facultyId) {
-      setFacultyId(facList[0].id);
-    }
-    if (subList.length > 0 && !subjectCode) {
-      setSubjectCode(subList[0].code);
-    }
-  }, [deptCode]);
-
   // Toast Helper
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -166,16 +146,24 @@ export default function PublishForm({
     setEditingFormId(null);
     setAcademicYear('2025-26');
     setSemester(5);
-    setDeptCode(assignedDepartmentCode || 'IT');
+    const targetDept = assignedDepartmentCode || 'IT';
+    setDeptCode(targetDept);
     setDivision('Division 1');
     setBatch('2022-26');
 
-    const facList = MOCK_FACULTY_BY_DEPT[assignedDepartmentCode || 'IT'] || MOCK_FACULTY_BY_DEPT['IT'];
-    const subList = MOCK_SUBJECTS_BY_DEPT[assignedDepartmentCode || 'IT'] || MOCK_SUBJECTS_BY_DEPT['IT'];
+    const subList = MOCK_SUBJECTS_BY_DEPT[targetDept] || MOCK_SUBJECTS_BY_DEPT['IT'];
+    const facList = MOCK_FACULTY_BY_DEPT[targetDept] || MOCK_FACULTY_BY_DEPT['IT'];
 
-    setFacultyId(facList[0]?.id || '');
     setSubjectCode(subList[0]?.code || '');
-    setSelectedQuestions([1, 2, 3, 4, 5]);
+
+    const defaultFac = facList[0]
+      ? [{ id: facList[0].id, name: facList[0].name, designation: facList[0].designation }]
+      : [];
+    setSelectedFaculties(defaultFac);
+
+    const nextAvailable = facList.find((f) => !defaultFac.some((df) => String(df.id) === String(f.id)));
+    setPendingFacultyId(nextAvailable ? nextAvailable.id : '');
+
     setFormStatus('Published');
     setValidationError(null);
     setIsModalOpen(true);
@@ -189,49 +177,79 @@ export default function PublishForm({
     setDeptCode(form.departmentCode);
     setDivision(form.division);
     setBatch(form.batch);
-    setFacultyId(String(form.facultyId));
     setSubjectCode(form.subjectCode);
-    setSelectedQuestions(form.questions.map((q) => q.id));
+
+    let facultiesToSet: PublishedFormFacultyItem[] = [];
+    if (form.faculties && form.faculties.length > 0) {
+      facultiesToSet = [...form.faculties];
+    } else if (form.facultyName) {
+      const names = form.facultyName.split(',').map((n) => n.trim());
+      facultiesToSet = names.map((name, idx) => ({
+        id: idx === 0 ? form.facultyId : `FAC_LEGACY_${idx}`,
+        name,
+        designation: idx === 0 ? form.facultyDesignation || 'Faculty' : 'Faculty',
+      }));
+    }
+    setSelectedFaculties(facultiesToSet);
+
+    const facList = MOCK_FACULTY_BY_DEPT[form.departmentCode] || MOCK_FACULTY_BY_DEPT['IT'];
+    const nextAvailable = facList.find((f) => !facultiesToSet.some((fs) => String(fs.id) === String(f.id)));
+    setPendingFacultyId(nextAvailable ? nextAvailable.id : '');
+
     setFormStatus(form.status);
     setValidationError(null);
     setIsModalOpen(true);
   };
 
-  // Toggle Question Selection
-  const handleToggleQuestion = (qId: number) => {
-    setSelectedQuestions((prev) =>
-      prev.includes(qId) ? prev.filter((id) => id !== qId) : [...prev, qId]
-    );
+  // Add Faculty to Selected List
+  const handleAddFaculty = () => {
+    if (!pendingFacultyId) return;
+    const facList = MOCK_FACULTY_BY_DEPT[deptCode] || MOCK_FACULTY_BY_DEPT['IT'];
+    const target = facList.find((f) => String(f.id) === String(pendingFacultyId));
+    if (!target) return;
+
+    if (selectedFaculties.some((f) => String(f.id) === String(target.id))) {
+      setValidationError('Faculty member is already added to this subject.');
+      return;
+    }
+
+    setValidationError(null);
+    const updated = [
+      ...selectedFaculties,
+      { id: target.id, name: target.name, designation: target.designation },
+    ];
+    setSelectedFaculties(updated);
+
+    const nextAvailable = facList.find((f) => !updated.some((u) => String(u.id) === String(f.id)));
+    setPendingFacultyId(nextAvailable ? nextAvailable.id : '');
+  };
+
+  // Remove Faculty from Selected List
+  const handleRemoveFaculty = (facId: string | number) => {
+    const updated = selectedFaculties.filter((f) => String(f.id) !== String(facId));
+    setSelectedFaculties(updated);
+
+    const facList = MOCK_FACULTY_BY_DEPT[deptCode] || MOCK_FACULTY_BY_DEPT['IT'];
+    const nextAvailable = facList.find((f) => !updated.some((u) => String(u.id) === String(f.id)));
+    setPendingFacultyId(nextAvailable ? nextAvailable.id : '');
   };
 
   // Submit Form Creation / Update
   const handleSaveForm = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!semester || !deptCode || !facultyId || !subjectCode) {
-      setValidationError('Please select Academic Semester, Department, Faculty, and Subject.');
+    if (!semester || !deptCode || !subjectCode) {
+      setValidationError('Please select Academic Target and Subject.');
       return;
     }
 
-    if (selectedQuestions.length === 0) {
-      setValidationError('Please select at least one feedback question for this form.');
+    if (selectedFaculties.length === 0) {
+      setValidationError('Please select at least one faculty member for this subject.');
       return;
     }
 
-    const facList = MOCK_FACULTY_BY_DEPT[deptCode] || MOCK_FACULTY_BY_DEPT['IT'];
     const subList = MOCK_SUBJECTS_BY_DEPT[deptCode] || MOCK_SUBJECTS_BY_DEPT['IT'];
-
-    const selectedFacultyObj = facList.find((f) => String(f.id) === String(facultyId)) || facList[0];
     const selectedSubjectObj = subList.find((s) => s.code === subjectCode) || subList[0];
-
-    const questionObjects: PublishedFormQuestionItem[] = selectedQuestions.map((qId) => {
-      const found = SYSTEM_QUESTIONS.find((sq) => sq.id === qId);
-      return {
-        id: qId,
-        statement: found ? found.text : `Feedback Question #${qId}`,
-      };
-    });
-
     const fullDeptName = getDepartmentName(deptCode);
 
     savePublishedForm({
@@ -243,12 +261,12 @@ export default function PublishForm({
       departmentName: fullDeptName,
       division,
       batch,
-      facultyId: selectedFacultyObj.id,
-      facultyName: selectedFacultyObj.name,
-      facultyDesignation: selectedFacultyObj.designation,
+      faculties: selectedFaculties,
+      facultyId: selectedFaculties[0]?.id || '',
+      facultyName: selectedFaculties.map((f) => f.name).join(', '),
+      facultyDesignation: selectedFaculties[0]?.designation || 'Faculty',
       subjectCode: selectedSubjectObj.code,
       subjectName: selectedSubjectObj.name,
-      questions: questionObjects,
       status: formStatus,
       createdBy: `${userRole === 'hod' ? 'HOD' : 'Admin'} ${fullDeptName}`,
     });
@@ -269,8 +287,8 @@ export default function PublishForm({
     if (updated) {
       showToast(
         updated.status === 'Published'
-          ? `Form "${updated.title}" is now PUBLISHED and visible to students!`
-          : `Form "${updated.title}" is now UNPUBLISHED and hidden from students.`
+          ? `Form for "${updated.subjectName}" is now PUBLISHED.`
+          : `Form for "${updated.subjectName}" is now UNPUBLISHED.`
       );
     }
   };
@@ -286,15 +304,13 @@ export default function PublishForm({
   // Filtered list
   const filteredForms = forms.filter((f) => {
     const matchesSearch =
-      f.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      f.facultyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       f.subjectName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      f.subjectCode.toLowerCase().includes(searchQuery.toLowerCase());
+      f.facultyName.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesSem = selectedSemFilter === 'ALL' || String(f.semester) === selectedSemFilter;
-    const matchesStatus = selectedStatusFilter === 'ALL' || f.status === selectedStatusFilter;
+    const matchesDiv = selectedDivFilter === 'ALL' || f.division === selectedDivFilter;
 
-    return matchesSearch && matchesSem && matchesStatus;
+    return matchesSearch && matchesSem && matchesDiv;
   });
 
   const totalFormsCount = forms.length;
@@ -316,8 +332,8 @@ export default function PublishForm({
         </div>
       )}
 
-      {/* Scope Info Banner */}
-      <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 rounded-2xl p-5 sm:p-6 text-white shadow-lg border border-blue-800/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      {/* Action Header Banner */}
+      <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 rounded-2xl p-5 sm:p-6 text-white shadow-lg border border-blue-800/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-md bg-blue-500/20 text-blue-200 border border-blue-400/30 text-[10px] font-extrabold uppercase tracking-wider">
@@ -325,10 +341,7 @@ export default function PublishForm({
             </span>
             <span className="text-xs text-blue-200 font-semibold">&bull; Feedback Control Center</span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight">Publish Feedback Forms</h2>
-          <p className="text-xs text-blue-200/90 max-w-2xl leading-relaxed">
-            Configure academic target groups, select faculty & subjects, set feedback questions, and publish forms. Published forms become immediately visible to eligible students in their Student Portal.
-          </p>
+          <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight">Create &amp; Publish Feedback Form</h2>
         </div>
 
         <Button
@@ -373,23 +386,25 @@ export default function PublishForm({
         />
       </div>
 
-      {/* Action Header & Filters */}
+      {/* Feedback Forms Table Container */}
       <Card className="p-4 sm:p-5 space-y-4">
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-          {/* Search Input */}
-          <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search forms by title, faculty, or subject..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
+          <h3 className="text-base font-extrabold text-slate-900">Feedback Forms</h3>
 
-          {/* Filter Dropdowns */}
+          {/* Filters */}
           <div className="flex flex-wrap items-center gap-2.5">
+            {/* Search Input */}
+            <div className="relative flex-1 sm:w-64 max-w-xs">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search Subject..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+
             {/* Semester Filter */}
             <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 text-xs">
               <span className="font-bold text-slate-500 text-[11px] uppercase">Semester:</span>
@@ -399,51 +414,52 @@ export default function PublishForm({
                 className="bg-transparent font-extrabold text-slate-800 focus:outline-none cursor-pointer"
               >
                 <option value="ALL">All Semesters</option>
-                <option value="1">Semester 1</option>
-                <option value="2">Semester 2</option>
-                <option value="3">Semester 3</option>
-                <option value="4">Semester 4</option>
-                <option value="5">Semester 5</option>
-                <option value="6">Semester 6</option>
-                <option value="7">Semester 7</option>
-                <option value="8">Semester 8</option>
+                <option value="1">Sem 1</option>
+                <option value="2">Sem 2</option>
+                <option value="3">Sem 3</option>
+                <option value="4">Sem 4</option>
+                <option value="5">Sem 5</option>
+                <option value="6">Sem 6</option>
+                <option value="7">Sem 7</option>
+                <option value="8">Sem 8</option>
               </select>
             </div>
 
-            {/* Status Filter */}
+            {/* Division Filter */}
             <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 text-xs">
-              <span className="font-bold text-slate-500 text-[11px] uppercase">Status:</span>
+              <span className="font-bold text-slate-500 text-[11px] uppercase">Division:</span>
               <select
-                value={selectedStatusFilter}
-                onChange={(e) => setSelectedStatusFilter(e.target.value)}
+                value={selectedDivFilter}
+                onChange={(e) => setSelectedDivFilter(e.target.value)}
                 className="bg-transparent font-extrabold text-slate-800 focus:outline-none cursor-pointer"
               >
-                <option value="ALL">All Statuses</option>
-                <option value="Published">Published (Visible)</option>
-                <option value="Unpublished">Unpublished (Hidden)</option>
+                <option value="ALL">All Divisions</option>
+                <option value="Division 1">Division 1</option>
+                <option value="Division 2">Division 2</option>
+                <option value="Division A">Division A</option>
+                <option value="Division B">Division B</option>
               </select>
             </div>
           </div>
         </div>
 
-        {/* Forms Table */}
+        {/* Simplified 6-Column Forms Table */}
         <div className="overflow-x-auto rounded-xl border border-slate-200">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-100/80 text-slate-600 font-extrabold uppercase tracking-wider text-[10px] border-b border-slate-200">
               <tr>
-                <th className="px-4 py-3.5">Form Details</th>
-                <th className="px-4 py-3.5">Academic Target</th>
-                <th className="px-4 py-3.5">Faculty Member</th>
+                <th className="px-4 py-3.5">Semester</th>
                 <th className="px-4 py-3.5">Subject</th>
-                <th className="px-4 py-3.5 text-center">Questions</th>
-                <th className="px-4 py-3.5 text-center">Student Visibility Status</th>
+                <th className="px-4 py-3.5">Division</th>
+                <th className="px-4 py-3.5">Faculty</th>
+                <th className="px-4 py-3.5 text-center">Status</th>
                 <th className="px-4 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 bg-white font-medium text-slate-700">
               {filteredForms.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-slate-400">
+                  <td colSpan={6} className="px-4 py-12 text-center text-slate-400">
                     <div className="max-w-xs mx-auto space-y-2">
                       <FileCheck className="w-8 h-8 text-slate-300 mx-auto" />
                       <p className="font-bold text-slate-600">No feedback forms found</p>
@@ -456,76 +472,42 @@ export default function PublishForm({
               ) : (
                 filteredForms.map((form) => {
                   const isPublished = form.status === 'Published';
+                  const facultyDisplayNames =
+                    form.faculties && form.faculties.length > 0
+                      ? form.faculties.map((f) => f.name).join(', ')
+                      : form.facultyName;
 
                   return (
                     <tr key={form.id} className="hover:bg-slate-50/80 transition-colors">
-                      {/* Form Details */}
-                      <td className="px-4 py-3.5">
-                        <div className="space-y-0.5">
-                          <span className="font-extrabold text-slate-900 text-xs block">{form.title}</span>
-                          <span className="text-[10px] text-slate-500 font-mono block">ID: {form.id}</span>
-                        </div>
-                      </td>
-
-                      {/* Academic Target */}
-                      <td className="px-4 py-3.5">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1.5">
-                            <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-extrabold text-[10px] border border-indigo-200">
-                              Sem {form.semester}
-                            </span>
-                            <span className="text-slate-800 font-semibold">{form.departmentCode}</span>
-                          </div>
-                          <p className="text-[10px] text-slate-500">
-                            {form.division} &bull; {form.batch}
-                          </p>
-                        </div>
-                      </td>
-
-                      {/* Faculty Member */}
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-extrabold text-xs shrink-0">
-                            {form.facultyName.charAt(0)}
-                          </div>
-                          <div>
-                            <span className="font-bold text-slate-800 block">{form.facultyName}</span>
-                            <span className="text-[10px] text-slate-400 block">{form.facultyDesignation || 'Faculty'}</span>
-                          </div>
-                        </div>
+                      {/* Semester */}
+                      <td className="px-4 py-3.5 font-bold text-slate-900">
+                        Sem {form.semester}
                       </td>
 
                       {/* Subject */}
-                      <td className="px-4 py-3.5">
-                        <div className="space-y-0.5">
-                          <span className="font-bold text-slate-800 block">{form.subjectName}</span>
-                          <span className="text-[10px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded inline-block">
-                            {form.subjectCode}
-                          </span>
-                        </div>
+                      <td className="px-4 py-3.5 font-bold text-slate-900">
+                        {form.subjectName}
                       </td>
 
-                      {/* Questions Count */}
-                      <td className="px-4 py-3.5 text-center font-bold text-slate-700">
-                        <span className="px-2 py-1 bg-slate-100 rounded-lg border border-slate-200 text-xs">
-                          {form.questions.length} params
-                        </span>
+                      {/* Division */}
+                      <td className="px-4 py-3.5 font-medium text-slate-700">
+                        {form.division}
+                      </td>
+
+                      {/* Faculty */}
+                      <td className="px-4 py-3.5 font-medium text-slate-800">
+                        {facultyDisplayNames}
                       </td>
 
                       {/* Status */}
                       <td className="px-4 py-3.5 text-center">
-                        <div className="inline-flex flex-col items-center gap-1">
-                          <StatusBadge status={form.status} />
-                          <span className="text-[10px] text-slate-400 font-medium">
-                            {isPublished ? 'Visible to students' : 'Hidden from students'}
-                          </span>
-                        </div>
+                        <StatusBadge status={form.status} />
                       </td>
 
                       {/* Actions */}
                       <td className="px-4 py-3.5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          {/* Main Publish / Unpublish Toggle */}
+                          {/* Publish / Unpublish Toggle */}
                           <button
                             onClick={() => handleTogglePublish(form.id, form.status)}
                             className={`px-3 py-1.5 rounded-lg text-xs font-extrabold flex items-center gap-1.5 transition-all shadow-xs ${
@@ -533,7 +515,7 @@ export default function PublishForm({
                                 ? 'bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-300'
                                 : 'bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-600 shadow-emerald-950/20'
                             }`}
-                            title={isPublished ? 'Unpublish to hide from students' : 'Publish to make visible to students'}
+                            title={isPublished ? 'Unpublish form' : 'Publish form'}
                           >
                             {isPublished ? (
                               <>
@@ -576,11 +558,12 @@ export default function PublishForm({
         </div>
       </Card>
 
-      {/* Configure / Edit Form Modal */}
+      {/* Configure & Publish Form Modal (Spacious 5xl Width) */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={editingFormId ? 'Edit Feedback Form' : 'Configure & Publish Feedback Form'}
+        maxWidth="5xl"
       >
         <form onSubmit={handleSaveForm} className="space-y-5">
           {validationError && (
@@ -590,7 +573,7 @@ export default function PublishForm({
             </div>
           )}
 
-          {/* Section 1: Academic Information Target */}
+          {/* Step 1: Academic Target Selection */}
           <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
             <div className="flex items-center gap-2 text-slate-900 font-extrabold text-xs">
               <GraduationCap className="w-4 h-4 text-indigo-600" />
@@ -598,7 +581,7 @@ export default function PublishForm({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              {/* Academic Year */}
+              {/* Row 1: Academic Year | Semester */}
               <div>
                 <label className="block text-slate-700 font-bold mb-1">Academic Year</label>
                 <select
@@ -611,7 +594,6 @@ export default function PublishForm({
                 </select>
               </div>
 
-              {/* Semester */}
               <div>
                 <label className="block text-slate-700 font-bold mb-1">Semester *</label>
                 <select
@@ -630,12 +612,22 @@ export default function PublishForm({
                 </select>
               </div>
 
-              {/* Department */}
+              {/* Row 2: Department | Division */}
               <div>
                 <label className="block text-slate-700 font-bold mb-1">Department *</label>
                 <select
                   value={deptCode}
-                  onChange={(e) => setDeptCode(e.target.value)}
+                  onChange={(e) => {
+                    const newDept = e.target.value;
+                    setDeptCode(newDept);
+                    const subList = MOCK_SUBJECTS_BY_DEPT[newDept] || MOCK_SUBJECTS_BY_DEPT['IT'];
+                    const facList = MOCK_FACULTY_BY_DEPT[newDept] || MOCK_FACULTY_BY_DEPT['IT'];
+                    setSubjectCode(subList[0]?.code || '');
+                    const defFac = facList[0] ? [{ id: facList[0].id, name: facList[0].name, designation: facList[0].designation }] : [];
+                    setSelectedFaculties(defFac);
+                    const nextAvail = facList.find((f) => !defFac.some((df) => String(df.id) === String(f.id)));
+                    setPendingFacultyId(nextAvail ? nextAvail.id : '');
+                  }}
                   className="w-full p-2 bg-white border border-slate-300 rounded-lg font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500"
                   disabled={userRole === 'hod' && !!assignedDepartmentCode}
                 >
@@ -647,7 +639,6 @@ export default function PublishForm({
                 </select>
               </div>
 
-              {/* Division */}
               <div>
                 <label className="block text-slate-700 font-bold mb-1">Division Target</label>
                 <select
@@ -657,11 +648,13 @@ export default function PublishForm({
                 >
                   <option value="Division 1">Division 1</option>
                   <option value="Division 2">Division 2</option>
+                  <option value="Division A">Division A</option>
+                  <option value="Division B">Division B</option>
                   <option value="All Divisions">All Divisions</option>
                 </select>
               </div>
 
-              {/* Batch */}
+              {/* Row 3: Graduation Batch (full width) */}
               <div className="sm:col-span-2">
                 <label className="block text-slate-700 font-bold mb-1">Graduation Batch Target</label>
                 <select
@@ -678,151 +671,155 @@ export default function PublishForm({
             </div>
           </div>
 
-          {/* Section 2: Faculty & Subject Selection */}
-          <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+          {/* Step 2: Faculty & Subject Selection */}
+          <div className="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
             <div className="flex items-center gap-2 text-slate-900 font-extrabold text-xs">
               <User className="w-4 h-4 text-indigo-600" />
               <span>2. Faculty &amp; Subject Selection</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              {/* Faculty */}
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">Faculty Member *</label>
-                <select
-                  value={facultyId}
-                  onChange={(e) => setFacultyId(e.target.value)}
-                  className="w-full p-2 bg-white border border-slate-300 rounded-lg font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500"
-                >
-                  {(MOCK_FACULTY_BY_DEPT[deptCode] || MOCK_FACULTY_BY_DEPT['IT']).map((fac) => (
-                    <option key={fac.id} value={fac.id}>
-                      {fac.name} ({fac.designation})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Subject */}
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">Subject *</label>
-                <select
-                  value={subjectCode}
-                  onChange={(e) => setSubjectCode(e.target.value)}
-                  className="w-full p-2 bg-white border border-slate-300 rounded-lg font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500"
-                >
-                  {(MOCK_SUBJECTS_BY_DEPT[deptCode] || MOCK_SUBJECTS_BY_DEPT['IT']).map((sub) => (
-                    <option key={sub.code} value={sub.code}>
-                      {sub.name} ({sub.code} - Sem {sub.semester})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 3: Question Selection */}
-          <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-            <div className="flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2 text-slate-900 font-extrabold">
-                <BookOpen className="w-4 h-4 text-indigo-600" />
-                <span>3. Feedback Question Bank Parameters</span>
-              </div>
-              <span className="text-[11px] text-slate-500 font-semibold">
-                {selectedQuestions.length} selected
-              </span>
-            </div>
-
-            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-              {SYSTEM_QUESTIONS.map((q) => {
-                const isSelected = selectedQuestions.includes(q.id);
-                return (
-                  <div
-                    key={q.id}
-                    onClick={() => handleToggleQuestion(q.id)}
-                    className={`p-2.5 rounded-lg border text-xs cursor-pointer flex items-start gap-2.5 transition-all ${
-                      isSelected
-                        ? 'bg-indigo-50/80 border-indigo-300 text-indigo-950 font-semibold'
-                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
-                    }`}
-                  >
-                    <div
-                      className={`w-4 h-4 rounded mt-0.5 flex items-center justify-center shrink-0 border ${
-                        isSelected
-                          ? 'bg-indigo-600 border-indigo-600 text-white'
-                          : 'border-slate-300 bg-white'
-                      }`}
-                    >
-                      {isSelected && <Check className="w-3 h-3" />}
-                    </div>
-                    <span className="leading-snug">{q.text}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Section 4: Initial Status Toggle */}
-          <div className="flex items-center justify-between p-3.5 bg-indigo-50/60 rounded-xl border border-indigo-200 text-xs">
+            {/* Subject Selection */}
             <div>
-              <span className="font-extrabold text-slate-900 block">Initial Student Visibility</span>
-              <span className="text-[11px] text-slate-500 block">
-                Choose whether this form becomes immediately visible to students upon saving.
-              </span>
+              <label className="block text-slate-700 font-bold text-xs mb-1">Subject *</label>
+              <select
+                value={subjectCode}
+                onChange={(e) => setSubjectCode(e.target.value)}
+                className="w-full p-2.5 bg-white border border-slate-300 rounded-lg font-bold text-xs text-slate-800 focus:ring-2 focus:ring-indigo-500"
+              >
+                {(MOCK_SUBJECTS_BY_DEPT[deptCode] || MOCK_SUBJECTS_BY_DEPT['IT']).map((sub) => (
+                  <option key={sub.code} value={sub.code}>
+                    {sub.name} ({sub.code} &bull; Sem {sub.semester})
+                  </option>
+                ))}
+              </select>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+
+            {/* Faculty Selection & List */}
+            <div>
+              <label className="block text-slate-700 font-bold text-xs mb-1.5">
+                Faculty Members ({selectedFaculties.length} Selected) *
+              </label>
+
+              {/* Add Faculty Row */}
+              <div className="flex flex-col sm:flex-row gap-2 mb-3">
+                <select
+                  value={pendingFacultyId}
+                  onChange={(e) => setPendingFacultyId(e.target.value)}
+                  className="flex-1 p-2 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="" disabled>-- Select Faculty Member --</option>
+                  {(MOCK_FACULTY_BY_DEPT[deptCode] || MOCK_FACULTY_BY_DEPT['IT']).map((fac) => {
+                    const isAlreadyAdded = selectedFaculties.some((sf) => String(sf.id) === String(fac.id));
+                    return (
+                      <option key={fac.id} value={fac.id} disabled={isAlreadyAdded}>
+                        {fac.name} ({fac.designation}){isAlreadyAdded ? ' — Added' : ''}
+                      </option>
+                    );
+                  })}
+                </select>
+                <Button
+                  type="button"
+                  onClick={handleAddFaculty}
+                  disabled={!pendingFacultyId}
+                  variant="outline"
+                  size="sm"
+                  className="bg-indigo-50 text-indigo-700 border-indigo-300 hover:bg-indigo-100 font-bold shrink-0 flex items-center justify-center gap-1.5"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Faculty</span>
+                </Button>
+              </div>
+
+              {/* Selected Faculty List / Chips */}
+              {selectedFaculties.length === 0 ? (
+                <div className="p-4 bg-white rounded-lg border border-dashed border-slate-300 text-center text-slate-400 text-xs">
+                  No faculty members selected yet. Choose a faculty member from the dropdown above and click "+ Add Faculty".
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2 p-3 bg-white rounded-lg border border-slate-200 min-h-[50px]">
+                  {selectedFaculties.map((fac) => (
+                    <div
+                      key={fac.id}
+                      className="inline-flex items-center gap-2 bg-indigo-50 border border-indigo-200 text-indigo-900 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-xs"
+                    >
+                      <div className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                        {fac.name.charAt(0)}
+                      </div>
+                      <span>{fac.name}</span>
+                      {fac.designation && (
+                        <span className="text-[10px] text-indigo-600/80 font-normal">({fac.designation})</span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveFaculty(fac.id)}
+                        className="ml-1 text-indigo-400 hover:text-rose-600 transition-colors p-0.5 rounded"
+                        title={`Remove ${fac.name}`}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Bottom Action Footer */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 border-t border-slate-200">
+            <div className="flex items-center gap-2 bg-indigo-50/60 p-2 rounded-xl border border-indigo-100 text-xs w-full sm:w-auto">
+              <span className="text-slate-600 font-bold text-[11px] uppercase tracking-wider pl-1">Initial Visibility:</span>
               <button
                 type="button"
                 onClick={() => setFormStatus('Unpublished')}
-                className={`px-3 py-1.5 rounded-lg font-extrabold text-xs transition-all ${
+                className={`px-3 py-1 rounded-lg font-extrabold text-xs transition-all ${
                   formStatus === 'Unpublished'
                     ? 'bg-amber-600 text-white shadow-xs'
                     : 'bg-white text-slate-600 border border-slate-300'
                 }`}
               >
-                Unpublished (Hidden)
+                Unpublished
               </button>
               <button
                 type="button"
                 onClick={() => setFormStatus('Published')}
-                className={`px-3 py-1.5 rounded-lg font-extrabold text-xs transition-all ${
+                className={`px-3 py-1 rounded-lg font-extrabold text-xs transition-all ${
                   formStatus === 'Published'
                     ? 'bg-emerald-600 text-white shadow-xs'
                     : 'bg-white text-slate-600 border border-slate-300'
                 }`}
               >
-                Published (Visible)
+                Published
               </button>
             </div>
-          </div>
 
-          {/* Modal Actions */}
-          <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-200">
-            <Button
-              type="button"
-              variant="outline"
-              size="md"
-              onClick={() => setIsModalOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              size="md"
-              className={formStatus === 'Published' ? 'bg-emerald-600 hover:bg-emerald-700 border-emerald-600' : 'bg-indigo-600 hover:bg-indigo-700'}
-            >
-              {formStatus === 'Published' ? (
-                <>
-                  <Send className="w-4 h-4 mr-1.5" />
-                  <span>{editingFormId ? 'Update & Keep Published' : 'Publish Form Now'}</span>
-                </>
-              ) : (
-                <>
-                  <EyeOff className="w-4 h-4 mr-1.5" />
-                  <span>{editingFormId ? 'Update Form' : 'Save as Unpublished'}</span>
-                </>
-              )}
-            </Button>
+            <div className="flex items-center justify-end gap-2.5 w-full sm:w-auto">
+              <Button
+                type="button"
+                variant="outline"
+                size="md"
+                onClick={() => setIsModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                size="md"
+                className={formStatus === 'Published' ? 'bg-emerald-600 hover:bg-emerald-700 border-emerald-600 font-extrabold' : 'bg-indigo-600 hover:bg-indigo-700 font-extrabold'}
+              >
+                {formStatus === 'Published' ? (
+                  <>
+                    <Send className="w-4 h-4 mr-1.5" />
+                    <span>{editingFormId ? 'Update & Publish' : 'Publish Form'}</span>
+                  </>
+                ) : (
+                  <>
+                    <EyeOff className="w-4 h-4 mr-1.5" />
+                    <span>{editingFormId ? 'Update Form' : 'Save Form'}</span>
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </form>
       </Modal>
