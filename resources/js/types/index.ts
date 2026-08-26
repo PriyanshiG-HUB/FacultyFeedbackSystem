@@ -539,6 +539,12 @@ export interface PublishedFormQuestionItem {
   description?: string;
 }
 
+export interface PublishedFormFacultyItem {
+  id: string | number;
+  name: string;
+  designation?: string;
+}
+
 export interface PublishedFormItem {
   id: string;
   numericId?: number;
@@ -551,6 +557,7 @@ export interface PublishedFormItem {
   division: string;
   section?: string;
   batch: string;
+  faculties?: PublishedFormFacultyItem[];
   facultyId: string | number;
   facultyName: string;
   facultyDesignation?: string;
