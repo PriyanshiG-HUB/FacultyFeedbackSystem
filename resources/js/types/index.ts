@@ -313,6 +313,58 @@ export interface SessionAssignmentsIndexProps {
 }
 
 // 12. Admin/FeedbackImport/Index
+export interface ImportColumnSpec {
+  name: string;
+  required: boolean;
+  type: string;
+  description: string;
+  example: string;
+}
+
+export interface DatasetDefinition {
+  key: string;
+  name: string;
+  description: string;
+  table: string;
+  dependencies: string[];
+  dependency_notice?: string | null;
+  excluded_columns: string[];
+  columns: ImportColumnSpec[];
+  sample_rows?: Record<string, string>[];
+}
+
+export interface ValidationError {
+  row: number;
+  column: string;
+  error: string;
+  value?: any;
+}
+
+export interface ValidationReport {
+  success: boolean;
+  dataset?: string;
+  total_rows: number;
+  valid_rows_count: number;
+  invalid_rows_count: number;
+  errors: ValidationError[];
+  preview_rows: {
+    row: number;
+    data: Record<string, any>;
+    isValid: boolean;
+    status: string;
+  }[];
+  raw_rows?: Record<string, any>[];
+  message?: string;
+}
+
+export interface ImportExecutionResult {
+  success: boolean;
+  imported_count: number;
+  skipped_count: number;
+  log_id?: number;
+  message: string;
+}
+
 export interface FeedbackImportItem {
   id: number;
   fileName: string;
@@ -320,6 +372,7 @@ export interface FeedbackImportItem {
   recordCount: number;
   status: 'Success' | 'Failed' | 'Processing';
   date: string;
+  dataset?: string;
 }
 
 export interface FeedbackImportIndexProps {

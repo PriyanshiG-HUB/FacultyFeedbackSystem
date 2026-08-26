@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AcademicYearController;
 use App\Http\Controllers\Api\AdminDashboardController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BatchController;
+use App\Http\Controllers\Api\DataImportController;
 use App\Http\Controllers\Api\DataImportLogController;
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\DesignationController;
@@ -125,5 +126,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/system-settings/{systemSettings}', [SystemSettingsController::class, 'update']);
         Route::put('/system-settings', [SystemSettingsController::class, 'update']);
         Route::apiResource('data-import-logs', DataImportLogController::class)->only(['index', 'show', 'store']);
+        Route::get('/data-imports/datasets', [DataImportController::class, 'getDatasets']);
+        Route::get('/data-imports/template/{datasetKey}', [DataImportController::class, 'downloadTemplate']);
+        Route::post('/data-imports/validate', [DataImportController::class, 'validateFile']);
+        Route::post('/data-imports/execute', [DataImportController::class, 'executeImport']);
     });
 });
