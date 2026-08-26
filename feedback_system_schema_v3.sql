@@ -669,7 +669,7 @@ INSERT INTO semester (id, semester_no, term) VALUES
 (5,5,'ODD'),(6,6,'EVEN'),(7,7,'ODD'),(8,8,'EVEN');
 
 INSERT INTO designation (designation_name) VALUES
-('Professor'), ('Associate Professor'), ('Assistant Professor');
+('Professor'), ('Associate Professor'), ('Assistant Professor'), ('Head of Department (HOD)');
 
 INSERT INTO department (department_code, department_name) VALUES
 ('CE','Computer Engineering'),
