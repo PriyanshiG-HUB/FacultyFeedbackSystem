@@ -19,7 +19,8 @@ class DepartmentResource extends JsonResource
             'updated_at' => $this->updated_at?->toIso8601String(),
             'hod_faculty' => new FacultyResource($this->whenLoaded('hodFaculty')),
             'faculty_count' => $this->when(isset($this->faculty_count), $this->faculty_count),
-            'student_count' => $this->when(isset($this->student_count), $this->student_count),
+            'students_count' => $this->when(isset($this->students_count), $this->students_count),
+            'student_count' => $this->when(isset($this->students_count) || isset($this->student_count), $this->students_count ?? $this->student_count),
         ];
     }
 }

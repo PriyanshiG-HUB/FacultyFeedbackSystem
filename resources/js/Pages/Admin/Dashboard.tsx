@@ -206,7 +206,24 @@ export default function Dashboard({
   const currentDeptData =
     mockDepartmentStatsMap[selectedDeptCode] || mockDepartmentStatsMap['ALL'];
 
-  const activeStats = currentDeptData.stats || initialStats;
+  const [apiStats, setApiStats] = useState<any>(null);
+
+  useEffect(() => {
+    import('../../lib/api').then(({ api }) => {
+      api.get('/admin/dashboard').then((res) => {
+        if (res.stats) {
+          setApiStats([
+            { label: 'Total Submissions', value: String(res.stats.total_responses || 0), change: `${res.stats.total_departments || 0} Departments`, isPositive: true, icon: 'check-circle' },
+            { label: 'Overall Avg Score', value: `${res.stats.average_rating || 0} / 5.0`, change: 'Live DB Rating', isPositive: true, icon: 'star' },
+            { label: 'Active Faculty Members', value: String(res.stats.total_faculty || 0), change: 'Registered Faculty', isPositive: true, icon: 'users' },
+            { label: 'Active Feedback Forms', value: String(res.stats.published_forms || 0), change: `${res.stats.total_students || 0} Students`, isPositive: true, icon: 'building' },
+          ]);
+        }
+      }).catch(() => {});
+    });
+  }, []);
+
+  const activeStats = apiStats || currentDeptData.stats || initialStats;
   const activeTrends = currentDeptData.submissionTrends || initialSubmissionTrends;
   const activeFacultyPerformance = currentDeptData.facultyPerformance || initialFacultyPerformance;
   const activeRecentFeedback = currentDeptData.recentFeedback || initialRecentFeedback;

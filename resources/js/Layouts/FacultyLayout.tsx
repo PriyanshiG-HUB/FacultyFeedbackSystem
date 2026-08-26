@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from '../Components/shared/Link';
 import { GraduationCap, LogOut, FileText, User } from 'lucide-react';
+import { handleLogout } from '../lib/api';
 
 interface FacultyLayoutProps {
   children: React.ReactNode;
@@ -43,13 +44,13 @@ export const FacultyLayout: React.FC<FacultyLayoutProps> = ({
             <span className="text-xs font-bold text-slate-900">{facultyName}</span>
           </div>
 
-          <Link
-            href="#Faculty/Login"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700 hover:text-rose-600 transition-colors border border-slate-200"
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700 hover:text-rose-600 transition-colors border border-slate-200 cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
             Logout
-          </Link>
+          </button>
         </nav>
       </header>
 

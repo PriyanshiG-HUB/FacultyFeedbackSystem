@@ -1,5 +1,6 @@
 import { PublishedFormItem } from '../types';
 import { SYSTEM_QUESTIONS } from './feedbackExclusionStore';
+import { api } from '../lib/api';
 
 const STORAGE_KEY = 'faculty_feedback_published_forms';
 const EVENT_NAME = 'faculty_feedback_published_forms_changed';
@@ -26,52 +27,15 @@ export const INITIAL_PUBLISHED_FORMS: PublishedFormItem[] = [
     publishedAt: '15 Aug 2026',
   },
   {
-    id: 'FORM-IT-502',
-    title: 'Faculty Feedback — Semester 5 (DBMS)',
-    academicYear: '2025-26',
-    semester: 5,
-    departmentCode: 'IT',
-    departmentName: 'Information Technology',
-    division: 'Division 1',
-    batch: '2022-26',
-    facultyId: 'FAC_SAGAR',
-    facultyName: 'Prof. Sagar Patel',
-    facultyDesignation: 'Assistant Professor',
-    subjectCode: 'IT502',
-    subjectName: 'Database Management Systems',
-    questions: SYSTEM_QUESTIONS.map((q) => ({ id: q.id, statement: q.text })),
-    status: 'Unpublished',
-    createdBy: 'Dr. Sarah Jenkins (HOD IT)',
-    createdAt: '16 Aug 2026',
-  },
-  {
-    id: 'FORM-IT-701',
-    title: 'Faculty Feedback — Semester 7 (Database Systems)',
-    academicYear: '2025-26',
-    semester: 7,
-    departmentCode: 'IT',
-    departmentName: 'Information Technology',
-    division: 'Division 1',
-    batch: '2022-26',
-    facultyId: 'FAC_JENKINS',
-    facultyName: 'Dr. Sarah Jenkins',
-    facultyDesignation: 'Professor',
-    subjectCode: 'IT701',
-    subjectName: 'Database Management Systems',
-    questions: SYSTEM_QUESTIONS.map((q) => ({ id: q.id, statement: q.text })),
-    status: 'Published',
-    createdBy: 'Dr. Sarah Jenkins (HOD IT)',
-    createdAt: '12 Aug 2026',
-    publishedAt: '12 Aug 2026',
-  },
-  {
     id: 'FORM-CE-501',
+    assignmentId: 5,
     title: 'Faculty Feedback — Semester 5 (Theory of Computation)',
     academicYear: '2025-26',
     semester: 5,
     departmentCode: 'CE',
     departmentName: 'Computer Engineering',
     division: 'Division 1',
+    section: 'All',
     batch: '2022-26',
     facultyId: 'FAC_TURING',
     facultyName: 'Dr. Alan Turing',
@@ -98,11 +62,10 @@ export const getPublishedForms = (): PublishedFormItem[] => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_PUBLISHED_FORMS));
       return INITIAL_PUBLISHED_FORMS;
     }
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) {
+    if (Array.isArray(parsed)) {
       return parsed;
     }
   } catch (err) {
@@ -121,22 +84,93 @@ export const savePublishedForms = (forms: PublishedFormItem[]): void => {
   }
 };
 
-export const savePublishedForm = (formData: Partial<PublishedFormItem>): PublishedFormItem => {
+export const fetchPublishedFormsFromApi = async (): Promise<PublishedFormItem[]> => {
+  try {
+    const res = await api.get('/feedback-forms');
+    if (res && Array.isArray(res.data)) {
+      const apiForms: PublishedFormItem[] = res.data.map((form: any) => {
+        const ta = form.teaching_assignment || {};
+        return {
+          id: String(form.id || form.form_code),
+          numericId: form.id,
+          assignmentId: form.teaching_assignment_id,
+          title: form.title,
+          academicYear: ta.academic_year?.year_code || '2025-26',
+          semester: ta.semester_id || 5,
+          departmentCode: ta.batch?.department?.department_code || 'IT',
+          departmentName: ta.batch?.department?.department_name || 'Information Technology',
+          division: ta.division?.division_code || 'Division 1',
+          section: ta.section?.section_code || 'All',
+          batch: ta.batch?.batch_title || '2022-26',
+          facultyId: String(ta.faculty_id || 'FAC_JENKINS'),
+          facultyName: ta.faculty?.full_name || 'Faculty Member',
+          facultyDesignation: ta.faculty?.designation?.designation_name || 'Professor',
+          subjectCode: ta.subject?.subject_code || 'SUB101',
+          subjectName: ta.subject?.subject_name || 'Subject',
+          questions: (form.questions || []).map((q: any) => ({
+            id: q.id,
+            statement: q.question_text,
+          })),
+          status: form.is_published ? 'Published' : 'Unpublished',
+          createdBy: form.created_by_user_account?.email || 'Admin',
+          createdAt: form.created_at ? new Date(form.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '15 Aug 2026',
+          publishedAt: form.published_at ? new Date(form.published_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : undefined,
+        };
+      });
+
+      savePublishedForms(apiForms);
+      return apiForms;
+    }
+  } catch (err) {
+    console.warn('API unavailable for published forms, using fallback cache');
+  }
+  return getPublishedForms();
+};
+
+export const savePublishedForm = async (formData: Partial<PublishedFormItem>): Promise<PublishedFormItem> => {
   const current = getPublishedForms();
   const id = formData.id || `FORM-${formData.departmentCode || 'IT'}-${Date.now().toString().slice(-4)}`;
   const nowStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
-  const existingIndex = current.findIndex((f) => f.id === id);
+  let apiCreatedForm: any = null;
 
+  if (formData.assignmentId) {
+    const payload = {
+      teaching_assignment_id: formData.assignmentId,
+      title: formData.title,
+      form_code: `FF-${Date.now()}`,
+      window_start_date: '2026-08-01',
+      window_end_date: '2026-12-31',
+      is_anonymous: true,
+      questions: (formData.questions || []).map((q, idx) => ({
+        question_text: q.statement || q.statement,
+        question_type: 'RATING',
+        display_order: idx + 1,
+        is_required: true,
+        max_rating: 5,
+      })),
+    };
+
+    const res = await api.post('/feedback-forms', payload);
+    apiCreatedForm = res.data;
+    if (apiCreatedForm?.id && formData.status === 'Published') {
+      await api.post(`/feedback-forms/${apiCreatedForm.id}/publish`);
+    }
+  }
+
+  const existingIndex = current.findIndex((f) => f.id === id);
   const newForm: PublishedFormItem = {
-    id,
+    id: apiCreatedForm?.id ? String(apiCreatedForm.id) : id,
+    numericId: apiCreatedForm?.id,
+    assignmentId: formData.assignmentId,
     title: formData.title || `Faculty Feedback — Semester ${formData.semester || 5} (${formData.subjectName || 'Subject'})`,
     academicYear: formData.academicYear || '2025-26',
     semester: Number(formData.semester) || 5,
     departmentCode: formData.departmentCode || 'IT',
     departmentName: formData.departmentName || 'Information Technology',
-    division: formData.division || 'Division A',
-    batch: formData.batch || 'Batch 2022-2026',
+    division: formData.division || 'Division 1',
+    section: formData.section || 'All',
+    batch: formData.batch || '2022-26',
     facultyId: formData.facultyId || 'FAC_JENKINS',
     facultyName: formData.facultyName || 'Dr. Sarah Jenkins',
     facultyDesignation: formData.facultyDesignation || 'Professor',
@@ -163,15 +197,21 @@ export const savePublishedForm = (formData: Partial<PublishedFormItem>): Publish
   return newForm;
 };
 
-export const togglePublishStatus = (formId: string): PublishedFormItem | null => {
+export const togglePublishStatus = async (formId: string): Promise<PublishedFormItem | null> => {
   const current = getPublishedForms();
   const index = current.findIndex((f) => f.id === formId);
   if (index === -1) return null;
 
-  const nowStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   const form = current[index];
   const nextStatus: 'Published' | 'Unpublished' = form.status === 'Published' ? 'Unpublished' : 'Published';
+  const numericId = form.numericId || (form.id.match(/^\d+$/) ? parseInt(form.id, 10) : null);
 
+  if (numericId) {
+    const endpoint = nextStatus === 'Published' ? `/feedback-forms/${numericId}/publish` : `/feedback-forms/${numericId}/unpublish`;
+    await api.post(endpoint);
+  }
+
+  const nowStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   const updatedForm: PublishedFormItem = {
     ...form,
     status: nextStatus,
@@ -184,28 +224,15 @@ export const togglePublishStatus = (formId: string): PublishedFormItem | null =>
   return updatedForm;
 };
 
-export const setPublishStatus = (formId: string, status: 'Published' | 'Unpublished'): PublishedFormItem | null => {
+export const deletePublishedForm = async (formId: string): Promise<void> => {
   const current = getPublishedForms();
-  const index = current.findIndex((f) => f.id === formId);
-  if (index === -1) return null;
+  const form = current.find((f) => f.id === formId);
+  const numericId = form?.numericId || (formId.match(/^\d+$/) ? parseInt(formId, 10) : null);
 
-  const nowStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  const form = current[index];
+  if (numericId) {
+    await api.delete(`/feedback-forms/${numericId}`);
+  }
 
-  const updatedForm: PublishedFormItem = {
-    ...form,
-    status,
-    publishedAt: status === 'Published' ? (form.publishedAt || nowStr) : undefined,
-  };
-
-  const updatedList = [...current];
-  updatedList[index] = updatedForm;
-  savePublishedForms(updatedList);
-  return updatedForm;
-};
-
-export const deletePublishedForm = (formId: string): void => {
-  const current = getPublishedForms();
   const filtered = current.filter((f) => f.id !== formId);
   savePublishedForms(filtered);
 };

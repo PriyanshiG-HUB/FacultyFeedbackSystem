@@ -364,8 +364,8 @@ export const mockPropsMap: Record<string, any> = {
             departmentCode: 'CE',
             studentCount: 65,
             students: [
-              { rollNo: '22CE001', name: 'David Miller', department: 'Computer Engineering', batch: 'Batch 2022-2026', semester: 7, division: 'CE-1', status: 'Active' },
-              { rollNo: '22CE002', name: 'Emma Watson', department: 'Computer Engineering', batch: 'Batch 2022-2026', semester: 7, division: 'CE-1', status: 'Active' },
+              { rollNo: '22CE001', name: 'David Miller', department: 'Computer Engineering', batch: 'Batch 2022-2026', semester: 7, division: 'Division 1', status: 'Active' },
+              { rollNo: '22CE002', name: 'Emma Watson', department: 'Computer Engineering', batch: 'Batch 2022-2026', semester: 7, division: 'Division 1', status: 'Active' },
             ],
           },
           {
@@ -377,7 +377,7 @@ export const mockPropsMap: Record<string, any> = {
             departmentCode: 'CE',
             studentCount: 64,
             students: [
-              { rollNo: '23CE001', name: 'Benjamin Taylor', department: 'Computer Engineering', batch: 'Batch 2023-2027', semester: 5, division: 'CE-1', status: 'Active' },
+              { rollNo: '23CE001', name: 'Benjamin Taylor', department: 'Computer Engineering', batch: 'Batch 2023-2027', semester: 5, division: 'Division 1', status: 'Active' },
             ],
           },
           {
@@ -389,7 +389,7 @@ export const mockPropsMap: Record<string, any> = {
             departmentCode: 'CE',
             studentCount: 70,
             students: [
-              { rollNo: '24CE001', name: 'Charlotte Evans', department: 'Computer Engineering', batch: 'Batch 2024-2028', semester: 3, division: 'CE-1', status: 'Active' },
+              { rollNo: '24CE001', name: 'Charlotte Evans', department: 'Computer Engineering', batch: 'Batch 2024-2028', semester: 3, division: 'Division 1', status: 'Active' },
             ],
           },
           {
@@ -401,7 +401,7 @@ export const mockPropsMap: Record<string, any> = {
             departmentCode: 'CE',
             studentCount: 72,
             students: [
-              { rollNo: '25CE001', name: 'Henry Clark', department: 'Computer Engineering', batch: 'Batch 2025-2029', semester: 1, division: 'CE-1', status: 'Active' },
+              { rollNo: '25CE001', name: 'Henry Clark', department: 'Computer Engineering', batch: 'Batch 2025-2029', semester: 1, division: 'Division 1', status: 'Active' },
             ],
           },
 
@@ -415,7 +415,7 @@ export const mockPropsMap: Record<string, any> = {
             departmentCode: 'CSE',
             studentCount: 70,
             students: [
-              { rollNo: '22CSE001', name: 'Lucas Scott', department: 'Computer Science & Engineering', batch: 'Batch 2022-2026', semester: 7, division: 'CSE-1', status: 'Active' },
+              { rollNo: '22CSE001', name: 'Lucas Scott', department: 'Computer Science & Engineering', batch: 'Batch 2022-2026', semester: 7, division: 'Division 1', status: 'Active' },
             ],
           },
           {
@@ -427,7 +427,7 @@ export const mockPropsMap: Record<string, any> = {
             departmentCode: 'CSE',
             studentCount: 68,
             students: [
-              { rollNo: '23CSE001', name: 'Amelia Harris', department: 'Computer Science & Engineering', batch: 'Batch 2023-2027', semester: 5, division: 'CSE-1', status: 'Active' },
+              { rollNo: '23CSE001', name: 'Amelia Harris', department: 'Computer Science & Engineering', batch: 'Batch 2023-2027', semester: 5, division: 'Division 1', status: 'Active' },
             ],
           },
           {
@@ -439,7 +439,7 @@ export const mockPropsMap: Record<string, any> = {
             departmentCode: 'CSE',
             studentCount: 74,
             students: [
-              { rollNo: '24CSE001', name: 'Mason White', department: 'Computer Science & Engineering', batch: 'Batch 2024-2028', semester: 3, division: 'CSE-1', status: 'Active' },
+              { rollNo: '24CSE001', name: 'Mason White', department: 'Computer Science & Engineering', batch: 'Batch 2024-2028', semester: 3, division: 'Division 1', status: 'Active' },
             ],
           },
           {
@@ -451,7 +451,7 @@ export const mockPropsMap: Record<string, any> = {
             departmentCode: 'CSE',
             studentCount: 76,
             students: [
-              { rollNo: '25CSE001', name: 'Harper King', department: 'Computer Science & Engineering', batch: 'Batch 2025-2029', semester: 1, division: 'CSE-1', status: 'Active' },
+              { rollNo: '25CSE001', name: 'Harper King', department: 'Computer Science & Engineering', batch: 'Batch 2025-2029', semester: 1, division: 'Division 1', status: 'Active' },
             ],
           },
 
@@ -465,9 +465,9 @@ export const mockPropsMap: Record<string, any> = {
             departmentCode: 'IT',
             studentCount: 62,
             students: [
-              { rollNo: '22IT001', name: 'Alex Turner', department: 'Information Technology', batch: 'Batch 2022-2026', semester: 7, division: 'IT-1', status: 'Active' },
-              { rollNo: '22IT002', name: 'Sophia Martinez', department: 'Information Technology', batch: 'Batch 2022-2026', semester: 7, division: 'IT-1', status: 'Active' },
-              { rollNo: '22IT021', name: 'Ethan Hunt', department: 'Information Technology', batch: 'Batch 2022-2026', semester: 7, division: 'IT-2', status: 'Active' },
+              { rollNo: '22IT001', name: 'Alex Turner', department: 'Information Technology', batch: 'Batch 2022-2026', semester: 7, division: 'Division 1', status: 'Active' },
+              { rollNo: '22IT002', name: 'Sophia Martinez', department: 'Information Technology', batch: 'Batch 2022-2026', semester: 7, division: 'Division 1', status: 'Active' },
+              { rollNo: '22IT021', name: 'Ethan Hunt', department: 'Information Technology', batch: 'Batch 2022-2026', semester: 7, division: 'Division 2', status: 'Active' },
             ],
           },
           {
@@ -479,8 +479,8 @@ export const mockPropsMap: Record<string, any> = {
             departmentCode: 'IT',
             studentCount: 68,
             students: [
-              { rollNo: '23IT001', name: 'Liam Johnson', department: 'Information Technology', batch: 'Batch 2023-2027', semester: 5, division: 'IT-1', status: 'Active' },
-              { rollNo: '23IT002', name: 'Emma Watson', department: 'Information Technology', batch: 'Batch 2023-2027', semester: 5, division: 'IT-1', status: 'Active' },
+              { rollNo: '23IT001', name: 'Liam Johnson', department: 'Information Technology', batch: 'Batch 2023-2027', semester: 5, division: 'Division 1', status: 'Active' },
+              { rollNo: '23IT002', name: 'Emma Watson', department: 'Information Technology', batch: 'Batch 2023-2027', semester: 5, division: 'Division 1', status: 'Active' },
             ],
           },
           {
@@ -492,7 +492,7 @@ export const mockPropsMap: Record<string, any> = {
             departmentCode: 'IT',
             studentCount: 71,
             students: [
-              { rollNo: '24IT001', name: 'Oliver Smith', department: 'Information Technology', batch: 'Batch 2024-2028', semester: 3, division: 'IT-1', status: 'Active' },
+              { rollNo: '24IT001', name: 'Oliver Smith', department: 'Information Technology', batch: 'Batch 2024-2028', semester: 3, division: 'Division 1', status: 'Active' },
             ],
           },
           {
@@ -504,7 +504,7 @@ export const mockPropsMap: Record<string, any> = {
             departmentCode: 'IT',
             studentCount: 75,
             students: [
-              { rollNo: '25IT001', name: 'James Wilson', department: 'Information Technology', batch: 'Batch 2025-2029', semester: 1, division: 'IT-1', status: 'Active' },
+              { rollNo: '25IT001', name: 'James Wilson', department: 'Information Technology', batch: 'Batch 2025-2029', semester: 1, division: 'Division 1', status: 'Active' },
             ],
           },
 
@@ -518,7 +518,7 @@ export const mockPropsMap: Record<string, any> = {
             departmentCode: 'AIML',
             studentCount: 60,
             students: [
-              { rollNo: '22AIML001', name: 'Aarav Patel', department: 'Artificial Intelligence & Machine Learning', batch: 'Batch 2022-2026', semester: 7, division: 'AIML-1', status: 'Active' },
+              { rollNo: '22AIML001', name: 'Aarav Patel', department: 'Artificial Intelligence & Machine Learning', batch: 'Batch 2022-2026', semester: 7, division: 'Division 1', status: 'Active' },
             ],
           },
           {
@@ -530,7 +530,7 @@ export const mockPropsMap: Record<string, any> = {
             departmentCode: 'AIML',
             studentCount: 64,
             students: [
-              { rollNo: '23AIML001', name: 'Ananya Sharma', department: 'Artificial Intelligence & Machine Learning', batch: 'Batch 2023-2027', semester: 5, division: 'AIML-1', status: 'Active' },
+              { rollNo: '23AIML001', name: 'Ananya Sharma', department: 'Artificial Intelligence & Machine Learning', batch: 'Batch 2023-2027', semester: 5, division: 'Division 1', status: 'Active' },
             ],
           },
           {
@@ -542,7 +542,7 @@ export const mockPropsMap: Record<string, any> = {
             departmentCode: 'AIML',
             studentCount: 66,
             students: [
-              { rollNo: '24AIML001', name: 'Rohan Gupta', department: 'Artificial Intelligence & Machine Learning', batch: 'Batch 2024-2028', semester: 3, division: 'AIML-1', status: 'Active' },
+              { rollNo: '24AIML001', name: 'Rohan Gupta', department: 'Artificial Intelligence & Machine Learning', batch: 'Batch 2024-2028', semester: 3, division: 'Division 1', status: 'Active' },
             ],
           },
           {
@@ -554,7 +554,7 @@ export const mockPropsMap: Record<string, any> = {
             departmentCode: 'AIML',
             studentCount: 70,
             students: [
-              { rollNo: '25AIML001', name: 'Diya Verma', department: 'Artificial Intelligence & Machine Learning', batch: 'Batch 2025-2029', semester: 1, division: 'AIML-1', status: 'Active' },
+              { rollNo: '25AIML001', name: 'Diya Verma', department: 'Artificial Intelligence & Machine Learning', batch: 'Batch 2025-2029', semester: 1, division: 'Division 1', status: 'Active' },
             ],
           },
         ],

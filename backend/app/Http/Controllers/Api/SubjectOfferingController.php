@@ -14,13 +14,18 @@ class SubjectOfferingController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = SubjectOffering::with(['subject', 'batch', 'academicYear']);
+        $query = SubjectOffering::with(['subject.department', 'subject.semester', 'batch.department', 'academicYear'])
+            ->withCount('electiveEnrollments')
+            ->latest('id');
 
         if ($request->has('batch_id')) {
             $query->where('batch_id', $request->get('batch_id'));
         }
         if ($request->has('academic_year_id')) {
             $query->where('academic_year_id', $request->get('academic_year_id'));
+        }
+        if ($request->has('subject_id')) {
+            $query->where('subject_id', $request->get('subject_id'));
         }
 
         $offerings = $query->get();
@@ -62,14 +67,14 @@ class SubjectOfferingController extends Controller
 
         return response()->json([
             'message' => 'Subject offering created successfully',
-            'data' => new SubjectOfferingResource($offering->load(['subject', 'batch', 'academicYear']))
+            'data' => new SubjectOfferingResource($offering->load(['subject.department', 'subject.semester', 'batch.department', 'academicYear']))
         ], Response::HTTP_CREATED);
     }
 
     public function show(SubjectOffering $subjectOffering): JsonResponse
     {
         return response()->json([
-            'data' => new SubjectOfferingResource($subjectOffering->load(['subject', 'batch', 'academicYear']))
+            'data' => new SubjectOfferingResource($subjectOffering->load(['subject.department', 'subject.semester', 'batch.department', 'academicYear'])->loadCount('electiveEnrollments'))
         ], Response::HTTP_OK);
     }
 

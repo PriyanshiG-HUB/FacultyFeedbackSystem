@@ -13,7 +13,7 @@ class SubjectController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Subject::with(['department', 'semester']);
+        $query = Subject::with(['department', 'semester'])->latest('id');
 
         if ($request->has('department_id')) {
             $query->where('department_id', $request->get('department_id'));

@@ -91,9 +91,10 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
   const studentRoll = student?.rollNumber || '22IT045';
   const studentName = student?.name || 'Alex Turner';
   const studentDept = (student?.departmentCode || student?.department || 'IT').toUpperCase();
-  const studentDivision = student?.division || 'Division A';
-  const studentBatch = student?.batch || 'Batch 2022-2026';
-  const studentSem = student?.semester || 5;
+  const studentDivision = student?.division || 'Division 1';
+  const studentSection = (student as any)?.section || 'A1';
+  const studentBatch = student?.batch || '2022-26';
+  const studentSem = student?.semester || 7;
 
   // Published Forms & Realtime Sync State
   const [publishedForms, setPublishedForms] = useState<PublishedFormItem[]>(getPublishedForms());
@@ -113,10 +114,52 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState<boolean>(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
-  // Sync state with store updates and hash changes
+  // Sync state with backend API and store updates
   useEffect(() => {
+    const loadFromApi = async () => {
+      try {
+        const { api } = await import('../../../lib/api');
+        const res = await api.get('/feedback-forms');
+        if (Array.isArray(res.data)) {
+          const apiForms: PublishedFormItem[] = res.data.map((f: any) => {
+            const ta = f.teaching_assignment || {};
+            return {
+              id: String(f.id),
+              numericId: f.id,
+              assignmentId: f.teaching_assignment_id,
+              title: f.title,
+              academicYear: ta.academic_year?.year_code || '2025-26',
+              semester: ta.semester?.semester_no || ta.semester_id || 5,
+              departmentCode: ta.batch?.department?.department_code || ta.subject?.department?.department_code || 'IT',
+              departmentName: ta.batch?.department?.department_name || ta.subject?.department?.department_name || 'Information Technology',
+              division: ta.division?.division_code || 'All Divisions',
+              section: ta.section?.section_code || 'All',
+              batch: ta.batch?.batch_title || '2022-26',
+              facultyId: String(ta.faculty_id || 'FAC'),
+              facultyName: ta.faculty?.full_name || 'Faculty Member',
+              facultyDesignation: ta.faculty?.designation?.designation_name || 'Faculty',
+              subjectCode: ta.subject?.subject_code || 'SUB101',
+              subjectName: ta.subject?.subject_name || 'Subject',
+              questions: Array.isArray(f.questions)
+                ? f.questions.map((q: any) => ({ id: q.id, statement: q.question_text }))
+                : SYSTEM_QUESTIONS.map((q) => ({ id: q.id, statement: q.text })),
+              status: f.is_published ? 'Published' : 'Draft',
+              createdBy: f.creator?.full_name || 'Administrator',
+              createdAt: f.created_at ? new Date(f.created_at).toLocaleDateString() : 'Recent',
+              publishedAt: f.published_at ? new Date(f.published_at).toLocaleDateString() : undefined,
+            };
+          });
+          setPublishedForms(apiForms);
+        }
+      } catch {
+        // Use local store as fallback
+        setPublishedForms(getPublishedForms());
+      }
+    };
+
+    loadFromApi();
+
     const handleSync = () => {
-      setPublishedForms(getPublishedForms());
       setSubmittedFormKeys(getSubmittedFormKeys());
       const queryParams = getQueryParamsFromHash();
       const fId = queryParams.get('formId');
@@ -124,7 +167,10 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
     };
 
     handleSync();
-    const unsubStore = subscribeToPublishedForms(handleSync);
+    const unsubStore = subscribeToPublishedForms(() => {
+      loadFromApi();
+      handleSync();
+    });
     window.addEventListener('hashchange', handleSync);
     window.addEventListener('storage', handleSync);
 
@@ -135,12 +181,12 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
     };
   }, []);
 
-  // Filter forms targeting this student that are currently PUBLISHED
+  // Filter forms targeting this student that are currently PUBLISHED and match academic hierarchy
   const eligiblePublishedForms = publishedForms.filter((form) => {
     // MUST BE PUBLISHED (Unpublished forms are completely hidden)
     if (form.status !== 'Published') return false;
 
-    // Check Department Match
+    // 1. Department Match
     const formDept = (form.departmentCode || '').toUpperCase();
     const isDeptMatch =
       formDept === 'ALL' ||
@@ -150,14 +196,45 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
 
     if (!isDeptMatch) return false;
 
-    // Check Semester Match (matches student semester or default 5/7)
-    const isSemMatch =
-      !form.semester ||
-      form.semester === studentSem ||
-      form.semester === 5 ||
-      form.semester === 7;
+    // 2. Graduation Batch Match
+    const formBatch = form.batch || '';
+    const isBatchMatch =
+      !formBatch ||
+      formBatch === 'All Batches' ||
+      formBatch === 'All' ||
+      formBatch === studentBatch ||
+      studentBatch.includes(formBatch) ||
+      formBatch.includes(studentBatch);
 
-    return isSemMatch;
+    if (!isBatchMatch) return false;
+
+    // 3. Current Semester Match
+    const isSemMatch = !form.semester || form.semester === studentSem;
+    if (!isSemMatch) return false;
+
+    // 4. Division & Section Scope Match
+    const formDiv = form.division || 'All Divisions';
+    const formSec = form.section || 'All';
+
+    const isDivUnrestricted = formDiv === 'All Divisions' || formDiv === 'All' || !formDiv;
+    const isSecUnrestricted = formSec === 'All' || formSec === 'All Sections' || !formSec;
+
+    // Case 1: Entire Batch (Division is unrestricted)
+    if (isDivUnrestricted && isSecUnrestricted) {
+      return true;
+    }
+
+    // Case 2: Specific Division (Division matches student AND Section is unrestricted)
+    if (formDiv === studentDivision && isSecUnrestricted) {
+      return true;
+    }
+
+    // Case 3: Specific Section (Division matches student AND Section matches student section)
+    if (formDiv === studentDivision && formSec === studentSection) {
+      return true;
+    }
+
+    return false;
   });
 
   // Find active form object if in Questionnaire view mode
@@ -230,13 +307,12 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
   };
 
   // Confirm submission & record
-  const handleConfirmSubmission = () => {
+  const handleConfirmSubmission = async () => {
     if (!activeForm) return;
 
     const submissionKey = `${studentRoll}_${activeForm.id}`;
-    saveSubmittedFormKey(submissionKey);
+    const numericFormId = activeForm.numericId || (activeForm.id.match(/\d+/) ? parseInt(activeForm.id.match(/\d+/)![0], 10) : null);
 
-    // Save to feedback store
     const questions = activeForm.questions && activeForm.questions.length > 0
       ? activeForm.questions
       : SYSTEM_QUESTIONS.map((q) => ({ id: q.id, statement: q.text }));
@@ -253,6 +329,26 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
       };
     });
 
+    if (numericFormId) {
+      try {
+        const { api } = await import('../../../lib/api');
+        await api.post(`/student/feedback-forms/${numericFormId}/submit`, {
+          overall_remark: Object.values(questionComments).join('; ') || 'Submitted via portal',
+          answers: questions.map((q) => ({
+            question_id: Number(q.id),
+            rating_value: ratings[String(q.id)] || 5,
+          })),
+        });
+      } catch (err: any) {
+        if (err.status === 422) {
+          setValidationErrors([err.message || 'You have already submitted feedback for this form or are ineligible.']);
+          setIsConfirmModalOpen(false);
+          return;
+        }
+      }
+    }
+
+    saveSubmittedFormKey(submissionKey);
     saveSubmissionToStore({
       studentRoll,
       facultyId: String(activeForm.facultyId),

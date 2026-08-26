@@ -40,13 +40,58 @@ export default function Index({
   comments,
   submissions: propSubmissions,
 }: CriticalCommentsIndexProps) {
-  // Synchronized mock feedback submissions state
+  // Live feedback submissions state from MySQL
   const [submissions, setSubmissions] = useState<FeedbackSubmissionItem[]>(() => getMergedSubmissions());
 
-  // Storage listener for cross-component updates
+  // Fetch live responses from backend API
   useEffect(() => {
+    const fetchModerationData = async () => {
+      try {
+        const { api } = await import('../../../lib/api');
+        const res = await api.get('/feedback/moderation');
+        if (Array.isArray(res.data) && res.data.length > 0) {
+          const apiSubs: FeedbackSubmissionItem[] = res.data.map((r: any) => {
+            const form = r.feedback_form || {};
+            const ta = form.teaching_assignment || {};
+            return {
+              id: `FS-${r.id}`,
+              studentRoll: r.student?.roll_no || 'Anonymous Student',
+              facultyId: String(ta.faculty_id || 'FAC'),
+              facultyName: ta.faculty?.full_name || 'Faculty Member',
+              subjectCode: ta.subject?.subject_code || 'SUB101',
+              subjectName: ta.subject?.subject_name || 'Subject',
+              academicYear: ta.academic_year?.year_code || '2025-26',
+              batch: ta.batch?.batch_title || '2022-26',
+              semester: ta.semester?.semester_no || ta.semester_id || 5,
+              division: ta.division?.division_code || 'Division 1',
+              section: ta.section?.section_code || 'A1',
+              departmentCode: ta.batch?.department?.department_code || ta.subject?.department?.department_code || 'IT',
+              submittedAt: r.submitted_at ? new Date(r.submitted_at).toLocaleDateString() : 'Recent',
+              evaluationStatus: r.is_excluded ? 'excluded' : 'included',
+              exclusionReason: r.excluded_reason || undefined,
+              answers: Array.isArray(r.answers)
+                ? r.answers.map((a: any) => ({
+                    questionId: a.question_id,
+                    questionText: a.question?.question_text || `Question ${a.question_id}`,
+                    rating: a.rating_value || 5,
+                    ratingLabel: a.rating_value === 5 ? 'Strongly Agree' : a.rating_value === 4 ? 'Agree' : a.rating_value === 3 ? 'Neutral' : a.rating_value === 2 ? 'Disagree' : 'Strongly Disagree',
+                    comment: a.text_value || r.overall_remark || undefined,
+                  }))
+                : [],
+            };
+          });
+          setSubmissions(apiSubs);
+        }
+      } catch {
+        // Fallback to local store
+        setSubmissions(getMergedSubmissions());
+      }
+    };
+
+    fetchModerationData();
+
     const handleUpdate = () => {
-      setSubmissions(getMergedSubmissions());
+      fetchModerationData();
     };
     window.addEventListener('feedback_exclusion_updated', handleUpdate);
     return () => window.removeEventListener('feedback_exclusion_updated', handleUpdate);
@@ -55,9 +100,11 @@ export default function Index({
   // Filter States
   const [selectedFaculty, setSelectedFaculty] = useState<string>('Dr. Sarah Jenkins');
   const [selectedSubject, setSelectedSubject] = useState<string>('ALL');
-  const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>('2025-26');
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>('ALL');
   const [selectedSemester, setSelectedSemester] = useState<string>('ALL');
+  const [selectedBatch, setSelectedBatch] = useState<string>('ALL');
   const [selectedDivision, setSelectedDivision] = useState<string>('ALL');
+  const [selectedSection, setSelectedSection] = useState<string>('ALL');
   const [selectedQuestionFilter, setSelectedQuestionFilter] = useState<number | 'ALL'>(1); // Default Q1
   const [selectedRatingFilter, setSelectedRatingFilter] = useState<number | 'ALL'>(1); // Default 1 (Strongly Disagree)
 
@@ -115,11 +162,13 @@ export default function Index({
       if (selectedSubject !== 'ALL' && s.subjectCode !== selectedSubject) return false;
       if (selectedAcademicYear !== 'ALL' && s.academicYear !== selectedAcademicYear) return false;
       if (selectedSemester !== 'ALL' && String(s.semester) !== selectedSemester) return false;
+      if (selectedBatch !== 'ALL' && s.batch !== selectedBatch) return false;
       if (selectedDivision !== 'ALL' && s.division !== selectedDivision) return false;
+      if (selectedSection !== 'ALL' && s.section !== selectedSection) return false;
 
       return true;
     });
-  }, [submissions, selectedFaculty, selectedSubject, selectedAcademicYear, selectedSemester, selectedDivision, assignedDepartmentCode, userRole]);
+  }, [submissions, selectedFaculty, selectedSubject, selectedAcademicYear, selectedSemester, selectedBatch, selectedDivision, selectedSection, assignedDepartmentCode, userRole]);
 
   // Calculate Overall Faculty Score (Included Complete Submissions Only)
   const facultyOverallStats = useMemo(() => {
@@ -235,6 +284,26 @@ export default function Index({
         <span className="font-mono text-xs font-bold text-slate-800 bg-slate-100 px-2 py-1 rounded border border-slate-200">
           {row.studentRoll}
         </span>
+      ),
+      sortable: true,
+    },
+    {
+      header: 'Batch & Semester',
+      accessor: (row) => (
+        <div className="text-xs">
+          <p className="font-bold text-slate-800">{row.batch || '2022-26'}</p>
+          <p className="text-slate-500 font-medium">Semester {row.semester}</p>
+        </div>
+      ),
+      sortable: true,
+    },
+    {
+      header: 'Division & Section',
+      accessor: (row) => (
+        <div className="text-xs">
+          <p className="font-semibold text-slate-800">{row.division}</p>
+          <p className="text-indigo-700 font-mono font-bold">Sec: {row.section || 'A1'}</p>
+        </div>
       ),
       sortable: true,
     },
@@ -393,6 +462,21 @@ export default function Index({
               </select>
             </div>
 
+            {/* Graduation Batch */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 mb-1">Graduation Batch</label>
+              <select
+                value={selectedBatch}
+                onChange={(e) => setSelectedBatch(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-semibold focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer"
+              >
+                <option value="ALL">All Batches</option>
+                <option value="2022-26">Batch 2022-26</option>
+                <option value="2023-27">Batch 2023-27</option>
+                <option value="2024-28">Batch 2024-28</option>
+              </select>
+            </div>
+
             {/* Division */}
             <div>
               <label className="block text-[11px] font-bold text-slate-700 mb-1">Division</label>
@@ -402,11 +486,25 @@ export default function Index({
                 className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-semibold focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer"
               >
                 <option value="ALL">All Divisions</option>
-                <option value="IT-1">Division IT-1</option>
-                <option value="IT-2">Division IT-2</option>
-                <option value="CE-1">Division CE-1</option>
-                <option value="CSE-1">Division CSE-1</option>
-                <option value="AIML-1">Division AIML-1</option>
+                <option value="Division 1">Division 1</option>
+                <option value="Division 2">Division 2</option>
+              </select>
+            </div>
+
+            {/* Section */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 mb-1">Section</label>
+              <select
+                value={selectedSection}
+                onChange={(e) => setSelectedSection(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-semibold focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer"
+              >
+                <option value="ALL">All Sections</option>
+                <option value="A1">Section A1</option>
+                <option value="B1">Section B1</option>
+                <option value="C1">Section C1</option>
+                <option value="A2">Section A2</option>
+                <option value="B2">Section B2</option>
               </select>
             </div>
           </div>

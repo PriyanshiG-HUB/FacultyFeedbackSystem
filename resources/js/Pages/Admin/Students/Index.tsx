@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../../../Layouts/AdminLayout';
 import { StudentsIndexProps, StudentItem } from '../../../types';
 import { DataTable, Column } from '../../../Components/ui/DataTable';
@@ -6,212 +6,298 @@ import { StatusBadge } from '../../../Components/ui/StatusBadge';
 import { Button } from '../../../Components/ui/Button';
 import { Modal } from '../../../Components/ui/Modal';
 import { Input, Select } from '../../../Components/ui/Input';
-import { Filter, Plus, Edit } from 'lucide-react';
-import { getDepartmentName, ADMIN_DEPARTMENT_OPTIONS, DEPARTMENTS_LIST } from '../../../utils/departmentScope';
+import { Filter, Plus, Edit, RefreshCw, AlertCircle, Trash2 } from 'lucide-react';
+import { getDepartmentName, ADMIN_DEPARTMENT_OPTIONS } from '../../../utils/departmentScope';
+import { api } from '../../../lib/api';
 
-const HIERARCHY_OPTIONS: Record<
-  string,
-  {
-    batch: string;
-    semester: number;
-    divisions: { name: string; sections: string[] }[];
-  }[]
-> = {
-  'Information Technology': [
-    {
-      batch: '2022-26',
-      semester: 7,
-      divisions: [
-        { name: 'Division 1', sections: ['A1', 'B1', 'C1'] },
-        { name: 'Division 2', sections: ['A2', 'B2', 'C2'] },
-      ],
-    },
-    {
-      batch: '2023-27',
-      semester: 5,
-      divisions: [
-        { name: 'Division 1', sections: ['A1', 'B1'] },
-        { name: 'Division 2', sections: ['A2', 'B2'] },
-      ],
-    },
-    {
-      batch: '2024-28',
-      semester: 3,
-      divisions: [{ name: 'Division 1', sections: ['A1', 'B1'] }],
-    },
-  ],
-  'Computer Engineering': [
-    {
-      batch: '2022-26',
-      semester: 7,
-      divisions: [{ name: 'Division 1', sections: ['A1', 'B1'] }],
-    },
-  ],
-  'Computer Science & Engineering': [
-    {
-      batch: '2022-26',
-      semester: 7,
-      divisions: [{ name: 'Division 1', sections: ['A1', 'B1'] }],
-    },
-  ],
-  'Electronics & Communication': [
-    {
-      batch: '2022-26',
-      semester: 7,
-      divisions: [{ name: 'Division 1', sections: ['A1', 'B1'] }],
-    },
-  ],
-  'Mechanical Engineering': [
-    {
-      batch: '2022-26',
-      semester: 7,
-      divisions: [{ name: 'Division 1', sections: ['A1', 'B1'] }],
-    },
-  ],
-};
+interface DepartmentOption {
+  id: number;
+  code: string;
+  name: string;
+}
+
+interface BatchOption {
+  id: number;
+  department_id: number;
+  batch_title: string;
+  current_semester_id?: number;
+  current_semester?: {
+    id: number;
+    semester_no: number;
+  };
+}
+
+interface DivisionOption {
+  id: number;
+  department_id: number;
+  batch_id: number;
+  division_code: string;
+}
+
+interface SectionOption {
+  id: number;
+  division_id: number;
+  section_code: string;
+}
 
 export default function Index({
   userRole = 'admin',
   assignedDepartmentCode = null,
-  students: initialStudents,
 }: StudentsIndexProps & { userRole?: 'admin' | 'hod'; assignedDepartmentCode?: string | null }) {
   const isAdministrator = userRole === 'admin';
-  const [studentsList, setStudentsList] = useState<StudentItem[]>(initialStudents);
+  const [studentsList, setStudentsList] = useState<StudentItem[]>([]);
+  const [departments, setDepartments] = useState<DepartmentOption[]>([]);
+  const [batches, setBatches] = useState<BatchOption[]>([]);
+  const [divisions, setDivisions] = useState<DivisionOption[]>([]);
+  const [sections, setSections] = useState<SectionOption[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string>('');
+
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [deptFilter, setDeptFilter] = useState<string>('ALL');
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStudentId, setEditingStudentId] = useState<number | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
   // Form Fields
   const [rollNumber, setRollNumber] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [selectedDept, setSelectedDept] = useState('Information Technology');
-  const [selectedBatch, setSelectedBatch] = useState('2022-26');
-  const [selectedDivision, setSelectedDivision] = useState('Division 1');
-  const [selectedSection, setSelectedSection] = useState('A1');
-  const [feedbackStatus, setFeedbackStatus] = useState<'Completed' | 'Pending'>('Pending');
+  const [mobile, setMobile] = useState('');
+  const [selectedDeptId, setSelectedDeptId] = useState<number | ''>('');
+  const [selectedBatchId, setSelectedBatchId] = useState<number | ''>('');
+  const [selectedDivisionId, setSelectedDivisionId] = useState<number | ''>('');
+  const [selectedSectionId, setSelectedSectionId] = useState<number | ''>('');
+  const [studentStatus, setStudentStatus] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE');
 
-  // Helper functions for dependent options
-  const deptBatches = HIERARCHY_OPTIONS[selectedDept] || HIERARCHY_OPTIONS['Information Technology'];
-  const activeBatchObj = deptBatches.find((b) => b.batch === selectedBatch) || deptBatches[0];
-  const derivedSemester = activeBatchObj ? activeBatchObj.semester : 7;
-  const availableDivisions = activeBatchObj ? activeBatchObj.divisions : [];
-  const activeDivisionObj = availableDivisions.find((d) => d.name === selectedDivision) || availableDivisions[0];
-  const availableSections = activeDivisionObj ? activeDivisionObj.sections : [];
+  const fetchStudentsAndMetadata = useCallback(async () => {
+    setIsLoading(true);
+    setFetchError('');
+    try {
+      const [studentsRes, deptsRes, batchesRes, divsRes, sectsRes] = await Promise.all([
+        api.get('/students'),
+        api.get('/departments'),
+        api.get('/batches'),
+        api.get('/divisions'),
+        api.get('/sections'),
+      ]);
 
-  // Cascading Selection Reset Handlers
-  const handleDeptChange = (newDept: string) => {
-    setSelectedDept(newDept);
-    const newBatches = HIERARCHY_OPTIONS[newDept] || HIERARCHY_OPTIONS['Information Technology'];
-    if (newBatches.length > 0) {
-      const firstBatch = newBatches[0];
-      setSelectedBatch(firstBatch.batch);
-      if (firstBatch.divisions.length > 0) {
-        const firstDiv = firstBatch.divisions[0];
-        setSelectedDivision(firstDiv.name);
-        setSelectedSection(firstDiv.sections[0] || 'A1');
+      if (Array.isArray(deptsRes.data)) {
+        const deptOptions: DepartmentOption[] = deptsRes.data.map((d: any) => ({
+          id: d.id,
+          code: d.department_code,
+          name: d.department_name,
+        }));
+        setDepartments(deptOptions);
+      }
+
+      if (Array.isArray(batchesRes.data)) {
+        setBatches(batchesRes.data);
+      }
+      if (Array.isArray(divsRes.data)) {
+        setDivisions(divsRes.data);
+      }
+      if (Array.isArray(sectsRes.data)) {
+        setSections(sectsRes.data);
+      }
+
+      if (Array.isArray(studentsRes.data)) {
+        const mapped: StudentItem[] = studentsRes.data.map((s: any) => ({
+          id: s.id,
+          rollNumber: s.roll_no,
+          name: s.full_name,
+          email: s.email,
+          department: s.department?.department_name || s.department?.department_code || 'Information Technology',
+          departmentCode: s.department?.department_code || 'IT',
+          batch: s.batch?.batch_title || '2022-26',
+          currentSemester: s.batch?.current_semester?.semester_no || s.batch?.current_semester_id || 7,
+          division: s.division?.division_code || 'Division 1',
+          section: s.section?.section_code || 'A1',
+          feedbackStatus: (s.feedback_submitted_count && s.feedback_submitted_count > 0 ? 'Completed' : 'Pending') as 'Completed' | 'Pending',
+          status: s.status === 'INACTIVE' ? 'inactive' : 'active',
+        }));
+        setStudentsList(mapped);
+      }
+    } catch (err: any) {
+      setFetchError(err.message || 'Failed to load students from server.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStudentsAndMetadata();
+  }, [fetchStudentsAndMetadata]);
+
+  // Dependent cascading filters for modal
+  const filteredBatches = batches.filter(
+    (b) => selectedDeptId === '' || b.department_id === Number(selectedDeptId)
+  );
+
+  const filteredDivisions = divisions.filter(
+    (d) =>
+      (selectedDeptId === '' || d.department_id === Number(selectedDeptId)) &&
+      (selectedBatchId === '' || d.batch_id === Number(selectedBatchId))
+  );
+
+  const filteredSections = sections.filter(
+    (sec) => selectedDivisionId === '' || sec.division_id === Number(selectedDivisionId)
+  );
+
+  const handleDeptChange = (deptId: number) => {
+    setSelectedDeptId(deptId);
+    const matchingBatches = batches.filter((b) => b.department_id === deptId);
+    if (matchingBatches.length > 0) {
+      const bId = matchingBatches[0].id;
+      setSelectedBatchId(bId);
+      const matchingDivs = divisions.filter((d) => d.batch_id === bId);
+      if (matchingDivs.length > 0) {
+        const divId = matchingDivs[0].id;
+        setSelectedDivisionId(divId);
+        const matchingSects = sections.filter((s) => s.division_id === divId);
+        setSelectedSectionId(matchingSects[0] ? matchingSects[0].id : '');
       } else {
-        setSelectedDivision('');
-        setSelectedSection('');
+        setSelectedDivisionId('');
+        setSelectedSectionId('');
       }
     } else {
-      setSelectedBatch('');
-      setSelectedDivision('');
-      setSelectedSection('');
+      setSelectedBatchId('');
+      setSelectedDivisionId('');
+      setSelectedSectionId('');
     }
   };
 
-  const handleBatchChange = (newBatch: string) => {
-    setSelectedBatch(newBatch);
-    const batchObj = deptBatches.find((b) => b.batch === newBatch);
-    if (batchObj && batchObj.divisions.length > 0) {
-      const firstDiv = batchObj.divisions[0];
-      setSelectedDivision(firstDiv.name);
-      setSelectedSection(firstDiv.sections[0] || 'A1');
+  const handleBatchChange = (batchId: number) => {
+    setSelectedBatchId(batchId);
+    const matchingDivs = divisions.filter((d) => d.batch_id === batchId);
+    if (matchingDivs.length > 0) {
+      const divId = matchingDivs[0].id;
+      setSelectedDivisionId(divId);
+      const matchingSects = sections.filter((s) => s.division_id === divId);
+      setSelectedSectionId(matchingSects[0] ? matchingSects[0].id : '');
     } else {
-      setSelectedDivision('');
-      setSelectedSection('');
+      setSelectedDivisionId('');
+      setSelectedSectionId('');
     }
   };
 
-  const handleDivisionChange = (newDiv: string) => {
-    setSelectedDivision(newDiv);
-    const divObj = availableDivisions.find((d) => d.name === newDiv);
-    if (divObj && divObj.sections.length > 0) {
-      setSelectedSection(divObj.sections[0]);
-    } else {
-      setSelectedSection('');
-    }
+  const handleDivisionChange = (divId: number) => {
+    setSelectedDivisionId(divId);
+    const matchingSects = sections.filter((s) => s.division_id === divId);
+    setSelectedSectionId(matchingSects[0] ? matchingSects[0].id : '');
   };
 
   // Open Modal for Create
   const handleOpenCreateModal = () => {
     setEditingStudentId(null);
+    setFormError('');
+    setFieldErrors({});
     setRollNumber(`22IT${Math.floor(100 + Math.random() * 900)}`);
     setName('');
     setEmail('');
-    handleDeptChange('Information Technology');
-    setFeedbackStatus('Pending');
+    setMobile('');
+    setStudentStatus('ACTIVE');
+
+    const defaultDept = departments[0];
+    const initialDeptId = defaultDept ? defaultDept.id : '';
+    setSelectedDeptId(initialDeptId);
+
+    const matchingBatches = batches.filter((b) => b.department_id === initialDeptId);
+    const initialBatchId = matchingBatches[0] ? matchingBatches[0].id : '';
+    setSelectedBatchId(initialBatchId);
+
+    const matchingDivs = divisions.filter((d) => d.batch_id === initialBatchId);
+    const initialDivId = matchingDivs[0] ? matchingDivs[0].id : '';
+    setSelectedDivisionId(initialDivId);
+
+    const matchingSects = sections.filter((s) => s.division_id === initialDivId);
+    setSelectedSectionId(matchingSects[0] ? matchingSects[0].id : '');
+
     setIsModalOpen(true);
   };
 
   // Open Modal for Edit
   const handleOpenEditModal = (student: StudentItem) => {
     setEditingStudentId(student.id);
+    setFormError('');
+    setFieldErrors({});
     setRollNumber(student.rollNumber);
     setName(student.name);
     setEmail(student.email);
-    setSelectedDept(student.department);
-    setSelectedBatch(student.batch);
-    setSelectedDivision(student.division);
-    setSelectedSection(student.section || 'A1');
-    setFeedbackStatus(student.feedbackStatus);
+    setMobile('');
+    setStudentStatus(student.status === 'inactive' ? 'INACTIVE' : 'ACTIVE');
+
+    const matchingDept = departments.find((d) => d.name.toLowerCase() === student.department.toLowerCase());
+    const deptId = matchingDept ? matchingDept.id : departments[0]?.id || '';
+    setSelectedDeptId(deptId);
+
+    const matchingBatch = batches.find((b) => b.batch_title === student.batch);
+    const bId = matchingBatch ? matchingBatch.id : batches[0]?.id || '';
+    setSelectedBatchId(bId);
+
+    const matchingDiv = divisions.find((d) => d.division_code === student.division && d.batch_id === bId);
+    const divId = matchingDiv ? matchingDiv.id : divisions[0]?.id || '';
+    setSelectedDivisionId(divId);
+
+    const matchingSect = sections.find((s) => s.section_code === student.section && s.division_id === divId);
+    setSelectedSectionId(matchingSect ? matchingSect.id : '');
+
     setIsModalOpen(true);
   };
 
   // Save Student (Add / Edit)
-  const handleSaveStudent = (e: React.FormEvent) => {
+  const handleSaveStudent = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
 
-    if (editingStudentId) {
-      setStudentsList((prev) =>
-        prev.map((s) =>
-          s.id === editingStudentId
-            ? {
-                ...s,
-                rollNumber,
-                name,
-                email,
-                department: selectedDept,
-                batch: selectedBatch,
-                currentSemester: derivedSemester,
-                division: selectedDivision,
-                section: selectedSection,
-                feedbackStatus,
-              }
-            : s
-        )
-      );
-    } else {
-      const newStudent: StudentItem = {
-        id: Date.now(),
-        rollNumber,
-        name,
-        email,
-        department: selectedDept,
-        batch: selectedBatch,
-        currentSemester: derivedSemester,
-        division: selectedDivision,
-        section: selectedSection,
-        feedbackStatus,
+    setIsSubmitting(true);
+    setFormError('');
+    setFieldErrors({});
+
+    try {
+      const payload: any = {
+        roll_no: rollNumber.trim(),
+        full_name: name.trim(),
+        email: email.trim(),
+        mobile: mobile ? mobile.trim() : null,
+        department_id: Number(selectedDeptId),
+        batch_id: Number(selectedBatchId),
+        division_id: Number(selectedDivisionId),
+        section_id: selectedSectionId ? Number(selectedSectionId) : null,
+        status: studentStatus,
       };
-      setStudentsList([newStudent, ...studentsList]);
-    }
 
-    setIsModalOpen(false);
+      if (editingStudentId) {
+        await api.put(`/students/${editingStudentId}`, payload);
+      } else {
+        await api.post('/students', payload);
+      }
+
+      await fetchStudentsAndMetadata();
+      setIsModalOpen(false);
+    } catch (err: any) {
+      if (err.status === 422 && err.errors) {
+        setFieldErrors(err.errors);
+      } else {
+        setFormError(err.message || 'Failed to save student record.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteStudent = async (studentId: number) => {
+    if (!confirm('Are you sure you want to delete this student record?')) return;
+    try {
+      await api.delete(`/students/${studentId}`);
+      await fetchStudentsAndMetadata();
+    } catch (err: any) {
+      alert(err.message || 'Cannot delete student record.');
+    }
   };
 
   const filteredStudents = studentsList.filter((s) => {
@@ -235,7 +321,7 @@ export default function Index({
     {
       header: 'Roll Number',
       accessor: (row) => (
-        <span className="font-mono text-xs font-bold px-2 py-1 bg-blue-50 border border-blue-200 rounded text-blue-700">
+        <span className="font-mono text-xs font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
           {row.rollNumber}
         </span>
       ),
@@ -245,33 +331,9 @@ export default function Index({
       header: 'Student Name',
       accessor: (row) => (
         <div>
-          <p className="font-bold text-slate-900">{row.name}</p>
-          <p className="text-[11px] text-slate-500 font-medium">{row.email}</p>
+          <p className="font-bold text-slate-900 leading-tight">{row.name}</p>
+          <p className="text-[11px] text-slate-400 font-mono mt-0.5">{row.email}</p>
         </div>
-      ),
-      sortable: true,
-    },
-    {
-      header: 'Graduation Batch & Semester',
-      accessor: (row) => (
-        <div className="text-xs">
-          <p className="text-slate-800 font-bold">{row.batch}</p>
-          <p className="text-slate-500">Semester {row.currentSemester || 7}</p>
-        </div>
-      ),
-      sortable: true,
-    },
-    {
-      header: 'Division',
-      accessor: (row) => <span className="text-xs font-semibold text-slate-800">{row.division}</span>,
-      sortable: true,
-    },
-    {
-      header: 'Section',
-      accessor: (row) => (
-        <span className="font-mono text-xs font-bold px-2 py-0.5 bg-indigo-50 border border-indigo-200 rounded text-indigo-700">
-          {row.section || 'A1'}
-        </span>
       ),
       sortable: true,
     },
@@ -281,20 +343,65 @@ export default function Index({
       sortable: true,
     },
     {
-      header: 'Feedback Status',
-      accessor: (row) => <StatusBadge status={row.feedbackStatus} />,
+      header: 'Cohort & Section',
+      accessor: (row) => (
+        <div className="text-xs">
+          <span className="font-semibold text-slate-800">{row.batch}</span>
+          <span className="text-slate-400 mx-1">&bull;</span>
+          <span className="font-mono text-[11px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">
+            {row.division} - {row.section}
+          </span>
+        </div>
+      ),
       sortable: true,
     },
     {
-      header: 'Actions',
+      header: 'Feedback Status',
       accessor: (row) => (
-        <button
-          onClick={() => handleOpenEditModal(row)}
-          className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-          title="Edit Student Information"
-        >
-          <Edit className="w-4 h-4" />
-        </button>
+        <StatusBadge
+          status={row.feedbackStatus === 'Completed' ? 'Submitted' : 'Pending'}
+          className={
+            row.feedbackStatus === 'Completed'
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+              : 'bg-amber-50 text-amber-700 border border-amber-200'
+          }
+        />
+      ),
+      sortable: true,
+    },
+    {
+      header: 'Account Status',
+      accessor: (row) => <StatusBadge status={row.status === 'active' ? 'Active' : 'Inactive'} />,
+      sortable: true,
+    },
+    {
+      header: 'Action',
+      accessor: (row) => (
+        <div className="flex items-center gap-1">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenEditModal(row);
+            }}
+            className="text-xs py-1 px-2 text-slate-600 hover:text-indigo-600"
+          >
+            <Edit className="w-3.5 h-3.5 mr-1" />
+            Edit
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeleteStudent(row.id);
+            }}
+            className="text-xs py-1 px-2 text-rose-600 hover:bg-rose-50 border-rose-200"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </Button>
+        </div>
       ),
     },
   ];
@@ -308,11 +415,11 @@ export default function Index({
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Enrolled Students</h2>
+          <h2 className="text-xl font-bold text-slate-900">Student Directory</h2>
           <p className="text-xs text-slate-500">
             {isAdministrator
-              ? 'Student roster and feedback completion status across all departments'
-              : `Student roster for ${getDepartmentName(assignedDepartmentCode)}`}
+              ? 'Institutional student enrollment records, division assignments, and feedback status'
+              : `Enrolled students in ${getDepartmentName(assignedDepartmentCode)}`}
           </p>
         </div>
 
@@ -339,17 +446,21 @@ export default function Index({
           )}
 
           <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200 text-xs shadow-2xs">
-            <Filter className="w-3.5 h-3.5 text-slate-400" />
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="bg-transparent text-slate-800 font-medium focus:outline-none cursor-pointer"
             >
-              <option value="all">All Feedback Statuses</option>
+              <option value="all">All Feedback Status</option>
               <option value="completed">Completed Feedback</option>
-              <option value="pending">Pending Submission</option>
+              <option value="pending">Pending Feedback</option>
             </select>
           </div>
+
+          <Button variant="outline" size="sm" onClick={fetchStudentsAndMetadata} disabled={isLoading}>
+            <RefreshCw className={`w-3.5 h-3.5 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
 
           {isAdministrator && (
             <Button variant="primary" onClick={handleOpenCreateModal}>
@@ -360,117 +471,141 @@ export default function Index({
         </div>
       </div>
 
-      <DataTable
-        data={filteredStudents}
-        columns={columns}
-        searchPlaceholder="Search by roll number, student name or email..."
-      />
+      {fetchError && (
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-semibold flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{fetchError}</span>
+        </div>
+      )}
 
-      {/* Add / Edit Student Modal */}
+      <DataTable data={filteredStudents} columns={columns} searchPlaceholder="Search by roll number, student name, or email..." />
+
+      {/* Modal for Add / Edit Student */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingStudentId ? 'Edit Student Details' : 'Register New Student'}
+        title={editingStudentId ? 'Edit Student Details' : 'Add New Student Record'}
+        maxWidth="lg"
       >
         <form onSubmit={handleSaveStudent} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {formError && (
+            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs font-semibold flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{formError}</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
-              label="Roll Number *"
+              label="Roll Number"
+              placeholder="e.g. 22IT045"
               value={rollNumber}
               onChange={(e) => setRollNumber(e.target.value)}
+              error={fieldErrors.roll_no?.[0]}
               required
             />
+
             <Input
-              label="Student Full Name *"
+              label="Full Name"
+              placeholder="e.g. Alex Johnson"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              error={fieldErrors.full_name?.[0]}
               required
             />
           </div>
 
-          <Input
-            label="Email Address *"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input
+              label="Institutional Email"
+              type="email"
+              placeholder="e.g. alex.j@college.edu"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              error={fieldErrors.email?.[0]}
+              required
+            />
 
-          {/* Academic Hierarchy Selection */}
-          <div className="space-y-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
-            <p className="text-xs font-bold text-slate-900 uppercase tracking-wider">Academic Hierarchy</p>
+            <Input
+              label="Mobile Number (Optional)"
+              type="tel"
+              placeholder="e.g. 9876543210"
+              value={mobile}
+              onChange={(e) => setMobile(e.target.value)}
+              error={fieldErrors.mobile?.[0]}
+            />
+          </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select
-              label="1. Department *"
-              value={selectedDept}
-              onChange={(e) => handleDeptChange(e.target.value)}
+              label="Department"
+              value={selectedDeptId}
+              onChange={(e) => handleDeptChange(Number(e.target.value))}
+              error={fieldErrors.department_id?.[0]}
+              required
             >
-              {DEPARTMENTS_LIST.map((d) => (
-                <option key={d.code} value={d.name}>
-                  {d.name}
+              {departments.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name} ({d.code})
                 </option>
               ))}
             </Select>
 
             <Select
-              label="2. Graduation Batch *"
-              value={selectedBatch}
-              onChange={(e) => handleBatchChange(e.target.value)}
+              label="Graduation Batch"
+              value={selectedBatchId}
+              onChange={(e) => handleBatchChange(Number(e.target.value))}
+              error={fieldErrors.batch_id?.[0]}
+              required
             >
-              {deptBatches.map((b) => (
-                <option key={b.batch} value={b.batch}>
-                  Batch {b.batch} (Semester {b.semester})
-                </option>
-              ))}
-            </Select>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Current Semester (Auto-Derived)</label>
-              <div className="p-2 bg-white border border-slate-200 rounded-lg text-xs font-mono font-bold text-blue-700">
-                Semester {derivedSemester}
-              </div>
-            </div>
-
-            <Select
-              label="3. Division *"
-              value={selectedDivision}
-              onChange={(e) => handleDivisionChange(e.target.value)}
-            >
-              {availableDivisions.map((div) => (
-                <option key={div.name} value={div.name}>
-                  {div.name}
-                </option>
-              ))}
-            </Select>
-
-            <Select
-              label="4. Section *"
-              value={selectedSection}
-              onChange={(e) => setSelectedSection(e.target.value)}
-            >
-              {availableSections.map((sec) => (
-                <option key={sec} value={sec}>
-                  Section {sec}
+              {filteredBatches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  Batch {b.batch_title}
                 </option>
               ))}
             </Select>
           </div>
 
-          <Select
-            label="Feedback Submission Status"
-            value={feedbackStatus}
-            onChange={(e) => setFeedbackStatus(e.target.value as 'Completed' | 'Pending')}
-          >
-            <option value="Pending">Pending Submission</option>
-            <option value="Completed">Completed</option>
-          </Select>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Select
+              label="Class Division"
+              value={selectedDivisionId}
+              onChange={(e) => handleDivisionChange(Number(e.target.value))}
+              error={fieldErrors.division_id?.[0]}
+              required
+            >
+              {filteredDivisions.length === 0 ? (
+                <option value="">No divisions in this batch</option>
+              ) : (
+                filteredDivisions.map((div) => (
+                  <option key={div.id} value={div.id}>
+                    {div.division_code}
+                  </option>
+                ))
+              )}
+            </Select>
+
+            <Select
+              label="Section Breakdown"
+              value={selectedSectionId}
+              onChange={(e) => setSelectedSectionId(e.target.value ? Number(e.target.value) : '')}
+              error={fieldErrors.section_id?.[0]}
+            >
+              <option value="">No specific section</option>
+              {filteredSections.map((sec) => (
+                <option key={sec.id} value={sec.id}>
+                  Section {sec.section_code}
+                </option>
+              ))}
+            </Select>
+          </div>
 
           <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
             <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" variant="primary">
-              {editingStudentId ? 'Save Changes' : 'Register Student'}
+            <Button type="submit" variant="primary" disabled={isSubmitting}>
+              {isSubmitting ? 'Saving...' : editingStudentId ? 'Update Student' : 'Create Student'}
             </Button>
           </div>
         </form>

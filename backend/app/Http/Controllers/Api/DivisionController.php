@@ -36,7 +36,7 @@ class DivisionController extends Controller
             'department_id' => ['required', 'integer', 'exists:department,id'],
             'batch_id' => ['required', 'integer', 'exists:batch,id'],
             'semester_id' => ['required', 'integer', 'exists:semester,id'],
-            'division_code' => ['required', 'string', 'max:20'],
+            'division_code' => ['required', 'string', 'max:10'],
             'status' => ['nullable', 'in:ACTIVE,INACTIVE'],
         ]);
 
@@ -61,7 +61,7 @@ class DivisionController extends Controller
             'department_id' => ['sometimes', 'required', 'integer', 'exists:department,id'],
             'batch_id' => ['sometimes', 'required', 'integer', 'exists:batch,id'],
             'semester_id' => ['sometimes', 'required', 'integer', 'exists:semester,id'],
-            'division_code' => ['sometimes', 'required', 'string', 'max:20'],
+            'division_code' => ['sometimes', 'required', 'string', 'max:10'],
             'status' => ['sometimes', 'in:ACTIVE,INACTIVE'],
         ]);
 

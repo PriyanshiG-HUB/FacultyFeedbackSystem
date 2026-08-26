@@ -30,7 +30,7 @@ class SectionController extends Controller
     {
         $validated = $request->validate([
             'division_id' => ['required', 'integer', 'exists:division,id'],
-            'section_code' => ['required', 'string', 'max:20'],
+            'section_code' => ['required', 'string', 'max:10'],
             'status' => ['nullable', 'in:ACTIVE,INACTIVE'],
         ]);
 
@@ -53,7 +53,7 @@ class SectionController extends Controller
     {
         $validated = $request->validate([
             'division_id' => ['sometimes', 'required', 'integer', 'exists:division,id'],
-            'section_code' => ['sometimes', 'required', 'string', 'max:20'],
+            'section_code' => ['sometimes', 'required', 'string', 'max:10'],
             'status' => ['sometimes', 'in:ACTIVE,INACTIVE'],
         ]);
 

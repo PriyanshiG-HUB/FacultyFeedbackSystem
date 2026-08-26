@@ -15,6 +15,7 @@ class SubjectOfferingResource extends JsonResource
             'batch_id' => $this->batch_id,
             'academic_year_id' => $this->academic_year_id,
             'enrollment_capacity' => $this->enrollment_capacity,
+            'enrolled_count' => $this->elective_enrollments_count ?? ($this->relationLoaded('electiveEnrollments') ? $this->electiveEnrollments->count() : $this->electiveEnrollments()->count()),
             'status' => $this->status,
             'subject' => new SubjectResource($this->whenLoaded('subject')),
             'batch' => new BatchResource($this->whenLoaded('batch')),

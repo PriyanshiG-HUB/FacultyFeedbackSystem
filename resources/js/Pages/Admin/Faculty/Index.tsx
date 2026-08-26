@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../../../Layouts/AdminLayout';
 import { FacultyIndexProps, FacultyItem, FacultyFeedbackDetails } from '../../../types';
 import { DataTable, Column } from '../../../Components/ui/DataTable';
@@ -7,8 +7,7 @@ import { Button } from '../../../Components/ui/Button';
 import { Card } from '../../../Components/ui/Card';
 import { Modal } from '../../../Components/ui/Modal';
 import { Input, Select } from '../../../Components/ui/Input';
-import { useForm } from '../../../Components/shared/useForm';
-import { Plus, Mail, Filter, Star, CheckCircle2, BarChart3, PieChart, BookOpen, UserCheck } from 'lucide-react';
+import { Plus, Mail, Filter, Star, CheckCircle2, BarChart3, PieChart, BookOpen, UserCheck, RefreshCw, AlertCircle } from 'lucide-react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -21,14 +20,24 @@ import {
 } from 'recharts';
 
 import { getDepartmentName } from '../../../utils/departmentScope';
+import { api } from '../../../lib/api';
 
 const PARAMETER_COLORS = ['#0284c7', '#4f46e5', '#059669', '#d97706'];
+
+interface DepartmentOption {
+  id: number;
+  code: string;
+  name: string;
+}
+
+interface DesignationOption {
+  id: number;
+  designation_name: string;
+}
 
 export default function Index({
   userRole = 'admin',
   assignedDepartmentCode = null,
-  faculty,
-  departments,
 }: FacultyIndexProps & { userRole?: 'admin' | 'hod'; assignedDepartmentCode?: string | null }) {
   const isAdministrator = userRole === 'admin';
   const initialFilter = !isAdministrator && assignedDepartmentCode
@@ -39,21 +48,141 @@ export default function Index({
   const [selectedFacultyId, setSelectedFacultyId] = useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const [facultyList, setFacultyList] = useState<FacultyItem[]>([]);
+  const [departments, setDepartments] = useState<DepartmentOption[]>([]);
+  const [designations, setDesignations] = useState<DesignationOption[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string>('');
+
+  // Form State
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [employeeCode, setEmployeeCode] = useState('');
+  const [selectedDeptId, setSelectedDeptId] = useState<number | ''>('');
+  const [selectedDesignationId, setSelectedDesignationId] = useState<number | ''>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+
   // Synchronize filter when role/assigned department prop changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isAdministrator && assignedDepartmentCode) {
       setSelectedDeptFilter(getDepartmentName(assignedDepartmentCode));
     }
   }, [isAdministrator, assignedDepartmentCode]);
 
-  const form = useForm({
-    name: '',
-    email: '',
-    department: departments[0]?.name || '',
-    designation: 'Assistant Professor',
-  });
+  const fetchFacultyAndMetadata = useCallback(async () => {
+    setIsLoading(true);
+    setFetchError('');
+    try {
+      const [facRes, deptsRes, desigRes] = await Promise.all([
+        api.get('/faculty'),
+        api.get('/departments'),
+        api.get('/designations').catch(() => ({ data: [] })),
+      ]);
 
-  const filteredFaculty = faculty.filter((f) => {
+      if (Array.isArray(deptsRes.data)) {
+        const deptOptions: DepartmentOption[] = deptsRes.data.map((d: any) => ({
+          id: d.id,
+          code: d.department_code,
+          name: d.department_name,
+        }));
+        setDepartments(deptOptions);
+        if (deptOptions.length > 0 && selectedDeptId === '') {
+          setSelectedDeptId(deptOptions[0].id);
+        }
+      }
+
+      if (Array.isArray(desigRes.data) && desigRes.data.length > 0) {
+        setDesignations(desigRes.data);
+        if (selectedDesignationId === '') {
+          setSelectedDesignationId(desigRes.data[0].id);
+        }
+      } else {
+        // Fallback default designations
+        const defaultDesigs = [
+          { id: 1, designation_name: 'Professor' },
+          { id: 2, designation_name: 'Associate Professor' },
+          { id: 3, designation_name: 'Assistant Professor' },
+        ];
+        setDesignations(defaultDesigs);
+        if (selectedDesignationId === '') {
+          setSelectedDesignationId(1);
+        }
+      }
+
+      if (Array.isArray(facRes.data)) {
+        const mapped: FacultyItem[] = facRes.data.map((f: any) => ({
+          id: f.id,
+          name: f.full_name,
+          email: f.email,
+          department: f.department?.department_name || f.department?.department_code || 'Information Technology',
+          designation: f.designation?.designation_name || 'Professor',
+          status: f.status === 'INACTIVE' ? 'Inactive' : 'Active',
+        }));
+        setFacultyList(mapped);
+      }
+    } catch (err: any) {
+      setFetchError(err.message || 'Failed to load faculty directory.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedDeptId, selectedDesignationId]);
+
+  useEffect(() => {
+    fetchFacultyAndMetadata();
+  }, [fetchFacultyAndMetadata]);
+
+  const handleOpenAddModal = () => {
+    setName('');
+    setEmail('');
+    setEmployeeCode('');
+    setFormError('');
+    setFieldErrors({});
+    if (departments.length > 0) {
+      setSelectedDeptId(departments[0].id);
+    }
+    if (designations.length > 0) {
+      setSelectedDesignationId(designations[0].id);
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+    setFormError('');
+    setFieldErrors({});
+
+    try {
+      const payload: any = {
+        full_name: name.trim(),
+        email: email.trim(),
+        department_id: Number(selectedDeptId),
+        designation_id: Number(selectedDesignationId),
+        status: 'ACTIVE',
+      };
+      if (employeeCode.trim()) {
+        payload.employee_code = employeeCode.trim();
+      }
+
+      await api.post('/faculty', payload);
+      await fetchFacultyAndMetadata();
+      setIsModalOpen(false);
+    } catch (err: any) {
+      if (err.status === 422 && err.errors) {
+        setFieldErrors(err.errors);
+      } else {
+        setFormError(err.message || 'Failed to create faculty member.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const filteredFaculty = facultyList.filter((f) => {
     if (!isAdministrator && assignedDepartmentCode) {
       const targetDeptName = getDepartmentName(assignedDepartmentCode).toLowerCase();
       return f.department.toLowerCase().includes(targetDeptName) || targetDeptName.includes(f.department.toLowerCase());
@@ -62,14 +191,7 @@ export default function Index({
     return f.department.toLowerCase() === selectedDeptFilter.toLowerCase();
   });
 
-  const selectedFaculty = filteredFaculty.find((f) => f.id === selectedFacultyId) || faculty.find((f) => f.id === selectedFacultyId) || null;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    form.submit('post', '#Admin/Faculty/Index', {
-      onSuccess: () => setIsModalOpen(false),
-    });
-  };
+  const selectedFaculty = filteredFaculty.find((f) => f.id === selectedFacultyId) || facultyList.find((f) => f.id === selectedFacultyId) || null;
 
   const columns: Column<FacultyItem>[] = [
     {
@@ -151,9 +273,9 @@ export default function Index({
   const parameterChartData = details
     ? [
         { parameter: 'Punctuality', score: details.parameterScores.punctuality },
-        { parameter: 'Subject Knowledge', score: details.parameterScores.subjectKnowledge },
-        { parameter: 'Clarity of Teaching', score: details.parameterScores.clarityOfTeaching },
-        { parameter: 'Study Material', score: details.parameterScores.studyMaterial },
+        { parameter: 'Knowledge', score: details.parameterScores.subjectKnowledge },
+        { parameter: 'Clarity', score: details.parameterScores.clarityOfTeaching },
+        { parameter: 'Material', score: details.parameterScores.studyMaterial },
       ]
     : [];
 
@@ -169,13 +291,12 @@ export default function Index({
           <h2 className="text-xl font-bold text-slate-900">Faculty Members</h2>
           <p className="text-xs text-slate-500">
             {isAdministrator
-              ? 'View and manage teaching staff across all academic departments'
-              : `View faculty members assigned to ${getDepartmentName(assignedDepartmentCode)}`}
+              ? 'Complete faculty directory and individual feedback ratings across all departments'
+              : `Faculty members and feedback performance for ${getDepartmentName(assignedDepartmentCode)}`}
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Department Filter for Admin vs Scope Indicator for HOD */}
           {isAdministrator ? (
             <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200 text-xs shadow-2xs">
               <Filter className="w-3.5 h-3.5 text-slate-400" />
@@ -185,9 +306,9 @@ export default function Index({
                 className="bg-transparent text-slate-800 font-medium focus:outline-none cursor-pointer"
               >
                 <option value="all">All Departments</option>
-                {departments.map((dept) => (
-                  <option key={dept.id} value={dept.name}>
-                    {dept.name}
+                {departments.map((d) => (
+                  <option key={d.id} value={d.name}>
+                    {d.name}
                   </option>
                 ))}
               </select>
@@ -198,118 +319,83 @@ export default function Index({
             </span>
           )}
 
+          <Button variant="outline" size="sm" onClick={fetchFacultyAndMetadata} disabled={isLoading}>
+            <RefreshCw className={`w-3.5 h-3.5 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+
           {isAdministrator && (
-            <Button variant="primary" onClick={() => setIsModalOpen(true)}>
+            <Button variant="primary" onClick={handleOpenAddModal}>
               <Plus className="w-4 h-4 mr-1.5" />
-              Register Faculty
+              Add Faculty
             </Button>
           )}
         </div>
       </div>
 
-      <DataTable
-        data={filteredFaculty}
-        columns={columns}
-        searchPlaceholder="Search faculty by name, email or department..."
-        onRowClick={(row) => setSelectedFacultyId(row.id === selectedFacultyId ? null : row.id)}
-        selectedRowKey={(row) => row.id === selectedFacultyId}
-      />
+      {fetchError && (
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-semibold flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{fetchError}</span>
+        </div>
+      )}
 
-      {/* Compact Faculty Feedback Details Section */}
+      <DataTable data={filteredFaculty} columns={columns} searchPlaceholder="Search faculty by name, email, or department..." />
+
+      {/* Selected Faculty Performance Card */}
       {selectedFaculty && details ? (
-        <Card
-          className="mt-6 border-indigo-100/90 bg-gradient-to-b from-white to-slate-50/50"
-          title={`Faculty Feedback Details — ${selectedFaculty.name}`}
-          subtitle={`${selectedFaculty.designation} • ${selectedFaculty.department}`}
-          action={
-            <Button variant="outline" size="sm" onClick={() => setSelectedFacultyId(null)}>
-              Clear Selection
-            </Button>
-          }
-        >
-          {/* Overall Stats Callout */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
-            {/* Overall Score */}
-            <div className="lg:col-span-2 bg-indigo-50/70 border border-indigo-100 rounded-xl p-4 flex items-center justify-between shadow-2xs">
-              <div>
-                <p className="text-xs font-semibold text-indigo-700 uppercase tracking-wider">Overall Feedback Score</p>
-                <div className="flex items-baseline gap-1.5 mt-1">
-                  <span className="text-3xl font-extrabold text-indigo-950">
-                    {details.overallScore.toFixed(2)}
-                  </span>
-                  <span className="text-xs text-indigo-600 font-medium">/ 5.0</span>
-                </div>
-                <p className="text-[11px] text-indigo-600/80 mt-0.5">Aggregate evaluation rating</p>
+        <Card className="mt-6 border-indigo-200 bg-linear-to-b from-white to-slate-50/50 shadow-md">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-extrabold text-lg shadow-sm">
+                {selectedFaculty.name.charAt(0)}
               </div>
-              <div className="w-12 h-12 rounded-full bg-indigo-600 text-amber-300 flex items-center justify-center shadow-xs">
-                <Star className="w-6 h-6 fill-amber-300 stroke-amber-400" />
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900">{selectedFaculty.name}</h3>
+                <p className="text-xs text-slate-500 font-medium">
+                  {selectedFaculty.designation} &bull; {selectedFaculty.department}
+                </p>
               </div>
             </div>
 
-            {/* Total Feedback Responses */}
-            <div className="lg:col-span-2 bg-emerald-50/70 border border-emerald-100 rounded-xl p-4 flex items-center justify-between shadow-2xs">
-              <div>
-                <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wider">Total Responses</p>
-                <div className="flex items-baseline gap-1.5 mt-1">
-                  <span className="text-3xl font-extrabold text-emerald-950">
-                    {details.totalResponses}
-                  </span>
-                  <span className="text-xs text-emerald-600 font-medium">submissions</span>
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Overall Score</p>
+                <div className="flex items-center gap-1.5 text-lg font-black text-slate-900">
+                  <Star className="w-5 h-5 fill-amber-400 text-amber-500" />
+                  <span>{details.overallScore.toFixed(2)}</span>
+                  <span className="text-xs font-bold text-slate-400">/ 5.0</span>
                 </div>
-                <p className="text-[11px] text-emerald-600/80 mt-0.5">Completed feedback responses</p>
               </div>
-              <div className="w-12 h-12 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs">
-                <CheckCircle2 className="w-6 h-6" />
-              </div>
-            </div>
-
-            {/* Parameter Scores Summary */}
-            <div className="lg:col-span-2 bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-center shadow-2xs">
-              <p className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">Parameter Scores</p>
-              <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
-                <div className="flex items-center justify-between text-slate-600">
-                  <span>Punctuality:</span>
-                  <span className="font-bold text-slate-900">{details.parameterScores.punctuality.toFixed(2)}</span>
-                </div>
-                <div className="flex items-center justify-between text-slate-600">
-                  <span>Subject Knowledge:</span>
-                  <span className="font-bold text-slate-900">{details.parameterScores.subjectKnowledge.toFixed(2)}</span>
-                </div>
-                <div className="flex items-center justify-between text-slate-600">
-                  <span>Clarity of Teaching:</span>
-                  <span className="font-bold text-slate-900">{details.parameterScores.clarityOfTeaching.toFixed(2)}</span>
-                </div>
-                <div className="flex items-center justify-between text-slate-600">
-                  <span>Study Material:</span>
-                  <span className="font-bold text-slate-900">{details.parameterScores.studyMaterial.toFixed(2)}</span>
-                </div>
+              <div className="h-8 w-px bg-slate-200" />
+              <div className="text-right">
+                <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Total Responses</p>
+                <p className="text-lg font-black text-indigo-600 font-mono">{details.totalResponses}</p>
               </div>
             </div>
           </div>
 
-          {/* Compact Charts Container */}
-          <div
-            className={`grid grid-cols-1 ${
-              details.subjectScores && details.subjectScores.length > 0 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'
-            } gap-6`}
-          >
-            {/* Chart 1: Parameter Scores */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-5">
+            {/* Chart 1: Parameter-wise Breakdown */}
             <div className="bg-white border border-slate-200/90 rounded-xl p-4 shadow-2xs">
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                   <BarChart3 className="w-3.5 h-3.5 text-indigo-600" />
-                  Parameter Evaluation
+                  Evaluation Parameters
                 </h4>
-                <span className="text-[10px] text-slate-400 font-medium">Out of 5.0</span>
+                <span className="text-[10px] text-slate-400 font-medium">Avg Score (Max 5.0)</span>
               </div>
               <div className="h-48 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={parameterChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="parameter" stroke="#64748b" fontSize={9} interval={0} />
+                    <XAxis dataKey="parameter" stroke="#64748b" fontSize={10} />
                     <YAxis domain={[0, 5]} stroke="#64748b" fontSize={10} />
-                    <Tooltip contentStyle={{ backgroundColor: '#ffffff', borderColor: '#cbd5e1', borderRadius: '8px', fontSize: '12px' }} />
-                    <Bar dataKey="score" name="Score" radius={[4, 4, 0, 0]}>
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#ffffff', borderColor: '#cbd5e1', borderRadius: '8px', fontSize: '12px' }}
+                      formatter={(value: any) => [`${value} / 5.0`, 'Score']}
+                    />
+                    <Bar dataKey="score" radius={[4, 4, 0, 0]}>
                       {parameterChartData.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={PARAMETER_COLORS[index % PARAMETER_COLORS.length]} />
                       ))}
@@ -319,14 +405,14 @@ export default function Index({
               </div>
             </div>
 
-            {/* Chart 2: Rating Distribution */}
+            {/* Chart 2: Score Distribution */}
             <div className="bg-white border border-slate-200/90 rounded-xl p-4 shadow-2xs">
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                   <PieChart className="w-3.5 h-3.5 text-emerald-600" />
                   Rating Distribution
                 </h4>
-                <span className="text-[10px] text-slate-400 font-medium">Rating Count</span>
+                <span className="text-[10px] text-slate-400 font-medium">Student Responses</span>
               </div>
               <div className="h-48 w-full">
                 <ResponsiveContainer width="100%" height="100%">
@@ -340,33 +426,6 @@ export default function Index({
                 </ResponsiveContainer>
               </div>
             </div>
-
-            {/* Chart 3: Subject-wise Performance (shown only if subject-wise feedback data exists) */}
-            {details.subjectScores && details.subjectScores.length > 0 && (
-              <div className="bg-white border border-slate-200/90 rounded-xl p-4 shadow-2xs">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                    <BookOpen className="w-3.5 h-3.5 text-amber-600" />
-                    Subject-wise Feedback
-                  </h4>
-                  <span className="text-[10px] text-slate-400 font-medium">Subject Ratings</span>
-                </div>
-                <div className="h-48 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={details.subjectScores} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                      <XAxis dataKey="subjectCode" stroke="#64748b" fontSize={10} />
-                      <YAxis domain={[0, 5]} stroke="#64748b" fontSize={10} />
-                      <Tooltip
-                        contentStyle={{ backgroundColor: '#ffffff', borderColor: '#cbd5e1', borderRadius: '8px', fontSize: '12px' }}
-                        formatter={(value: any, _: any, props: any) => [`${value} / 5.0`, props.payload.subjectName]}
-                      />
-                      <Bar dataKey="score" name="Score" fill="#d97706" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            )}
           </div>
         </Card>
       ) : (
@@ -380,49 +439,70 @@ export default function Index({
       {/* Add Faculty Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Register Faculty Member">
         <form onSubmit={handleSubmit} className="space-y-4">
+          {formError && (
+            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs font-semibold flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{formError}</span>
+            </div>
+          )}
+
           <Input
             label="Full Name"
             placeholder="e.g. Dr. Robert Vance"
-            value={form.data.name}
-            onChange={(e) => form.setData('name', e.target.value)}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            error={fieldErrors.full_name?.[0]}
             required
           />
           <Input
             label="Institutional Email"
             type="email"
             placeholder="r.vance@univ.edu"
-            value={form.data.email}
-            onChange={(e) => form.setData('email', e.target.value)}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            error={fieldErrors.email?.[0]}
             required
+          />
+          <Input
+            label="Employee Code (Optional)"
+            placeholder="e.g. EMP-IT-005"
+            value={employeeCode}
+            onChange={(e) => setEmployeeCode(e.target.value.toUpperCase())}
+            error={fieldErrors.employee_code?.[0]}
           />
           <Select
             label="Department Assignment"
-            value={form.data.department}
-            onChange={(e) => form.setData('department', e.target.value)}
+            value={selectedDeptId}
+            onChange={(e) => setSelectedDeptId(Number(e.target.value))}
+            error={fieldErrors.department_id?.[0]}
+            required
           >
             {departments.map((dept) => (
-              <option key={dept.id} value={dept.name}>
-                {dept.name}
+              <option key={dept.id} value={dept.id}>
+                {dept.name} ({dept.code})
               </option>
             ))}
           </Select>
           <Select
             label="Designation"
-            value={form.data.designation}
-            onChange={(e) => form.setData('designation', e.target.value)}
+            value={selectedDesignationId}
+            onChange={(e) => setSelectedDesignationId(Number(e.target.value))}
+            error={fieldErrors.designation_id?.[0]}
+            required
           >
-            <option value="Professor">Professor</option>
-            <option value="Associate Professor">Associate Professor</option>
-            <option value="Assistant Professor">Assistant Professor</option>
-            <option value="Lecturer">Lecturer</option>
+            {designations.map((desig) => (
+              <option key={desig.id} value={desig.id}>
+                {desig.designation_name}
+              </option>
+            ))}
           </Select>
 
           <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
             <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" variant="primary" disabled={form.processing}>
-              {form.processing ? 'Saving...' : 'Register Faculty'}
+            <Button type="submit" variant="primary" disabled={isSubmitting}>
+              {isSubmitting ? 'Saving...' : 'Register Faculty'}
             </Button>
           </div>
         </form>
@@ -430,4 +510,3 @@ export default function Index({
     </AdminLayout>
   );
 }
-

@@ -11,10 +11,20 @@ import {
   calculateFacultyOverallScore,
 } from '../../../utils/feedbackExclusionStore';
 
-export default function Index({ facultyName = 'Dr. Sarah Jenkins', reports }: FacultyReportsIndexProps) {
+export default function Index({ facultyName = 'Dr. Sarah Jenkins', reports = [] }: FacultyReportsIndexProps) {
   const [submissions, setSubmissions] = useState(() => getMergedSubmissions());
 
+  const [apiDashboardStats, setApiDashboardStats] = useState<any>(null);
+
   useEffect(() => {
+    import('../../../lib/api').then(({ api }) => {
+      api.get('/faculty/dashboard').then((res) => {
+        if (res.data) {
+          setApiDashboardStats(res.data);
+        }
+      }).catch(() => {});
+    });
+
     const handleUpdate = () => {
       setSubmissions(getMergedSubmissions());
     };

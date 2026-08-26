@@ -1,5 +1,6 @@
 import React from 'react';
-import { Bell, ShieldCheck, User } from 'lucide-react';
+import { Bell, ShieldCheck, User, LogOut } from 'lucide-react';
+import { handleLogout } from '../../lib/api';
 
 interface TopbarProps {
   pageTitle?: string;
@@ -46,7 +47,7 @@ export const Topbar: React.FC<TopbarProps> = ({
           <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-indigo-600" />
         </button>
 
-        {/* User Info */}
+        {/* User Info & Logout */}
         <div className="flex items-center gap-3 pl-3 border-l border-slate-200">
           <div className="w-8 h-8 rounded-full bg-indigo-100 border border-indigo-200 flex items-center justify-center text-indigo-700 font-bold text-xs">
             <User className="w-4 h-4 text-indigo-600" />
@@ -55,6 +56,13 @@ export const Topbar: React.FC<TopbarProps> = ({
             <p className="text-xs font-bold text-slate-900">{userName}</p>
             <p className="text-[10px] text-slate-500 font-medium">{roleBadgeText}</p>
           </div>
+          <button
+            onClick={handleLogout}
+            title="Logout of session"
+            className="p-1.5 rounded-lg bg-slate-100 text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition-colors border border-slate-200 cursor-pointer ml-1"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </header>

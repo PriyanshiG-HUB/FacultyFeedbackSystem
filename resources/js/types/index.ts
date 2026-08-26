@@ -84,7 +84,7 @@ export interface DepartmentsIndexProps {
 
 // 3. Admin/Departments/Create
 export interface DepartmentsCreateProps {
-  hodOptions: { id: number; name: string }[];
+  hodOptions: { id: number; name: string; department?: string }[];
 }
 
 // 4. Admin/Faculty/Index
@@ -130,9 +130,11 @@ export interface SubjectItem {
   name: string;
   code: string;
   department: string;
+  departmentCode?: string;
   type: 'Core' | 'Elective';
   credits: number;
   semester: number;
+  status?: string;
 }
 
 export interface SubjectsIndexProps {
@@ -238,6 +240,7 @@ export interface StudentItem {
   section?: string;
   department: string;
   feedbackStatus: 'Completed' | 'Pending';
+  status?: 'active' | 'inactive';
 }
 
 export interface StudentsIndexProps {
@@ -248,17 +251,23 @@ export interface StudentsIndexProps {
 // 9. Admin/Electives/Index
 export interface ElectiveItem {
   id: number;
+  subjectId: number;
+  offeringId?: number | null;
   subjectCode: string;
   subjectName: string;
   department: string;
+  departmentCode?: string;
   batch: string;
+  batchId?: number | null;
   semester: number;
   enrolledCount: number;
   maxSeats: number;
+  hasOffering: boolean;
+  status?: string;
 }
 
 export interface ElectivesIndexProps {
-  electives: ElectiveItem[];
+  electives?: ElectiveItem[];
   filters?: { search?: string };
 }
 
@@ -270,16 +279,17 @@ export interface ElectiveEnrollmentStudent {
   division: string;
   section?: string;
   isEnrolled: boolean;
+  enrollmentId?: number | null;
 }
 
 export interface ElectiveEnrollmentProps {
-  elective: {
+  elective?: {
     id: number;
     subjectCode: string;
     subjectName: string;
     batch: string;
   };
-  availableStudents: ElectiveEnrollmentStudent[];
+  availableStudents?: ElectiveEnrollmentStudent[];
 }
 
 // 11. Admin/SessionAssignments/Index
@@ -344,6 +354,8 @@ export interface AnalyticsIndexProps {
 export interface ReportItem {
   id: number;
   title: string;
+  department?: string;
+  departmentCode?: string;
   academicYear: string;
   term: string;
   totalResponses: number;
@@ -373,8 +385,10 @@ export interface FeedbackSubmissionItem {
   subjectCode: string;
   subjectName: string;
   academicYear: string;
+  batch?: string;
   semester: number;
   division: string;
+  section?: string;
   departmentCode: string;
   submittedAt: string;
   evaluationStatus: 'included' | 'excluded';
@@ -527,12 +541,15 @@ export interface PublishedFormQuestionItem {
 
 export interface PublishedFormItem {
   id: string;
+  numericId?: number;
+  assignmentId?: number | string;
   title: string;
   academicYear: string;
   semester: number;
   departmentCode: string;
   departmentName: string;
   division: string;
+  section?: string;
   batch: string;
   facultyId: string | number;
   facultyName: string;
@@ -540,7 +557,7 @@ export interface PublishedFormItem {
   subjectCode: string;
   subjectName: string;
   questions: PublishedFormQuestionItem[];
-  status: 'Published' | 'Unpublished';
+  status: 'Published' | 'Unpublished' | 'Draft';
   createdBy: string;
   createdAt: string;
   publishedAt?: string;

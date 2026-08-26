@@ -1,21 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../../../Layouts/AdminLayout';
-import { PublishFormIndexProps, PublishedFormItem, PublishedFormQuestionItem } from '../../../types';
+import { PublishFormIndexProps, PublishedFormItem } from '../../../types';
 import { Card } from '../../../Components/ui/Card';
 import { Button } from '../../../Components/ui/Button';
-import { Input } from '../../../Components/ui/Input';
+import { Input, Select } from '../../../Components/ui/Input';
 import { Modal } from '../../../Components/ui/Modal';
 import { StatusBadge } from '../../../Components/ui/StatusBadge';
 import { StatCard } from '../../../Components/ui/StatCard';
-import {
-  getPublishedForms,
-  savePublishedForm,
-  togglePublishStatus,
-  deletePublishedForm,
-  subscribeToPublishedForms,
-} from '../../../utils/publishedFormsStore';
-import { SYSTEM_QUESTIONS } from '../../../utils/feedbackExclusionStore';
-import { filterItemsByDepartment, DEPARTMENTS_LIST, getDepartmentName } from '../../../utils/departmentScope';
+import { getDepartmentName } from '../../../utils/departmentScope';
+import { api } from '../../../lib/api';
 import {
   Send,
   EyeOff,
@@ -24,7 +17,6 @@ import {
   CheckCircle2,
   AlertCircle,
   Trash2,
-  Edit,
   GraduationCap,
   BookOpen,
   User,
@@ -33,795 +25,470 @@ import {
   Sparkles,
   HelpCircle,
   FileCheck,
-  Building2,
-  Check,
+  RefreshCw,
+  Filter,
 } from 'lucide-react';
-
-const MOCK_FACULTY_BY_DEPT: Record<string, { id: string; name: string; designation: string }[]> = {
-  IT: [
-    { id: 'FAC_JENKINS', name: 'Dr. Sarah Jenkins', designation: 'Professor & HOD' },
-    { id: 'FAC_SAGAR', name: 'Prof. Sagar Patel', designation: 'Assistant Professor' },
-    { id: 'FAC_NISHAT', name: 'Prof. Nishat Shaikh', designation: 'Associate Professor' },
-    { id: 'FAC_GOSLING', name: 'Prof. James Gosling', designation: 'Assistant Professor' },
-    { id: 'FAC_TORVALDS', name: 'Dr. Linus Torvalds', designation: 'Professor' },
-  ],
-  CE: [
-    { id: 'FAC_TURING', name: 'Dr. Alan Turing', designation: 'Professor & HOD' },
-    { id: 'FAC_RITCHIE', name: 'Dr. Dennis Ritchie', designation: 'Professor' },
-    { id: 'FAC_HOPPER', name: 'Dr. Grace Hopper', designation: 'Associate Professor' },
-  ],
-  CSE: [
-    { id: 'FAC_KNUTH', name: 'Dr. Donald Knuth', designation: 'Professor & HOD' },
-    { id: 'FAC_CORMEN', name: 'Dr. Thomas Cormen', designation: 'Professor' },
-  ],
-  AIML: [
-    { id: 'FAC_ROY', name: 'Dr. Anita Roy', designation: 'Professor & HOD' },
-    { id: 'FAC_BENGIO', name: 'Dr. Yoshua Bengio', designation: 'Associate Professor' },
-  ],
-  ECE: [
-    { id: 'FAC_SHANNON', name: 'Dr. Claude Shannon', designation: 'Professor & HOD' },
-  ],
-  ME: [
-    { id: 'FAC_WATT', name: 'Dr. James Watt', designation: 'Professor & HOD' },
-  ],
-};
-
-const MOCK_SUBJECTS_BY_DEPT: Record<string, { code: string; name: string; semester: number }[]> = {
-  IT: [
-    { code: 'IT501', name: 'Data Structures & Algorithms', semester: 5 },
-    { code: 'IT502', name: 'Database Management Systems', semester: 5 },
-    { code: 'IT503', name: 'Computer Networks', semester: 5 },
-    { code: 'IT504', name: 'Operating Systems', semester: 5 },
-    { code: 'IT701', name: 'Database Management Systems', semester: 7 },
-    { code: 'IT702', name: 'Design & Analysis of Algorithms', semester: 7 },
-    { code: 'IT703', name: 'Computer Organization & Architecture', semester: 7 },
-    { code: 'IT706', name: 'Software Engineering', semester: 7 },
-  ],
-  CE: [
-    { code: 'CE501', name: 'Theory of Computation', semester: 5 },
-    { code: 'CE502', name: 'Compiler Design', semester: 5 },
-    { code: 'CE701', name: 'Advanced Computer Architecture', semester: 7 },
-  ],
-  CSE: [
-    { code: 'CSE501', name: 'Advanced Algorithms', semester: 5 },
-    { code: 'CSE502', name: 'Artificial Intelligence', semester: 5 },
-  ],
-  AIML: [
-    { code: 'AIML501', name: 'Machine Learning Foundations', semester: 5 },
-    { code: 'AIML502', name: 'Deep Learning & Neural Networks', semester: 5 },
-  ],
-  ECE: [
-    { code: 'ECE501', name: 'Digital Signal Processing', semester: 5 },
-  ],
-  ME: [
-    { code: 'ME501', name: 'Thermodynamics & Heat Transfer', semester: 5 },
-  ],
-};
 
 export default function PublishForm({
   userRole = 'admin',
   assignedDepartmentCode = null,
   departmentName = 'Information Technology',
-  forms: initialForms,
 }: PublishFormIndexProps) {
+  const isAdministrator = userRole === 'admin';
+  const initialDeptFilter = !isAdministrator && assignedDepartmentCode ? assignedDepartmentCode.toUpperCase() : 'ALL';
+  const [deptFilter, setDeptFilter] = useState<string>(initialDeptFilter);
+
   const [forms, setForms] = useState<PublishedFormItem[]>([]);
+  const [teachingAssignments, setTeachingAssignments] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [academicYears, setAcademicYears] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedSemFilter, setSelectedSemFilter] = useState<string>('ALL');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('ALL');
 
+  const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string>('');
+
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [editingFormId, setEditingFormId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
   // Form Fields
-  const activeDeptCode = assignedDepartmentCode || 'IT';
-  const [academicYear, setAcademicYear] = useState<string>('2025-26');
-  const [semester, setSemester] = useState<number>(5);
-  const [deptCode, setDeptCode] = useState<string>(activeDeptCode);
-  const [division, setDivision] = useState<string>('Division 1');
-  const [batch, setBatch] = useState<string>('2022-26');
-  const [facultyId, setFacultyId] = useState<string>('');
-  const [subjectCode, setSubjectCode] = useState<string>('');
-  const [selectedQuestions, setSelectedQuestions] = useState<number[]>([1, 2, 3, 4, 5]);
-  const [formStatus, setFormStatus] = useState<'Published' | 'Unpublished'>('Published');
+  const [formTitle, setFormTitle] = useState('');
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<number | ''>('');
+  const [selectedAcademicYearId, setSelectedAcademicYearId] = useState<number | ''>('');
+  const [windowStartDate, setWindowStartDate] = useState('');
+  const [windowEndDate, setWindowEndDate] = useState('');
 
-  // Error & Toast State
-  const [validationError, setValidationError] = useState<string | null>(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const fetchFormsAndMetadata = useCallback(async () => {
+    setIsLoading(true);
+    setFetchError('');
+    try {
+      const [formsRes, assignmentsRes, deptsRes, ayRes, catRes] = await Promise.all([
+        api.get('/feedback-forms'),
+        api.get('/teaching-assignments'),
+        api.get('/departments'),
+        api.get('/academic-years'),
+        api.get('/feedback-question-categories'),
+      ]);
 
-  // Load and Subscribe to Store
-  useEffect(() => {
-    const refreshData = () => {
-      const allForms = getPublishedForms();
-      const scoped = filterItemsByDepartment(allForms, assignedDepartmentCode);
-      setForms(scoped);
-    };
+      if (Array.isArray(deptsRes.data)) setDepartments(deptsRes.data);
+      if (Array.isArray(assignmentsRes.data)) setTeachingAssignments(assignmentsRes.data);
+      if (Array.isArray(ayRes.data)) setAcademicYears(ayRes.data);
+      if (Array.isArray(catRes.data)) setCategories(catRes.data);
 
-    refreshData();
-    const unsubscribe = subscribeToPublishedForms(refreshData);
-    return () => unsubscribe();
-  }, [assignedDepartmentCode]);
-
-  // Set default faculty and subject based on department
-  useEffect(() => {
-    const facList = MOCK_FACULTY_BY_DEPT[deptCode] || MOCK_FACULTY_BY_DEPT['IT'];
-    const subList = MOCK_SUBJECTS_BY_DEPT[deptCode] || MOCK_SUBJECTS_BY_DEPT['IT'];
-
-    if (facList.length > 0 && !facultyId) {
-      setFacultyId(facList[0].id);
+      if (Array.isArray(formsRes.data)) {
+        const mapped: PublishedFormItem[] = formsRes.data.map((f: any) => {
+          const ta = f.teaching_assignment || {};
+          return {
+            id: String(f.id),
+            numericId: f.id,
+            assignmentId: f.teaching_assignment_id,
+            title: f.title,
+            academicYear: ta.academic_year?.year_code || '2025-26',
+            semester: ta.semester?.semester_no || ta.semester_id || 5,
+            departmentCode: ta.batch?.department?.department_code || ta.subject?.department?.department_code || 'IT',
+            departmentName: ta.batch?.department?.department_name || ta.subject?.department?.department_name || 'Information Technology',
+            division: ta.division?.division_code || 'All Divisions',
+            section: ta.section?.section_code || 'All',
+            batch: ta.batch?.batch_title || '2022-26',
+            facultyId: String(ta.faculty_id || 'FAC'),
+            facultyName: ta.faculty?.full_name || 'Faculty Member',
+            facultyDesignation: ta.faculty?.designation?.designation_name || 'Faculty',
+            subjectCode: ta.subject?.subject_code || 'SUB101',
+            subjectName: ta.subject?.subject_name || 'Subject',
+            questions: Array.isArray(f.questions) ? f.questions.map((q: any) => ({ id: q.id, statement: q.question_text })) : [],
+            status: f.is_published ? 'Published' : 'Draft',
+            createdBy: f.creator?.full_name || 'Administrator',
+            createdAt: f.created_at ? new Date(f.created_at).toLocaleDateString() : 'Recent',
+            publishedAt: f.published_at ? new Date(f.published_at).toLocaleDateString() : undefined,
+          };
+        });
+        setForms(mapped);
+      }
+    } catch (err: any) {
+      setFetchError(err.message || 'Failed to load feedback forms.');
+    } finally {
+      setIsLoading(false);
     }
-    if (subList.length > 0 && !subjectCode) {
-      setSubjectCode(subList[0].code);
-    }
-  }, [deptCode]);
+  }, []);
 
-  // Toast Helper
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3500);
-  };
+  useEffect(() => {
+    fetchFormsAndMetadata();
+  }, [fetchFormsAndMetadata]);
 
-  // Open Modal for New Form
-  const handleOpenCreateModal = () => {
-    setEditingFormId(null);
-    setAcademicYear('2025-26');
-    setSemester(5);
-    setDeptCode(assignedDepartmentCode || 'IT');
-    setDivision('Division 1');
-    setBatch('2022-26');
-
-    const facList = MOCK_FACULTY_BY_DEPT[assignedDepartmentCode || 'IT'] || MOCK_FACULTY_BY_DEPT['IT'];
-    const subList = MOCK_SUBJECTS_BY_DEPT[assignedDepartmentCode || 'IT'] || MOCK_SUBJECTS_BY_DEPT['IT'];
-
-    setFacultyId(facList[0]?.id || '');
-    setSubjectCode(subList[0]?.code || '');
-    setSelectedQuestions([1, 2, 3, 4, 5]);
-    setFormStatus('Published');
-    setValidationError(null);
-    setIsModalOpen(true);
-  };
-
-  // Open Modal for Edit
-  const handleOpenEditModal = (form: PublishedFormItem) => {
-    setEditingFormId(form.id);
-    setAcademicYear(form.academicYear);
-    setSemester(form.semester);
-    setDeptCode(form.departmentCode);
-    setDivision(form.division);
-    setBatch(form.batch);
-    setFacultyId(String(form.facultyId));
-    setSubjectCode(form.subjectCode);
-    setSelectedQuestions(form.questions.map((q) => q.id));
-    setFormStatus(form.status);
-    setValidationError(null);
-    setIsModalOpen(true);
-  };
-
-  // Toggle Question Selection
-  const handleToggleQuestion = (qId: number) => {
-    setSelectedQuestions((prev) =>
-      prev.includes(qId) ? prev.filter((id) => id !== qId) : [...prev, qId]
+  const handleOpenAddModal = () => {
+    setFormError('');
+    setFieldErrors({});
+    const firstAssignment = teachingAssignments[0];
+    setSelectedAssignmentId(firstAssignment?.id || '');
+    setFormTitle(
+      firstAssignment
+        ? `Faculty Feedback — ${firstAssignment.subject?.subject_name || 'Course'} (${firstAssignment.faculty?.full_name || 'Faculty'})`
+        : 'Faculty Feedback Survey'
     );
+    setSelectedAcademicYearId(academicYears[0]?.id || '');
+    const today = new Date().toISOString().split('T')[0];
+    setWindowStartDate(today);
+    const nextMonth = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    setWindowEndDate(nextMonth);
+    setIsModalOpen(true);
   };
 
-  // Submit Form Creation / Update
-  const handleSaveForm = (e: React.FormEvent) => {
+  const handleAssignmentChange = (aId: number) => {
+    setSelectedAssignmentId(aId);
+    const chosen = teachingAssignments.find((a) => a.id === aId);
+    if (chosen) {
+      setFormTitle(`Faculty Feedback — ${chosen.subject?.subject_name} (${chosen.faculty?.full_name})`);
+    }
+  };
+
+  const handleCreateForm = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
 
-    if (!semester || !deptCode || !facultyId || !subjectCode) {
-      setValidationError('Please select Academic Semester, Department, Faculty, and Subject.');
-      return;
-    }
+    setIsSubmitting(true);
+    setFormError('');
+    setFieldErrors({});
 
-    if (selectedQuestions.length === 0) {
-      setValidationError('Please select at least one feedback question for this form.');
-      return;
-    }
-
-    const facList = MOCK_FACULTY_BY_DEPT[deptCode] || MOCK_FACULTY_BY_DEPT['IT'];
-    const subList = MOCK_SUBJECTS_BY_DEPT[deptCode] || MOCK_SUBJECTS_BY_DEPT['IT'];
-
-    const selectedFacultyObj = facList.find((f) => String(f.id) === String(facultyId)) || facList[0];
-    const selectedSubjectObj = subList.find((s) => s.code === subjectCode) || subList[0];
-
-    const questionObjects: PublishedFormQuestionItem[] = selectedQuestions.map((qId) => {
-      const found = SYSTEM_QUESTIONS.find((sq) => sq.id === qId);
-      return {
-        id: qId,
-        statement: found ? found.text : `Feedback Question #${qId}`,
+    try {
+      const payload = {
+        title: formTitle.trim(),
+        teaching_assignment_id: Number(selectedAssignmentId),
+        academic_year_id: Number(selectedAcademicYearId),
+        window_start_date: windowStartDate,
+        window_end_date: windowEndDate,
+        is_published: true,
       };
-    });
 
-    const fullDeptName = getDepartmentName(deptCode);
-
-    savePublishedForm({
-      id: editingFormId || undefined,
-      title: `Faculty Feedback — Semester ${semester} (${selectedSubjectObj.name})`,
-      academicYear,
-      semester: Number(semester),
-      departmentCode: deptCode,
-      departmentName: fullDeptName,
-      division,
-      batch,
-      facultyId: selectedFacultyObj.id,
-      facultyName: selectedFacultyObj.name,
-      facultyDesignation: selectedFacultyObj.designation,
-      subjectCode: selectedSubjectObj.code,
-      subjectName: selectedSubjectObj.name,
-      questions: questionObjects,
-      status: formStatus,
-      createdBy: `${userRole === 'hod' ? 'HOD' : 'Admin'} ${fullDeptName}`,
-    });
-
-    setIsModalOpen(false);
-    showToast(
-      editingFormId
-        ? 'Feedback form updated successfully!'
-        : formStatus === 'Published'
-        ? 'Feedback form published and now visible to target students!'
-        : 'Feedback form saved as Unpublished.'
-    );
-  };
-
-  // Toggle Publish / Unpublish directly from table
-  const handleTogglePublish = (formId: string, currentStatus: string) => {
-    const updated = togglePublishStatus(formId);
-    if (updated) {
-      showToast(
-        updated.status === 'Published'
-          ? `Form "${updated.title}" is now PUBLISHED and visible to students!`
-          : `Form "${updated.title}" is now UNPUBLISHED and hidden from students.`
-      );
+      await api.post('/feedback-forms', payload);
+      await fetchFormsAndMetadata();
+      setIsModalOpen(false);
+    } catch (err: any) {
+      if (err.status === 422 && err.errors) {
+        setFieldErrors(err.errors);
+      } else {
+        setFormError(err.message || 'Failed to create and publish feedback form.');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  // Delete Form
-  const handleDeleteForm = (formId: string, title: string) => {
-    if (window.confirm(`Are you sure you want to delete form "${title}"?`)) {
-      deletePublishedForm(formId);
-      showToast('Form deleted successfully.');
+  const handleTogglePublish = async (form: PublishedFormItem) => {
+    try {
+      if (form.status === 'Published') {
+        await api.post(`/feedback-forms/${form.numericId || form.id}/unpublish`);
+      } else {
+        await api.post(`/feedback-forms/${form.numericId || form.id}/publish`);
+      }
+      await fetchFormsAndMetadata();
+    } catch (err: any) {
+      alert(err.message || 'Failed to update publication status.');
     }
   };
 
-  // Filtered list
+  const handleDeleteForm = async (form: PublishedFormItem) => {
+    if (!confirm(`Are you sure you want to delete form "${form.title}"?`)) return;
+    try {
+      await api.delete(`/feedback-forms/${form.numericId || form.id}`);
+      await fetchFormsAndMetadata();
+    } catch (err: any) {
+      alert(err.message || 'Cannot delete form. Student responses exist.');
+    }
+  };
+
+  // Filter forms
   const filteredForms = forms.filter((f) => {
-    const matchesSearch =
-      f.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      f.facultyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      f.subjectName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      f.subjectCode.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesSem = selectedSemFilter === 'ALL' || String(f.semester) === selectedSemFilter;
-    const matchesStatus = selectedStatusFilter === 'ALL' || f.status === selectedStatusFilter;
-
-    return matchesSearch && matchesSem && matchesStatus;
+    if (!isAdministrator && assignedDepartmentCode) {
+      if (f.departmentCode.toUpperCase() !== assignedDepartmentCode.toUpperCase()) return false;
+    }
+    if (isAdministrator && deptFilter !== 'ALL') {
+      if (f.departmentCode.toUpperCase() !== deptFilter.toUpperCase()) return false;
+    }
+    if (selectedSemFilter !== 'ALL' && String(f.semester) !== selectedSemFilter) {
+      return false;
+    }
+    if (selectedStatusFilter !== 'ALL' && f.status !== selectedStatusFilter) {
+      return false;
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const match =
+        f.title.toLowerCase().includes(q) ||
+        f.facultyName.toLowerCase().includes(q) ||
+        f.subjectCode.toLowerCase().includes(q) ||
+        f.subjectName.toLowerCase().includes(q);
+      if (!match) return false;
+    }
+    return true;
   });
 
-  const totalFormsCount = forms.length;
-  const publishedCount = forms.filter((f) => f.status === 'Published').length;
-  const unpublishedCount = forms.filter((f) => f.status === 'Unpublished').length;
+  const totalFormsCount = filteredForms.length;
+  const publishedCount = filteredForms.filter((f) => f.status === 'Published').length;
+  const draftCount = filteredForms.filter((f) => f.status === 'Draft').length;
 
   return (
     <AdminLayout
-      title="Publish Form"
+      title="Feedback Publishing"
       currentPath="#Admin/Feedback/PublishForm"
       userRole={userRole}
-      departmentScope={departmentName}
+      departmentScope={isAdministrator ? 'All Departments' : getDepartmentName(assignedDepartmentCode)}
     >
-      {/* Toast Banner */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl border border-slate-700 flex items-center gap-3 animate-bounce">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-          <span className="text-xs font-semibold">{toastMessage}</span>
-        </div>
-      )}
-
-      {/* Scope Info Banner */}
-      <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 rounded-2xl p-5 sm:p-6 text-white shadow-lg border border-blue-800/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-md bg-blue-500/20 text-blue-200 border border-blue-400/30 text-[10px] font-extrabold uppercase tracking-wider">
-              {userRole === 'hod' ? `${assignedDepartmentCode || 'IT'} HOD Scope` : 'System Administrator'}
-            </span>
-            <span className="text-xs text-blue-200 font-semibold">&bull; Feedback Control Center</span>
-          </div>
-          <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight">Publish Feedback Forms</h2>
-          <p className="text-xs text-blue-200/90 max-w-2xl leading-relaxed">
-            Configure academic target groups, select faculty & subjects, set feedback questions, and publish forms. Published forms become immediately visible to eligible students in their Student Portal.
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">Feedback Form Lifecycle</h2>
+          <p className="text-xs text-slate-500">
+            Create, publish, and schedule student evaluation questionnaires linked to teaching assignments
           </p>
         </div>
 
-        <Button
-          onClick={handleOpenCreateModal}
-          variant="primary"
-          size="md"
-          className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold border-emerald-500 shadow-lg shadow-emerald-950/40 shrink-0"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          <span>Configure &amp; Publish Form</span>
-        </Button>
+        <div className="flex items-center gap-3">
+          {isAdministrator ? (
+            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200 text-xs shadow-2xs">
+              <Filter className="w-3.5 h-3.5 text-slate-400" />
+              <select
+                value={deptFilter}
+                onChange={(e) => setDeptFilter(e.target.value)}
+                className="bg-transparent text-slate-800 font-medium focus:outline-none cursor-pointer"
+              >
+                <option value="ALL">All Departments</option>
+                {departments.map((d) => (
+                  <option key={d.id} value={d.department_code}>
+                    {d.department_name} ({d.department_code})
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <span className="px-3 py-1 bg-blue-50 text-blue-800 font-extrabold text-xs rounded-lg border border-blue-200">
+              Scope: {getDepartmentName(assignedDepartmentCode)} Only
+            </span>
+          )}
+
+          <Button variant="outline" size="sm" onClick={fetchFormsAndMetadata} disabled={isLoading}>
+            <RefreshCw className={`w-3.5 h-3.5 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+
+          {isAdministrator && (
+            <Button variant="primary" onClick={handleOpenAddModal}>
+              <Plus className="w-4 h-4 mr-1.5" />
+              Create & Publish Form
+            </Button>
+          )}
+        </div>
       </div>
 
-      {/* Stat Cards Overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label="Total Configured Forms"
-          value={totalFormsCount}
-          change="All feedback templates"
-          icon="check-circle"
-        />
-        <StatCard
-          label="Published (Visible)"
-          value={publishedCount}
-          change="Active on Student Portal"
-          isPositive={true}
-          icon="check-circle"
-        />
-        <StatCard
-          label="Unpublished (Hidden)"
-          value={unpublishedCount}
-          change="Not visible to students"
-          isPositive={false}
-          icon="star"
-        />
-        <StatCard
-          label="Department Scope"
-          value={assignedDepartmentCode || 'IT'}
-          change={departmentName}
-          isPositive={true}
-          icon="building"
-        />
+      {fetchError && (
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-semibold flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{fetchError}</span>
+        </div>
+      )}
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatCard label="Total Feedback Forms" value={totalFormsCount} icon="book-open" change="In selected scope" />
+        <StatCard label="Active Published Forms" value={publishedCount} icon="check-circle" isPositive change="Live for students" />
+        <StatCard label="Draft / Unpublished" value={draftCount} icon="clock" change="Awaiting publish" />
       </div>
 
-      {/* Action Header & Filters */}
-      <Card className="p-4 sm:p-5 space-y-4">
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-          {/* Search Input */}
-          <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search forms by title, faculty, or subject..."
+      {/* Search & Filters */}
+      <Card>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="relative w-full sm:w-80">
+            <Input
+              placeholder="Search forms by faculty, course, or title..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="pl-9"
             />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
           </div>
 
-          {/* Filter Dropdowns */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            {/* Semester Filter */}
-            <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 text-xs">
-              <span className="font-bold text-slate-500 text-[11px] uppercase">Semester:</span>
-              <select
-                value={selectedSemFilter}
-                onChange={(e) => setSelectedSemFilter(e.target.value)}
-                className="bg-transparent font-extrabold text-slate-800 focus:outline-none cursor-pointer"
-              >
-                <option value="ALL">All Semesters</option>
-                <option value="1">Semester 1</option>
-                <option value="2">Semester 2</option>
-                <option value="3">Semester 3</option>
-                <option value="4">Semester 4</option>
-                <option value="5">Semester 5</option>
-                <option value="6">Semester 6</option>
-                <option value="7">Semester 7</option>
-                <option value="8">Semester 8</option>
-              </select>
-            </div>
+          <div className="flex items-center gap-2">
+            <Select
+              value={selectedSemFilter}
+              onChange={(e) => setSelectedSemFilter(e.target.value)}
+              className="w-36 text-xs"
+            >
+              <option value="ALL">All Semesters</option>
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
+                <option key={s} value={String(s)}>
+                  Semester {s}
+                </option>
+              ))}
+            </Select>
 
-            {/* Status Filter */}
-            <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 text-xs">
-              <span className="font-bold text-slate-500 text-[11px] uppercase">Status:</span>
-              <select
-                value={selectedStatusFilter}
-                onChange={(e) => setSelectedStatusFilter(e.target.value)}
-                className="bg-transparent font-extrabold text-slate-800 focus:outline-none cursor-pointer"
-              >
-                <option value="ALL">All Statuses</option>
-                <option value="Published">Published (Visible)</option>
-                <option value="Unpublished">Unpublished (Hidden)</option>
-              </select>
-            </div>
+            <Select
+              value={selectedStatusFilter}
+              onChange={(e) => setSelectedStatusFilter(e.target.value)}
+              className="w-36 text-xs"
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="Published">Published Only</option>
+              <option value="Draft">Draft Only</option>
+            </Select>
           </div>
-        </div>
-
-        {/* Forms Table */}
-        <div className="overflow-x-auto rounded-xl border border-slate-200">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-100/80 text-slate-600 font-extrabold uppercase tracking-wider text-[10px] border-b border-slate-200">
-              <tr>
-                <th className="px-4 py-3.5">Form Details</th>
-                <th className="px-4 py-3.5">Academic Target</th>
-                <th className="px-4 py-3.5">Faculty Member</th>
-                <th className="px-4 py-3.5">Subject</th>
-                <th className="px-4 py-3.5 text-center">Questions</th>
-                <th className="px-4 py-3.5 text-center">Student Visibility Status</th>
-                <th className="px-4 py-3.5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 bg-white font-medium text-slate-700">
-              {filteredForms.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-slate-400">
-                    <div className="max-w-xs mx-auto space-y-2">
-                      <FileCheck className="w-8 h-8 text-slate-300 mx-auto" />
-                      <p className="font-bold text-slate-600">No feedback forms found</p>
-                      <p className="text-[11px] text-slate-400">
-                        Click "Configure &amp; Publish Form" above to create a new form for students.
-                      </p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filteredForms.map((form) => {
-                  const isPublished = form.status === 'Published';
-
-                  return (
-                    <tr key={form.id} className="hover:bg-slate-50/80 transition-colors">
-                      {/* Form Details */}
-                      <td className="px-4 py-3.5">
-                        <div className="space-y-0.5">
-                          <span className="font-extrabold text-slate-900 text-xs block">{form.title}</span>
-                          <span className="text-[10px] text-slate-500 font-mono block">ID: {form.id}</span>
-                        </div>
-                      </td>
-
-                      {/* Academic Target */}
-                      <td className="px-4 py-3.5">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1.5">
-                            <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-extrabold text-[10px] border border-indigo-200">
-                              Sem {form.semester}
-                            </span>
-                            <span className="text-slate-800 font-semibold">{form.departmentCode}</span>
-                          </div>
-                          <p className="text-[10px] text-slate-500">
-                            {form.division} &bull; {form.batch}
-                          </p>
-                        </div>
-                      </td>
-
-                      {/* Faculty Member */}
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-extrabold text-xs shrink-0">
-                            {form.facultyName.charAt(0)}
-                          </div>
-                          <div>
-                            <span className="font-bold text-slate-800 block">{form.facultyName}</span>
-                            <span className="text-[10px] text-slate-400 block">{form.facultyDesignation || 'Faculty'}</span>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Subject */}
-                      <td className="px-4 py-3.5">
-                        <div className="space-y-0.5">
-                          <span className="font-bold text-slate-800 block">{form.subjectName}</span>
-                          <span className="text-[10px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded inline-block">
-                            {form.subjectCode}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Questions Count */}
-                      <td className="px-4 py-3.5 text-center font-bold text-slate-700">
-                        <span className="px-2 py-1 bg-slate-100 rounded-lg border border-slate-200 text-xs">
-                          {form.questions.length} params
-                        </span>
-                      </td>
-
-                      {/* Status */}
-                      <td className="px-4 py-3.5 text-center">
-                        <div className="inline-flex flex-col items-center gap-1">
-                          <StatusBadge status={form.status} />
-                          <span className="text-[10px] text-slate-400 font-medium">
-                            {isPublished ? 'Visible to students' : 'Hidden from students'}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Actions */}
-                      <td className="px-4 py-3.5 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {/* Main Publish / Unpublish Toggle */}
-                          <button
-                            onClick={() => handleTogglePublish(form.id, form.status)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-extrabold flex items-center gap-1.5 transition-all shadow-xs ${
-                              isPublished
-                                ? 'bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-300'
-                                : 'bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-600 shadow-emerald-950/20'
-                            }`}
-                            title={isPublished ? 'Unpublish to hide from students' : 'Publish to make visible to students'}
-                          >
-                            {isPublished ? (
-                              <>
-                                <EyeOff className="w-3.5 h-3.5" />
-                                <span>Unpublish</span>
-                              </>
-                            ) : (
-                              <>
-                                <Send className="w-3.5 h-3.5" />
-                                <span>Publish</span>
-                              </>
-                            )}
-                          </button>
-
-                          {/* Edit Button */}
-                          <button
-                            onClick={() => handleOpenEditModal(form)}
-                            className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                            title="Edit Form Configuration"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-
-                          {/* Delete Button */}
-                          <button
-                            onClick={() => handleDeleteForm(form.id, form.title)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                            title="Delete Form"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
         </div>
       </Card>
 
-      {/* Configure / Edit Form Modal */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title={editingFormId ? 'Edit Feedback Form' : 'Configure & Publish Feedback Form'}
-      >
-        <form onSubmit={handleSaveForm} className="space-y-5">
-          {validationError && (
-            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs flex items-center gap-2 font-bold">
-              <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
-              <span>{validationError}</span>
+      {/* Form List */}
+      <div className="space-y-4">
+        {filteredForms.length > 0 ? (
+          filteredForms.map((form) => (
+            <Card key={form.id} className="hover:border-blue-300 transition-all">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-bold px-2 py-0.5 bg-blue-50 border border-blue-200 rounded text-blue-700">
+                      {form.subjectCode}
+                    </span>
+                    <h3 className="text-base font-bold text-slate-900">{form.title}</h3>
+                    <StatusBadge status={form.status} />
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
+                    <span className="inline-flex items-center gap-1">
+                      <User className="w-3.5 h-3.5 text-slate-400" />
+                      <strong className="text-slate-800">{form.facultyName}</strong> ({form.facultyDesignation})
+                    </span>
+                    <span>&bull;</span>
+                    <span className="inline-flex items-center gap-1">
+                      <GraduationCap className="w-3.5 h-3.5 text-slate-400" />
+                      Batch: <strong>{form.batch}</strong> (Sem {form.semester})
+                    </span>
+                    <span>&bull;</span>
+                    <span className="inline-flex items-center gap-1">
+                      <Layers className="w-3.5 h-3.5 text-slate-400" />
+                      {form.division} &bull; Section: {form.section || 'All'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleTogglePublish(form)}
+                    className={form.status === 'Published' ? 'text-amber-700 border-amber-200 hover:bg-amber-50' : 'text-emerald-700 border-emerald-200 hover:bg-emerald-50'}
+                  >
+                    {form.status === 'Published' ? (
+                      <>
+                        <EyeOff className="w-3.5 h-3.5 mr-1" />
+                        Unpublish
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-3.5 h-3.5 mr-1" />
+                        Publish Now
+                      </>
+                    )}
+                  </Button>
+
+                  {isAdministrator && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteForm(form)}
+                      className="text-rose-600 hover:bg-rose-50"
+                      title="Delete Form"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </Card>
+          ))
+        ) : (
+          <div className="p-12 text-center text-slate-400 bg-white border border-slate-200 rounded-xl">
+            <BookOpen className="w-8 h-8 mx-auto text-slate-300 mb-2" />
+            <p className="font-semibold text-slate-700">No Feedback Forms Found</p>
+            <p className="text-xs text-slate-500 mt-1">Create and publish forms for active teaching assignments above.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Create Form Modal */}
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create Feedback Form">
+        <form onSubmit={handleCreateForm} className="space-y-4">
+          {formError && (
+            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs font-semibold flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{formError}</span>
             </div>
           )}
 
-          {/* Section 1: Academic Information Target */}
-          <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-            <div className="flex items-center gap-2 text-slate-900 font-extrabold text-xs">
-              <GraduationCap className="w-4 h-4 text-indigo-600" />
-              <span>1. Academic Target Selection</span>
-            </div>
+          <Select
+            label="Select Teaching Session Assignment *"
+            value={selectedAssignmentId}
+            onChange={(e) => handleAssignmentChange(Number(e.target.value))}
+            error={fieldErrors.teaching_assignment_id?.[0]}
+            required
+          >
+            {teachingAssignments.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.subject?.subject_code} &mdash; {a.subject?.subject_name} &bull; {a.faculty?.full_name} ({a.batch?.batch_title}, Sem {a.semester_id || a.semester?.semester_no})
+              </option>
+            ))}
+          </Select>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              {/* Academic Year */}
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">Academic Year</label>
-                <select
-                  value={academicYear}
-                  onChange={(e) => setAcademicYear(e.target.value)}
-                  className="w-full p-2 bg-white border border-slate-300 rounded-lg font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="2025-26">2025-26</option>
-                  <option value="2024-25">2024-25</option>
-                </select>
-              </div>
+          <Input
+            label="Feedback Form Survey Title *"
+            value={formTitle}
+            onChange={(e) => setFormTitle(e.target.value)}
+            error={fieldErrors.title?.[0]}
+            required
+          />
 
-              {/* Semester */}
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">Semester *</label>
-                <select
-                  value={semester}
-                  onChange={(e) => setSemester(Number(e.target.value))}
-                  className="w-full p-2 bg-white border border-slate-300 rounded-lg font-extrabold text-indigo-700 focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value={1}>Semester 1</option>
-                  <option value={2}>Semester 2</option>
-                  <option value={3}>Semester 3</option>
-                  <option value={4}>Semester 4</option>
-                  <option value={5}>Semester 5</option>
-                  <option value={6}>Semester 6</option>
-                  <option value={7}>Semester 7</option>
-                  <option value={8}>Semester 8</option>
-                </select>
-              </div>
+          <Select
+            label="Academic Year *"
+            value={selectedAcademicYearId}
+            onChange={(e) => setSelectedAcademicYearId(Number(e.target.value))}
+            error={fieldErrors.academic_year_id?.[0]}
+            required
+          >
+            {academicYears.map((ay) => (
+              <option key={ay.id} value={ay.id}>
+                {ay.year_code}
+              </option>
+            ))}
+          </Select>
 
-              {/* Department */}
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">Department *</label>
-                <select
-                  value={deptCode}
-                  onChange={(e) => setDeptCode(e.target.value)}
-                  className="w-full p-2 bg-white border border-slate-300 rounded-lg font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500"
-                  disabled={userRole === 'hod' && !!assignedDepartmentCode}
-                >
-                  {DEPARTMENTS_LIST.map((d) => (
-                    <option key={d.code} value={d.code}>
-                      {d.name} ({d.code})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Division */}
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">Division Target</label>
-                <select
-                  value={division}
-                  onChange={(e) => setDivision(e.target.value)}
-                  className="w-full p-2 bg-white border border-slate-300 rounded-lg font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="Division 1">Division 1</option>
-                  <option value="Division 2">Division 2</option>
-                  <option value="All Divisions">All Divisions</option>
-                </select>
-              </div>
-
-              {/* Batch */}
-              <div className="sm:col-span-2">
-                <label className="block text-slate-700 font-bold mb-1">Graduation Batch Target</label>
-                <select
-                  value={batch}
-                  onChange={(e) => setBatch(e.target.value)}
-                  className="w-full p-2 bg-white border border-slate-300 rounded-lg font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="2022-26">Batch 2022-26</option>
-                  <option value="2023-27">Batch 2023-27</option>
-                  <option value="2024-28">Batch 2024-28</option>
-                  <option value="All Batches">All Batches</option>
-                </select>
-              </div>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input
+              label="Evaluation Window Start Date"
+              type="date"
+              value={windowStartDate}
+              onChange={(e) => setWindowStartDate(e.target.value)}
+              error={fieldErrors.window_start_date?.[0]}
+            />
+            <Input
+              label="Evaluation Window End Date"
+              type="date"
+              value={windowEndDate}
+              onChange={(e) => setWindowEndDate(e.target.value)}
+              error={fieldErrors.window_end_date?.[0]}
+            />
           </div>
 
-          {/* Section 2: Faculty & Subject Selection */}
-          <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-            <div className="flex items-center gap-2 text-slate-900 font-extrabold text-xs">
-              <User className="w-4 h-4 text-indigo-600" />
-              <span>2. Faculty &amp; Subject Selection</span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              {/* Faculty */}
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">Faculty Member *</label>
-                <select
-                  value={facultyId}
-                  onChange={(e) => setFacultyId(e.target.value)}
-                  className="w-full p-2 bg-white border border-slate-300 rounded-lg font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500"
-                >
-                  {(MOCK_FACULTY_BY_DEPT[deptCode] || MOCK_FACULTY_BY_DEPT['IT']).map((fac) => (
-                    <option key={fac.id} value={fac.id}>
-                      {fac.name} ({fac.designation})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Subject */}
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">Subject *</label>
-                <select
-                  value={subjectCode}
-                  onChange={(e) => setSubjectCode(e.target.value)}
-                  className="w-full p-2 bg-white border border-slate-300 rounded-lg font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500"
-                >
-                  {(MOCK_SUBJECTS_BY_DEPT[deptCode] || MOCK_SUBJECTS_BY_DEPT['IT']).map((sub) => (
-                    <option key={sub.code} value={sub.code}>
-                      {sub.name} ({sub.code} - Sem {sub.semester})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-900 text-xs flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
+            <span>Standard evaluation criteria questions (Subject Knowledge, Clarity, Punctuality, etc.) will be attached automatically.</span>
           </div>
 
-          {/* Section 3: Question Selection */}
-          <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-            <div className="flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2 text-slate-900 font-extrabold">
-                <BookOpen className="w-4 h-4 text-indigo-600" />
-                <span>3. Feedback Question Bank Parameters</span>
-              </div>
-              <span className="text-[11px] text-slate-500 font-semibold">
-                {selectedQuestions.length} selected
-              </span>
-            </div>
-
-            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-              {SYSTEM_QUESTIONS.map((q) => {
-                const isSelected = selectedQuestions.includes(q.id);
-                return (
-                  <div
-                    key={q.id}
-                    onClick={() => handleToggleQuestion(q.id)}
-                    className={`p-2.5 rounded-lg border text-xs cursor-pointer flex items-start gap-2.5 transition-all ${
-                      isSelected
-                        ? 'bg-indigo-50/80 border-indigo-300 text-indigo-950 font-semibold'
-                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
-                    }`}
-                  >
-                    <div
-                      className={`w-4 h-4 rounded mt-0.5 flex items-center justify-center shrink-0 border ${
-                        isSelected
-                          ? 'bg-indigo-600 border-indigo-600 text-white'
-                          : 'border-slate-300 bg-white'
-                      }`}
-                    >
-                      {isSelected && <Check className="w-3 h-3" />}
-                    </div>
-                    <span className="leading-snug">{q.text}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Section 4: Initial Status Toggle */}
-          <div className="flex items-center justify-between p-3.5 bg-indigo-50/60 rounded-xl border border-indigo-200 text-xs">
-            <div>
-              <span className="font-extrabold text-slate-900 block">Initial Student Visibility</span>
-              <span className="text-[11px] text-slate-500 block">
-                Choose whether this form becomes immediately visible to students upon saving.
-              </span>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={() => setFormStatus('Unpublished')}
-                className={`px-3 py-1.5 rounded-lg font-extrabold text-xs transition-all ${
-                  formStatus === 'Unpublished'
-                    ? 'bg-amber-600 text-white shadow-xs'
-                    : 'bg-white text-slate-600 border border-slate-300'
-                }`}
-              >
-                Unpublished (Hidden)
-              </button>
-              <button
-                type="button"
-                onClick={() => setFormStatus('Published')}
-                className={`px-3 py-1.5 rounded-lg font-extrabold text-xs transition-all ${
-                  formStatus === 'Published'
-                    ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'bg-white text-slate-600 border border-slate-300'
-                }`}
-              >
-                Published (Visible)
-              </button>
-            </div>
-          </div>
-
-          {/* Modal Actions */}
-          <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-200">
-            <Button
-              type="button"
-              variant="outline"
-              size="md"
-              onClick={() => setIsModalOpen(false)}
-            >
+          <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
+            <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
               Cancel
             </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              size="md"
-              className={formStatus === 'Published' ? 'bg-emerald-600 hover:bg-emerald-700 border-emerald-600' : 'bg-indigo-600 hover:bg-indigo-700'}
-            >
-              {formStatus === 'Published' ? (
-                <>
-                  <Send className="w-4 h-4 mr-1.5" />
-                  <span>{editingFormId ? 'Update & Keep Published' : 'Publish Form Now'}</span>
-                </>
-              ) : (
-                <>
-                  <EyeOff className="w-4 h-4 mr-1.5" />
-                  <span>{editingFormId ? 'Update Form' : 'Save as Unpublished'}</span>
-                </>
-              )}
+            <Button type="submit" variant="primary" disabled={isSubmitting}>
+              {isSubmitting ? 'Creating...' : 'Save & Publish Form'}
             </Button>
           </div>
         </form>

@@ -1,142 +1,205 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../../../Layouts/AdminLayout';
 import { SessionAssignmentsIndexProps, SessionAssignmentItem } from '../../../types';
 import { DataTable, Column } from '../../../Components/ui/DataTable';
 import { Button } from '../../../Components/ui/Button';
 import { Modal } from '../../../Components/ui/Modal';
 import { Select } from '../../../Components/ui/Input';
-import { CalendarRange, Plus } from 'lucide-react';
-import { DEPARTMENTS_LIST } from '../../../utils/departmentScope';
-
-const SESSION_HIERARCHY_DATA: Record<
-  string,
-  {
-    batch: string;
-    semester: number;
-    divisions: { name: string; sections: string[] }[];
-  }[]
-> = {
-  'Information Technology': [
-    {
-      batch: '2022-26',
-      semester: 7,
-      divisions: [
-        { name: 'Division 1', sections: ['A1', 'B1', 'C1'] },
-        { name: 'Division 2', sections: ['A2', 'B2', 'C2'] },
-      ],
-    },
-    {
-      batch: '2023-27',
-      semester: 5,
-      divisions: [
-        { name: 'Division 1', sections: ['A1', 'B1'] },
-        { name: 'Division 2', sections: ['A2', 'B2'] },
-      ],
-    },
-    {
-      batch: '2024-28',
-      semester: 3,
-      divisions: [{ name: 'Division 1', sections: ['A1', 'B1'] }],
-    },
-  ],
-  'Computer Engineering': [
-    {
-      batch: '2022-26',
-      semester: 7,
-      divisions: [{ name: 'Division 1', sections: ['A1', 'B1'] }],
-    },
-  ],
-  'Computer Science & Engineering': [
-    {
-      batch: '2022-26',
-      semester: 7,
-      divisions: [{ name: 'Division 1', sections: ['A1', 'B1'] }],
-    },
-  ],
-  'Electronics & Communication': [
-    {
-      batch: '2022-26',
-      semester: 7,
-      divisions: [{ name: 'Division 1', sections: ['A1', 'B1'] }],
-    },
-  ],
-  'Mechanical Engineering': [
-    {
-      batch: '2022-26',
-      semester: 7,
-      divisions: [{ name: 'Division 1', sections: ['A1', 'B1'] }],
-    },
-  ],
-};
+import { Plus, RefreshCw, AlertCircle, Trash2, Filter } from 'lucide-react';
+import { getDepartmentName } from '../../../utils/departmentScope';
+import { api } from '../../../lib/api';
 
 export default function Index({
-  assignments: initialAssignments,
-  facultyList,
-  subjectList,
-  batchList,
-}: SessionAssignmentsIndexProps) {
-  const [assignmentsList, setAssignmentsList] = useState<SessionAssignmentItem[]>(initialAssignments);
+  userRole = 'admin',
+  assignedDepartmentCode = null,
+}: Partial<SessionAssignmentsIndexProps> & { userRole?: 'admin' | 'hod'; assignedDepartmentCode?: string | null }) {
+  const isAdministrator = userRole === 'admin';
+  const initialDeptFilter = !isAdministrator && assignedDepartmentCode ? assignedDepartmentCode.toUpperCase() : 'ALL';
+  const [deptFilter, setDeptFilter] = useState<string>(initialDeptFilter);
+
+  const [assignmentList, setAssignmentList] = useState<SessionAssignmentItem[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [facultyList, setFacultyList] = useState<any[]>([]);
+  const [subjectList, setSubjectList] = useState<any[]>([]);
+  const [batchList, setBatchList] = useState<any[]>([]);
+  const [divisionList, setDivisionList] = useState<any[]>([]);
+  const [sectionList, setSectionList] = useState<any[]>([]);
+  const [academicYears, setAcademicYears] = useState<any[]>([]);
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string>('');
+
+  // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
-  // Form State
-  const [facultyId, setFacultyId] = useState<number | string>(facultyList[0]?.id || 1);
-  const [subjectId, setSubjectId] = useState<number | string>(subjectList[0]?.id || 1);
-  const [selectedDept, setSelectedDept] = useState('Information Technology');
-  const [selectedBatch, setSelectedBatch] = useState('2022-26');
-  const [selectedDivision, setSelectedDivision] = useState('All');
-  const [selectedSection, setSelectedSection] = useState('All');
+  // Form Fields
+  const [facultyId, setFacultyId] = useState<number | ''>('');
+  const [subjectId, setSubjectId] = useState<number | ''>('');
+  const [batchId, setBatchId] = useState<number | ''>('');
+  const [semesterId, setSemesterId] = useState<number>(5);
+  const [divisionId, setDivisionId] = useState<number | ''>('');
+  const [sectionId, setSectionId] = useState<number | ''>('');
+  const [academicYearId, setAcademicYearId] = useState<number | ''>('');
 
-  // Hierarchy Helpers
-  const deptBatches = SESSION_HIERARCHY_DATA[selectedDept] || SESSION_HIERARCHY_DATA['Information Technology'];
-  const activeBatchObj = deptBatches.find((b) => b.batch === selectedBatch) || deptBatches[0];
-  const derivedSemester = activeBatchObj ? activeBatchObj.semester : 7;
+  const fetchAssignmentsAndMetadata = useCallback(async () => {
+    setIsLoading(true);
+    setFetchError('');
+    try {
+      const [
+        assignmentsRes,
+        facultyRes,
+        subjectsRes,
+        batchesRes,
+        divisionsRes,
+        sectionsRes,
+        ayRes,
+        deptsRes,
+      ] = await Promise.all([
+        api.get('/teaching-assignments'),
+        api.get('/faculty'),
+        api.get('/subjects'),
+        api.get('/batches'),
+        api.get('/divisions'),
+        api.get('/sections'),
+        api.get('/academic-years'),
+        api.get('/departments'),
+      ]);
 
-  const availableDivisions = activeBatchObj ? activeBatchObj.divisions : [];
-  const activeDivObj = availableDivisions.find((d) => d.name === selectedDivision);
-  const availableSections = activeDivObj ? activeDivObj.sections : [];
+      if (Array.isArray(deptsRes.data)) setDepartments(deptsRes.data);
+      if (Array.isArray(facultyRes.data)) setFacultyList(facultyRes.data);
+      if (Array.isArray(subjectsRes.data)) setSubjectList(subjectsRes.data);
+      if (Array.isArray(batchesRes.data)) setBatchList(batchesRes.data);
+      if (Array.isArray(divisionsRes.data)) setDivisionList(divisionsRes.data);
+      if (Array.isArray(sectionsRes.data)) setSectionList(sectionsRes.data);
+      if (Array.isArray(ayRes.data)) setAcademicYears(ayRes.data);
 
-  // Reset Handlers
-  const handleDeptChange = (newDept: string) => {
-    setSelectedDept(newDept);
-    const batches = SESSION_HIERARCHY_DATA[newDept] || SESSION_HIERARCHY_DATA['Information Technology'];
-    if (batches.length > 0) {
-      setSelectedBatch(batches[0].batch);
+      if (Array.isArray(assignmentsRes.data)) {
+        const mapped: SessionAssignmentItem[] = assignmentsRes.data.map((ta: any) => ({
+          id: ta.id,
+          facultyName: ta.faculty?.full_name || 'Faculty Member',
+          subjectName: ta.subject?.subject_name || 'Subject',
+          subjectCode: ta.subject?.subject_code || 'SUB101',
+          batchName: ta.batch?.batch_title || 'Batch',
+          divisionName: ta.division?.division_code || 'All Divisions',
+          sectionName: ta.section?.section_code || 'All Sections',
+          semester: ta.semester?.semester_no || ta.semester_id || 5,
+          department: ta.batch?.department?.department_name || ta.subject?.department?.department_name || '',
+        }));
+        setAssignmentList(mapped);
+      }
+    } catch (err: any) {
+      setFetchError(err.message || 'Failed to load teaching assignments.');
+    } finally {
+      setIsLoading(false);
     }
-    setSelectedDivision('All');
-    setSelectedSection('All');
+  }, []);
+
+  useEffect(() => {
+    fetchAssignmentsAndMetadata();
+  }, [fetchAssignmentsAndMetadata]);
+
+  const handleOpenAddModal = () => {
+    setFormError('');
+    setFieldErrors({});
+    setFacultyId(facultyList[0]?.id || '');
+    setSubjectId(subjectList[0]?.id || '');
+    const firstBatch = batchList[0];
+    setBatchId(firstBatch?.id || '');
+    setSemesterId(firstBatch?.current_semester_id || 5);
+    setDivisionId('');
+    setSectionId('');
+    setAcademicYearId(academicYears[0]?.id || '');
+    setIsModalOpen(true);
   };
 
-  const handleBatchChange = (newBatch: string) => {
-    setSelectedBatch(newBatch);
-    setSelectedDivision('All');
-    setSelectedSection('All');
+  const handleBatchSelect = (bId: number) => {
+    setBatchId(bId);
+    const selected = batchList.find((b) => b.id === bId);
+    if (selected?.current_semester_id) {
+      setSemesterId(selected.current_semester_id);
+    }
+    setDivisionId('');
+    setSectionId('');
   };
 
-  const handleDivisionChange = (newDiv: string) => {
-    setSelectedDivision(newDiv);
-    setSelectedSection('All');
+  const handleDivisionSelect = (dId: number | '') => {
+    setDivisionId(dId);
+    setSectionId('');
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Filter divisions matching selected batch and semester
+  const filteredDivisions = divisionList.filter(
+    (d) => (!batchId || d.batch_id === Number(batchId)) && (!semesterId || d.semester_id === Number(semesterId))
+  );
+
+  // Filter sections matching selected division
+  const filteredSections = sectionList.filter(
+    (s) => !divisionId || s.division_id === Number(divisionId)
+  );
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const facObj = facultyList.find((f) => String(f.id) === String(facultyId)) || facultyList[0];
-    const subObj = subjectList.find((s) => String(s.id) === String(subjectId)) || subjectList[0];
+    if (isSubmitting) return;
 
-    const newAssignment: SessionAssignmentItem = {
-      id: Date.now(),
-      facultyName: facObj ? facObj.name : 'Dr. Sarah Jenkins',
-      subjectName: subObj ? subObj.name : 'Database Management Systems',
-      subjectCode: subObj ? subObj.code : 'IT701',
-      batchName: selectedBatch,
-      divisionName: selectedDivision,
-      sectionName: selectedDivision === 'All' ? 'All' : selectedSection,
-      semester: derivedSemester,
-      department: selectedDept,
-    };
+    setIsSubmitting(true);
+    setFormError('');
+    setFieldErrors({});
 
-    setAssignmentsList([newAssignment, ...assignmentsList]);
-    setIsModalOpen(false);
+    try {
+      const payload: any = {
+        faculty_id: Number(facultyId),
+        subject_id: Number(subjectId),
+        batch_id: Number(batchId),
+        semester_id: Number(semesterId),
+        academic_year_id: Number(academicYearId),
+        status: 'ACTIVE',
+      };
+
+      if (divisionId !== '') {
+        payload.division_id = Number(divisionId);
+      }
+      if (sectionId !== '') {
+        payload.section_id = Number(sectionId);
+      }
+
+      await api.post('/teaching-assignments', payload);
+      await fetchAssignmentsAndMetadata();
+      setIsModalOpen(false);
+    } catch (err: any) {
+      if (err.status === 422 && err.errors) {
+        setFieldErrors(err.errors);
+      } else {
+        setFormError(err.message || 'Failed to create teaching assignment.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  const handleDeleteAssignment = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this session assignment?')) return;
+    try {
+      await api.delete(`/teaching-assignments/${id}`);
+      await fetchAssignmentsAndMetadata();
+    } catch (err: any) {
+      alert(err.message || 'Cannot delete assignment. Dependent feedback forms exist.');
+    }
+  };
+
+  const filteredAssignments = assignmentList.filter((a) => {
+    if (!isAdministrator && assignedDepartmentCode) {
+      const targetName = getDepartmentName(assignedDepartmentCode).toLowerCase();
+      return (a.department || '').toLowerCase().includes(targetName) || targetName.includes((a.department || '').toLowerCase());
+    }
+    if (isAdministrator && deptFilter !== 'ALL') {
+      const targetDept = departments.find((d) => d.department_code === deptFilter)?.department_name || getDepartmentName(deptFilter);
+      return (a.department || '').toLowerCase().includes(targetDept.toLowerCase()) || targetDept.toLowerCase().includes((a.department || '').toLowerCase());
+    }
+    return true;
+  });
 
   const columns: Column<SessionAssignmentItem>[] = [
     {
@@ -154,6 +217,11 @@ export default function Index({
           <span className="text-slate-800 font-medium">{row.subjectName}</span>
         </div>
       ),
+      sortable: true,
+    },
+    {
+      header: 'Department',
+      accessor: (row) => <span className="text-slate-700 font-medium">{row.department || 'General'}</span>,
       sortable: true,
     },
     {
@@ -183,126 +251,202 @@ export default function Index({
   ];
 
   return (
-    <AdminLayout title="Session Allocations" currentPath="#Admin/SessionAssignments/Index">
-      <div className="flex items-center justify-between">
+    <AdminLayout
+      title="Session Allocations"
+      currentPath="#Admin/SessionAssignments/Index"
+      userRole={userRole}
+      departmentScope={isAdministrator ? 'All Departments' : getDepartmentName(assignedDepartmentCode)}
+    >
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-slate-900">Faculty Session Allocations</h2>
           <p className="text-xs text-slate-500">Map faculty members to subjects, graduation batches, divisions, and sections</p>
         </div>
 
-        <Button variant="primary" onClick={() => setIsModalOpen(true)}>
-          <Plus className="w-4 h-4 mr-1.5" />
-          New Session Assignment
-        </Button>
+        <div className="flex items-center gap-3">
+          {isAdministrator ? (
+            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200 text-xs shadow-2xs">
+              <Filter className="w-3.5 h-3.5 text-slate-400" />
+              <select
+                value={deptFilter}
+                onChange={(e) => setDeptFilter(e.target.value)}
+                className="bg-transparent text-slate-800 font-medium focus:outline-none cursor-pointer"
+              >
+                <option value="ALL">All Departments</option>
+                {departments.map((d) => (
+                  <option key={d.id} value={d.department_code}>
+                    {d.department_name} ({d.department_code})
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <span className="px-3 py-1 bg-blue-50 text-blue-800 font-extrabold text-xs rounded-lg border border-blue-200">
+              Scope: {getDepartmentName(assignedDepartmentCode)} Only
+            </span>
+          )}
+
+          <Button variant="outline" size="sm" onClick={fetchAssignmentsAndMetadata} disabled={isLoading}>
+            <RefreshCw className={`w-3.5 h-3.5 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+
+          {isAdministrator && (
+            <Button variant="primary" onClick={handleOpenAddModal}>
+              <Plus className="w-4 h-4 mr-1.5" />
+              New Session Assignment
+            </Button>
+          )}
+        </div>
       </div>
 
+      {fetchError && (
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-semibold flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{fetchError}</span>
+        </div>
+      )}
+
       <DataTable
-        data={assignmentsList}
+        data={filteredAssignments}
         columns={columns}
         searchPlaceholder="Search allocations by faculty, subject or batch..."
+        actions={(row) =>
+          isAdministrator ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleDeleteAssignment(row.id)}
+              className="text-rose-600 hover:bg-rose-50"
+              title="Delete Assignment"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </Button>
+          ) : null
+        }
       />
 
       {/* New Assignment Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Assign Faculty to Session">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Select
-            label="Select Faculty Member *"
-            value={facultyId}
-            onChange={(e) => setFacultyId(e.target.value)}
-          >
-            {facultyList.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.name}
-              </option>
-            ))}
-          </Select>
+          {formError && (
+            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs font-semibold flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{formError}</span>
+            </div>
+          )}
 
-          <Select
-            label="Select Course Subject *"
-            value={subjectId}
-            onChange={(e) => setSubjectId(e.target.value)}
-          >
-            {subjectList.map((s) => (
-              <option key={s.id} value={s.id}>
-                [{s.code}] {s.name}
-              </option>
-            ))}
-          </Select>
-
-          {/* Academic Target Selection */}
-          <div className="space-y-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
-            <p className="text-xs font-bold text-slate-900 uppercase tracking-wider">Academic Target Allocation</p>
-
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select
-              label="Department *"
-              value={selectedDept}
-              onChange={(e) => handleDeptChange(e.target.value)}
+              label="Select Faculty Member *"
+              value={facultyId}
+              onChange={(e) => setFacultyId(Number(e.target.value))}
+              error={fieldErrors.faculty_id?.[0]}
+              required
             >
-              {DEPARTMENTS_LIST.map((d) => (
-                <option key={d.code} value={d.name}>
-                  {d.name}
+              {facultyList.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.full_name} ({f.department?.department_code || 'Dept'})
                 </option>
               ))}
             </Select>
 
+            <Select
+              label="Select Course Subject *"
+              value={subjectId}
+              onChange={(e) => setSubjectId(Number(e.target.value))}
+              error={fieldErrors.subject_id?.[0]}
+              required
+            >
+              {subjectList.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.subject_code} &mdash; {s.subject_name}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Select
               label="Graduation Batch *"
-              value={selectedBatch}
-              onChange={(e) => handleBatchChange(e.target.value)}
+              value={batchId}
+              onChange={(e) => handleBatchSelect(Number(e.target.value))}
+              error={fieldErrors.batch_id?.[0]}
+              required
             >
-              {deptBatches.map((b) => (
-                <option key={b.batch} value={b.batch}>
-                  Batch {b.batch} (Semester {b.semester})
-                </option>
-              ))}
-            </Select>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Current Semester</label>
-              <div className="p-2 bg-white border border-slate-200 rounded-lg text-xs font-mono font-bold text-blue-700">
-                Semester {derivedSemester}
-              </div>
-            </div>
-
-            <Select
-              label="Division Target"
-              value={selectedDivision}
-              onChange={(e) => handleDivisionChange(e.target.value)}
-            >
-              <option value="All">All Divisions (Entire Batch)</option>
-              {availableDivisions.map((div) => (
-                <option key={div.name} value={div.name}>
-                  {div.name}
+              {batchList.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.batch_title} ({b.department?.department_code || 'Dept'})
                 </option>
               ))}
             </Select>
 
             <Select
-              label="Section Target"
-              value={selectedSection}
-              onChange={(e) => setSelectedSection(e.target.value)}
-              disabled={selectedDivision === 'All'}
+              label="Academic Semester *"
+              value={semesterId}
+              onChange={(e) => setSemesterId(Number(e.target.value))}
+              error={fieldErrors.semester_id?.[0]}
+              required
             >
-              <option value="All">All Sections (Entire Division)</option>
-              {availableSections.map((sec) => (
-                <option key={sec} value={sec}>
-                  Section {sec}
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
+                <option key={s} value={s}>
+                  Semester {s}
                 </option>
               ))}
             </Select>
-            {selectedDivision === 'All' && (
-              <p className="text-[11px] text-slate-400 font-medium">
-                Section selection is disabled when Division is set to "All Divisions".
-              </p>
-            )}
+
+            <Select
+              label="Academic Year *"
+              value={academicYearId}
+              onChange={(e) => setAcademicYearId(Number(e.target.value))}
+              error={fieldErrors.academic_year_id?.[0]}
+              required
+            >
+              {academicYears.map((ay) => (
+                <option key={ay.id} value={ay.id}>
+                  {ay.year_code}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Select
+              label="Division Scope (Optional)"
+              value={divisionId}
+              onChange={(e) => handleDivisionSelect(e.target.value ? Number(e.target.value) : '')}
+              error={fieldErrors.division_id?.[0]}
+            >
+              <option value="">All Divisions (Entire Batch)</option>
+              {filteredDivisions.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.division_code}
+                </option>
+              ))}
+            </Select>
+
+            <Select
+              label="Section Scope (Optional)"
+              value={sectionId}
+              onChange={(e) => setSectionId(e.target.value ? Number(e.target.value) : '')}
+              error={fieldErrors.section_id?.[0]}
+              disabled={divisionId === ''}
+            >
+              <option value="">All Sections (Entire Division)</option>
+              {filteredSections.map((s) => (
+                <option key={s.id} value={s.id}>
+                  Section {s.section_code}
+                </option>
+              ))}
+            </Select>
           </div>
 
           <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
             <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" variant="primary">
-              Confirm Assignment
+            <Button type="submit" variant="primary" disabled={isSubmitting}>
+              {isSubmitting ? 'Assigning...' : 'Save Teaching Assignment'}
             </Button>
           </div>
         </form>

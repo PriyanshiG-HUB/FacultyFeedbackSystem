@@ -18,7 +18,7 @@ class DepartmentController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Department::with(['hodFaculty'])->withCount(['faculty', 'students']);
+        $query = Department::with(['hodFaculty.designation'])->withCount(['faculty', 'students']);
 
         if ($request->has('search')) {
             $search = $request->get('search');
@@ -45,13 +45,13 @@ class DepartmentController extends Controller
 
         return response()->json([
             'message' => 'Department created successfully',
-            'data' => new DepartmentResource($department->load('hodFaculty'))
+            'data' => new DepartmentResource($department->load(['hodFaculty.designation']))
         ], Response::HTTP_CREATED);
     }
 
     public function show(Department $department): JsonResponse
     {
-        $department->load(['hodFaculty'])->loadCount(['faculty', 'students']);
+        $department->load(['hodFaculty.designation'])->loadCount(['faculty', 'students']);
 
         return response()->json([
             'data' => new DepartmentResource($department)

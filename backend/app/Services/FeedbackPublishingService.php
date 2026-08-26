@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\FeedbackForm;
 use App\Models\FeedbackQuestion;
+use App\Models\FeedbackQuestionCategory;
 use App\Models\FeedbackQuestionOption;
 use App\Models\TeachingAssignment;
 use App\Models\UserAccount;
@@ -23,6 +24,7 @@ class FeedbackPublishingService
 
             $formCode = $data['form_code'] ?? ('FF-' . strtoupper(uniqid()));
             $title = $data['title'] ?? ($assignment->subject->subject_name . ' Feedback');
+            $shouldPublish = !empty($data['is_published']);
 
             $form = FeedbackForm::create([
                 'form_code' => $formCode,
@@ -31,8 +33,9 @@ class FeedbackPublishingService
                 'window_start_date' => $data['window_start_date'] ?? null,
                 'window_end_date' => $data['window_end_date'] ?? null,
                 'is_anonymous' => $data['is_anonymous'] ?? true,
-                'is_published' => false,
-                'status' => 'DRAFT',
+                'is_published' => $shouldPublish,
+                'published_at' => $shouldPublish ? now() : null,
+                'status' => $shouldPublish ? 'PUBLISHED' : 'DRAFT',
                 'created_by_user_account_id' => $userAccount->id,
             ]);
 
@@ -58,6 +61,28 @@ class FeedbackPublishingService
                             ]);
                         }
                     }
+                }
+            } else {
+                // Attach default standard questions
+                $categories = FeedbackQuestionCategory::orderBy('display_order')->get();
+                $defaultQuestions = [
+                    ['category_code' => 'PUNCTUALITY', 'text' => 'Faculty arrives on time and conducts lectures regularly.'],
+                    ['category_code' => 'SUBJECT_KNOWLEDGE', 'text' => 'Faculty demonstrates comprehensive knowledge of the course subject.'],
+                    ['category_code' => 'CLARITY_OF_TEACHING', 'text' => 'Course concepts, principles, and problems are explained with clarity.'],
+                    ['category_code' => 'STUDY_MATERIAL', 'text' => 'Faculty provides relevant study materials, assignments, and guidance.'],
+                ];
+
+                foreach ($defaultQuestions as $idx => $dq) {
+                    $cat = $categories->firstWhere('category_code', $dq['category_code']);
+                    FeedbackQuestion::create([
+                        'feedback_form_id' => $form->id,
+                        'category_id' => $cat?->id,
+                        'question_text' => $dq['text'],
+                        'question_type' => 'RATING',
+                        'display_order' => $idx + 1,
+                        'is_required' => true,
+                        'max_rating' => 5,
+                    ]);
                 }
             }
 

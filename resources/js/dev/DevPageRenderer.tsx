@@ -64,8 +64,40 @@ export const DevPageRenderer: React.FC = () => {
   const [activePage, setActivePage] = useState<string>('Admin/Dashboard');
   const [devRoleMode, setDevRoleMode] = useState<string>('admin');
   const [studentDivisionMode, setStudentDivisionMode] = useState<string>('Division 1');
+  const [authUser, setAuthUser] = useState<any>(null);
 
   useEffect(() => {
+    import('../lib/api').then(async ({ getAuthToken, setAuthToken, api, setStoredUserInfo }) => {
+      let token = getAuthToken();
+      if (!token) {
+        try {
+          const res = await api.post('/auth/login', {
+            email: 'admin@college.edu',
+            password: 'password123',
+          });
+          if (res.token) {
+            setAuthToken(res.token);
+            token = res.token;
+            if (res.user) {
+              setAuthUser(res.user);
+              setStoredUserInfo(res.user);
+            }
+          }
+        } catch {
+          // Ignore failure
+        }
+      }
+
+      if (token) {
+        api.get('/auth/me').then((res) => {
+          if (res.user) {
+            setAuthUser(res.user);
+            setStoredUserInfo(res.user);
+          }
+        }).catch(() => {});
+      }
+    });
+
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '');
       const routeKey = hash.split('?')[0];

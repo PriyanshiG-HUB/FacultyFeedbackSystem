@@ -56,9 +56,10 @@ class StudentElectiveEnrollmentController extends Controller
         ], Response::HTTP_CREATED);
     }
 
-    public function destroy(StudentElectiveEnrollment $studentElectiveEnrollment): JsonResponse
+    public function destroy($id): JsonResponse
     {
-        $studentElectiveEnrollment->delete();
+        $enrollment = StudentElectiveEnrollment::findOrFail($id);
+        $enrollment->delete();
 
         return response()->json([
             'message' => 'Elective enrollment removed successfully'

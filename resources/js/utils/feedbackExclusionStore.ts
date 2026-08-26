@@ -35,8 +35,10 @@ export const INITIAL_MOCK_SUBMISSIONS: FeedbackSubmissionItem[] = [
     subjectCode: 'IT701',
     subjectName: 'Database Management Systems',
     academicYear: '2025-26',
+    batch: '2022-26',
     semester: 7,
-    division: 'IT-1',
+    division: 'Division 1',
+    section: 'A1',
     departmentCode: 'IT',
     submittedAt: '10 Aug 2026',
     evaluationStatus: 'included',
@@ -56,8 +58,10 @@ export const INITIAL_MOCK_SUBMISSIONS: FeedbackSubmissionItem[] = [
     subjectCode: 'IT701',
     subjectName: 'Database Management Systems',
     academicYear: '2025-26',
+    batch: '2022-26',
     semester: 7,
-    division: 'IT-1',
+    division: 'Division 1',
+    section: 'A1',
     departmentCode: 'IT',
     submittedAt: '10 Aug 2026',
     evaluationStatus: 'included',
@@ -77,8 +81,10 @@ export const INITIAL_MOCK_SUBMISSIONS: FeedbackSubmissionItem[] = [
     subjectCode: 'IT701',
     subjectName: 'Database Management Systems',
     academicYear: '2025-26',
+    batch: '2022-26',
     semester: 7,
-    division: 'IT-1',
+    division: 'Division 1',
+    section: 'A1',
     departmentCode: 'IT',
     submittedAt: '11 Aug 2026',
     evaluationStatus: 'included',
@@ -98,8 +104,10 @@ export const INITIAL_MOCK_SUBMISSIONS: FeedbackSubmissionItem[] = [
     subjectCode: 'IT701',
     subjectName: 'Database Management Systems',
     academicYear: '2025-26',
+    batch: '2022-26',
     semester: 7,
-    division: 'IT-1',
+    division: 'Division 1',
+    section: 'A1',
     departmentCode: 'IT',
     submittedAt: '11 Aug 2026',
     evaluationStatus: 'included',
@@ -119,8 +127,10 @@ export const INITIAL_MOCK_SUBMISSIONS: FeedbackSubmissionItem[] = [
     subjectCode: 'IT701',
     subjectName: 'Database Management Systems',
     academicYear: '2025-26',
+    batch: '2022-26',
     semester: 7,
-    division: 'IT-1',
+    division: 'Division 1',
+    section: 'A1',
     departmentCode: 'IT',
     submittedAt: '12 Aug 2026',
     evaluationStatus: 'included',
@@ -140,8 +150,10 @@ export const INITIAL_MOCK_SUBMISSIONS: FeedbackSubmissionItem[] = [
     subjectCode: 'IT701',
     subjectName: 'Database Management Systems',
     academicYear: '2025-26',
+    batch: '2022-26',
     semester: 7,
-    division: 'IT-1',
+    division: 'Division 1',
+    section: 'A1',
     departmentCode: 'IT',
     submittedAt: '09 Aug 2026',
     evaluationStatus: 'included',
@@ -161,8 +173,10 @@ export const INITIAL_MOCK_SUBMISSIONS: FeedbackSubmissionItem[] = [
     subjectCode: 'IT701',
     subjectName: 'Database Management Systems',
     academicYear: '2025-26',
+    batch: '2022-26',
     semester: 7,
-    division: 'IT-1',
+    division: 'Division 1',
+    section: 'A1',
     departmentCode: 'IT',
     submittedAt: '09 Aug 2026',
     evaluationStatus: 'included',
@@ -182,8 +196,10 @@ export const INITIAL_MOCK_SUBMISSIONS: FeedbackSubmissionItem[] = [
     subjectCode: 'IT701',
     subjectName: 'Database Management Systems',
     academicYear: '2025-26',
+    batch: '2022-26',
     semester: 7,
-    division: 'IT-1',
+    division: 'Division 1',
+    section: 'A1',
     departmentCode: 'IT',
     submittedAt: '09 Aug 2026',
     evaluationStatus: 'included',
@@ -205,8 +221,10 @@ export const INITIAL_MOCK_SUBMISSIONS: FeedbackSubmissionItem[] = [
     subjectCode: 'CE701',
     subjectName: 'Java Programming & OOP',
     academicYear: '2025-26',
+    batch: '2022-26',
     semester: 7,
-    division: 'CE-1',
+    division: 'Division 1',
+    section: 'A1',
     departmentCode: 'CE',
     submittedAt: '08 Aug 2026',
     evaluationStatus: 'included',
@@ -226,8 +244,10 @@ export const INITIAL_MOCK_SUBMISSIONS: FeedbackSubmissionItem[] = [
     subjectCode: 'CE701',
     subjectName: 'Java Programming & OOP',
     academicYear: '2025-26',
+    batch: '2022-26',
     semester: 7,
-    division: 'CE-1',
+    division: 'Division 1',
+    section: 'A1',
     departmentCode: 'CE',
     submittedAt: '08 Aug 2026',
     evaluationStatus: 'included',
@@ -247,8 +267,10 @@ export const INITIAL_MOCK_SUBMISSIONS: FeedbackSubmissionItem[] = [
     subjectCode: 'CE701',
     subjectName: 'Java Programming & OOP',
     academicYear: '2025-26',
+    batch: '2022-26',
     semester: 7,
-    division: 'CE-1',
+    division: 'Division 1',
+    section: 'A1',
     departmentCode: 'CE',
     submittedAt: '08 Aug 2026',
     evaluationStatus: 'included',
@@ -268,8 +290,10 @@ export const INITIAL_MOCK_SUBMISSIONS: FeedbackSubmissionItem[] = [
     subjectCode: 'CE701',
     subjectName: 'Java Programming & OOP',
     academicYear: '2025-26',
+    batch: '2022-26',
     semester: 7,
-    division: 'CE-1',
+    division: 'Division 1',
+    section: 'A1',
     departmentCode: 'CE',
     submittedAt: '08 Aug 2026',
     evaluationStatus: 'included',
@@ -291,8 +315,10 @@ export const INITIAL_MOCK_SUBMISSIONS: FeedbackSubmissionItem[] = [
     subjectCode: 'CSE701',
     subjectName: 'Advanced Data Structures',
     academicYear: '2025-26',
+    batch: '2022-26',
     semester: 7,
-    division: 'CSE-1',
+    division: 'Division 1',
+    section: 'A1',
     departmentCode: 'CSE',
     submittedAt: '09 Aug 2026',
     evaluationStatus: 'included',
@@ -312,8 +338,10 @@ export const INITIAL_MOCK_SUBMISSIONS: FeedbackSubmissionItem[] = [
     subjectCode: 'CSE701',
     subjectName: 'Advanced Data Structures',
     academicYear: '2025-26',
+    batch: '2022-26',
     semester: 7,
-    division: 'CSE-1',
+    division: 'Division 1',
+    section: 'A1',
     departmentCode: 'CSE',
     submittedAt: '10 Aug 2026',
     evaluationStatus: 'included',
@@ -335,8 +363,10 @@ export const INITIAL_MOCK_SUBMISSIONS: FeedbackSubmissionItem[] = [
     subjectCode: 'AIML701',
     subjectName: 'Machine Learning & Neural Networks',
     academicYear: '2025-26',
+    batch: '2022-26',
     semester: 7,
-    division: 'AIML-1',
+    division: 'Division 1',
+    section: 'A1',
     departmentCode: 'AIML',
     submittedAt: '11 Aug 2026',
     evaluationStatus: 'included',
@@ -356,8 +386,10 @@ export const INITIAL_MOCK_SUBMISSIONS: FeedbackSubmissionItem[] = [
     subjectCode: 'AIML701',
     subjectName: 'Machine Learning & Neural Networks',
     academicYear: '2025-26',
+    batch: '2022-26',
     semester: 7,
-    division: 'AIML-1',
+    division: 'Division 1',
+    section: 'A1',
     departmentCode: 'AIML',
     submittedAt: '11 Aug 2026',
     evaluationStatus: 'included',
@@ -441,8 +473,10 @@ export const saveSubmissionToStore = (data: Partial<FeedbackSubmissionItem>): Fe
     subjectCode: data.subjectCode || 'IT501',
     subjectName: data.subjectName || 'Data Structures & Algorithms',
     academicYear: data.academicYear || '2025-26',
+    batch: data.batch || '2022-26',
     semester: Number(data.semester) || 5,
-    division: data.division || 'IT-1',
+    division: data.division || 'Division 1',
+    section: data.section || 'A1',
     departmentCode: data.departmentCode || 'IT',
     submittedAt: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
     evaluationStatus: 'included',
@@ -463,6 +497,13 @@ export const excludeSubmission = (
   reason: string,
   hodName: string = 'HOD'
 ): FeedbackSubmissionItem[] => {
+  const numericId = submissionId.match(/\d+/) ? parseInt(submissionId.match(/\d+/)![0], 10) : null;
+  if (numericId) {
+    import('../lib/api').then(({ api }) => {
+      api.post(`/feedback/responses/${numericId}/exclude`, { reason }).catch(() => {});
+    });
+  }
+
   const overrides = getSubmissionOverridesMap();
   const dateStr = new Date().toLocaleDateString('en-GB', {
     day: '2-digit',
@@ -486,27 +527,18 @@ export const bulkExcludeSubmissions = (
   reason: string,
   hodName: string = 'HOD'
 ): FeedbackSubmissionItem[] => {
-  const overrides = getSubmissionOverridesMap();
-  const dateStr = new Date().toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
-
-  submissionIds.forEach((subId) => {
-    overrides[subId] = {
-      evaluationStatus: 'excluded',
-      exclusionReason: reason,
-      excludedBy: hodName,
-      excludedAt: dateStr,
-    };
-  });
-
-  saveSubmissionOverridesMap(overrides);
+  submissionIds.forEach((id) => excludeSubmission(id, reason, hodName));
   return getMergedSubmissions();
 };
 
 export const includeSubmission = (submissionId: string): FeedbackSubmissionItem[] => {
+  const numericId = submissionId.match(/\d+/) ? parseInt(submissionId.match(/\d+/)![0], 10) : null;
+  if (numericId) {
+    import('../lib/api').then(({ api }) => {
+      api.post(`/feedback/responses/${numericId}/restore`).catch(() => {});
+    });
+  }
+
   const overrides = getSubmissionOverridesMap();
   delete overrides[submissionId];
   saveSubmissionOverridesMap(overrides);
