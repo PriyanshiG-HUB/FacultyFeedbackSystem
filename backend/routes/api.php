@@ -130,7 +130,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('data-import-logs', DataImportLogController::class)->only(['index', 'show', 'store']);
         Route::get('/data-imports/datasets', [DataImportController::class, 'getDatasets']);
         Route::get('/data-imports/template/{datasetKey}', [DataImportController::class, 'downloadTemplate']);
-        Route::post('/data-imports/validate', [DataImportController::class, 'validateFile']);
-        Route::post('/data-imports/execute', [DataImportController::class, 'executeImport']);
+        Route::match(['get', 'post'], '/data-imports/validate', [DataImportController::class, 'validateFile']);
+        Route::match(['get', 'post'], '/data-imports/execute', [DataImportController::class, 'executeImport']);
     });
 });

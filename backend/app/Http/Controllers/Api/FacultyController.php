@@ -54,6 +54,7 @@ class FacultyController extends Controller
             ]);
 
             $data['user_account_id'] = $userAccount->id;
+            $data['employee_code'] = $data['employee_code'] ?? 'FAC-' . strtoupper(substr(md5((string) microtime()), 0, 6));
             unset($data['password']);
 
             return Faculty::create($data);

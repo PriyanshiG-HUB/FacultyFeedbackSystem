@@ -129,4 +129,15 @@ class DataImportWorkflowTest extends TestCase
             'status' => 'SUCCESS',
         ]);
     }
+
+    public function test_get_method_on_execute_route_returns_405_json_response(): void
+    {
+        $response = $this->actingAs($this->adminUser, 'sanctum')
+            ->getJson('/api/data-imports/execute');
+
+        $response->assertStatus(405)
+            ->assertJson([
+                'success' => false,
+            ]);
+    }
 }

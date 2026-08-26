@@ -48,5 +48,13 @@ return Application::configure(basePath: dirname(__DIR__))
                 ], 404);
             }
         });
+
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException $e, Request $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json([
+                    'message' => $e->getMessage() ?: 'Method not allowed for this route.'
+                ], 405);
+            }
+        });
     })->create();
 

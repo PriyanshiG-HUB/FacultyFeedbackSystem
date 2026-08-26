@@ -45,6 +45,13 @@ class DataImportController extends Controller
      */
     public function validateFile(Request $request): JsonResponse
     {
+        if ($request->isMethod('get')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'The GET method is not supported for file validation. Please submit a POST request with the file or dataset payload.',
+            ], Response::HTTP_METHOD_NOT_ALLOWED);
+        }
+
         $request->validate([
             'dataset_key' => ['required', 'string'],
             'file' => ['nullable', 'file', 'max:10240'],
@@ -96,6 +103,13 @@ class DataImportController extends Controller
      */
     public function executeImport(Request $request): JsonResponse
     {
+        if ($request->isMethod('get')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'The GET method is not supported for import execution. Please submit a POST request with the validated dataset rows.',
+            ], Response::HTTP_METHOD_NOT_ALLOWED);
+        }
+
         $request->validate([
             'dataset_key' => ['required', 'string'],
             'rows' => ['required', 'array'],

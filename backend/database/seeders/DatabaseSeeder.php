@@ -133,10 +133,13 @@ class DatabaseSeeder extends Seeder
                 ]
             );
 
-            $sem7 = Semester::firstOrCreate(
-                ['id' => 7],
-                ['semester_no' => 7, 'term' => 'ODD']
-            );
+            for ($s = 1; $s <= 8; $s++) {
+                Semester::firstOrCreate(
+                    ['id' => $s],
+                    ['semester_no' => $s, 'term' => ($s % 2 === 1) ? 'ODD' : 'EVEN']
+                );
+            }
+            $sem7 = Semester::find(7);
 
             // 7. Cohort (Batch, Division, Section)
             $batch = Batch::firstOrCreate(
@@ -198,6 +201,30 @@ class DatabaseSeeder extends Seeder
                     'department_id' => $itDept->id,
                     'semester_id' => $sem7->id,
                     'course_type' => 'CORE',
+                    'credits' => 4.0,
+                    'status' => 'ACTIVE',
+                ]
+            );
+
+            Subject::firstOrCreate(
+                ['subject_code' => 'CEUC301'],
+                [
+                    'subject_name' => 'Big Data Analysis',
+                    'department_id' => $ceDept->id,
+                    'semester_id' => 5,
+                    'course_type' => 'ELECTIVE',
+                    'credits' => 4.0,
+                    'status' => 'ACTIVE',
+                ]
+            );
+
+            Subject::firstOrCreate(
+                ['subject_code' => 'CEUC303'],
+                [
+                    'subject_name' => 'Machine Learning',
+                    'department_id' => $ceDept->id,
+                    'semester_id' => 5,
+                    'course_type' => 'ELECTIVE',
                     'credits' => 4.0,
                     'status' => 'ACTIVE',
                 ]
