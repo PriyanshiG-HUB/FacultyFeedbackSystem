@@ -89,18 +89,18 @@ class DepartmentEndpointTest extends TestCase
         $this->assertDatabaseMissing('department', ['id' => $createdId]);
     }
 
-    /**
-     * 3. Duplicate HOD validation returns 422 instead of 500 error
-     */
     public function test_duplicate_hod_returns_422_validation_error(): void
     {
-        // Faculty 1 is already HOD of department 2 (IT)
+        // Find a faculty who is already an HOD
+        $facultyId = \App\Models\Department::whereNotNull('hod_faculty_id')->first()->hod_faculty_id;
+
+        // Now try to create another department with the same HOD
         $response = $this->withHeader('Authorization', 'Bearer ' . $this->token)
             ->withHeader('Accept', 'application/json')
             ->postJson('/api/departments', [
-                'department_code' => 'DUPHOD',
-                'department_name' => 'Duplicate HOD Test',
-                'hod_faculty_id' => 1,
+                'department_code' => 'DP' . rand(100, 999),
+                'department_name' => 'Duplicate HOD Test ' . time(),
+                'hod_faculty_id' => $facultyId,
                 'status' => 'ACTIVE',
             ]);
 

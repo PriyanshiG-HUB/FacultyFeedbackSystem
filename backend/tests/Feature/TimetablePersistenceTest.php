@@ -193,23 +193,23 @@ class TimetablePersistenceTest extends TestCase
         $division = $section->division;
         
         $assignment1 = TeachingAssignment::create([
-            'subject_id' => 1,
-            'faculty_id' => 1,
+            'subject_id' => \App\Models\Subject::orderBy('id', 'asc')->first()->id,
+            'faculty_id' => \App\Models\Faculty::orderBy('id', 'asc')->first()->id,
             'batch_id' => $division->batch_id,
             'division_id' => $division->id,
             'section_id' => $section->id,
-            'academic_year_id' => 1,
+            'academic_year_id' => \App\Models\AcademicYear::first()->id,
             'semester_id' => $division->semester_id,
             'status' => 'ACTIVE'
         ]);
         
         $assignment2 = TeachingAssignment::create([
-            'subject_id' => 2,
-            'faculty_id' => 2,
+            'subject_id' => \App\Models\Subject::orderBy('id', 'desc')->first()->id,
+            'faculty_id' => \App\Models\Faculty::orderBy('id', 'desc')->first()->id,
             'batch_id' => $division->batch_id,
             'division_id' => $division->id,
             'section_id' => $section->id, // Same Section
-            'academic_year_id' => 1,
+            'academic_year_id' => \App\Models\AcademicYear::first()->id,
             'semester_id' => $division->semester_id,
             'status' => 'ACTIVE'
         ]);
@@ -242,23 +242,23 @@ class TimetablePersistenceTest extends TestCase
 
         // Division-wide assignment
         $divisionAssignment = TeachingAssignment::create([
-            'subject_id' => 1,
-            'faculty_id' => 1,
+            'subject_id' => \App\Models\Subject::orderBy('id', 'asc')->first()->id,
+            'faculty_id' => \App\Models\Faculty::orderBy('id', 'asc')->first()->id,
             'batch_id' => $division->batch_id,
             'division_id' => $division->id, // Same Division
             'section_id' => null, // Entire division
-            'academic_year_id' => 1,
+            'academic_year_id' => \App\Models\AcademicYear::first()->id,
             'semester_id' => $division->semester_id,
             'status' => 'ACTIVE'
         ]);
 
         $sectionAssignment = TeachingAssignment::create([
-            'subject_id' => 2,
-            'faculty_id' => 2,
+            'subject_id' => \App\Models\Subject::orderBy('id', 'desc')->first()->id,
+            'faculty_id' => \App\Models\Faculty::orderBy('id', 'desc')->first()->id,
             'batch_id' => $division->batch_id,
             'division_id' => $division->id,
             'section_id' => $section->id,
-            'academic_year_id' => 1,
+            'academic_year_id' => \App\Models\AcademicYear::first()->id,
             'semester_id' => $division->semester_id,
             'status' => 'ACTIVE'
         ]);
@@ -290,23 +290,23 @@ class TimetablePersistenceTest extends TestCase
 
         // Batch-wide assignment
         $batchAssignment = TeachingAssignment::create([
-            'subject_id' => 1,
-            'faculty_id' => 1,
+            'subject_id' => \App\Models\Subject::orderBy('id', 'asc')->first()->id,
+            'faculty_id' => \App\Models\Faculty::orderBy('id', 'asc')->first()->id,
             'batch_id' => $division->batch_id,
             'division_id' => null, // Entire batch
             'section_id' => null,
-            'academic_year_id' => 1,
+            'academic_year_id' => \App\Models\AcademicYear::first()->id,
             'semester_id' => $division->semester_id,
             'status' => 'ACTIVE'
         ]);
 
         $divisionAssignment = TeachingAssignment::create([
-            'subject_id' => 2,
-            'faculty_id' => 2,
+            'subject_id' => \App\Models\Subject::orderBy('id', 'desc')->first()->id,
+            'faculty_id' => \App\Models\Faculty::orderBy('id', 'desc')->first()->id,
             'batch_id' => $division->batch_id,
             'division_id' => $division->id,
             'section_id' => null,
-            'academic_year_id' => 1,
+            'academic_year_id' => \App\Models\AcademicYear::first()->id,
             'semester_id' => $division->semester_id,
             'status' => 'ACTIVE'
         ]);
@@ -339,23 +339,23 @@ class TimetablePersistenceTest extends TestCase
 
         // Batch-wide assignment
         $batchAssignment = TeachingAssignment::create([
-            'subject_id' => 1,
-            'faculty_id' => 1,
+            'subject_id' => \App\Models\Subject::orderBy('id', 'asc')->first()->id,
+            'faculty_id' => \App\Models\Faculty::orderBy('id', 'asc')->first()->id,
             'batch_id' => $division->batch_id,
             'division_id' => null, // Entire batch
             'section_id' => null,
-            'academic_year_id' => 1,
+            'academic_year_id' => \App\Models\AcademicYear::first()->id,
             'semester_id' => $division->semester_id,
             'status' => 'ACTIVE'
         ]);
 
         $sectionAssignment = TeachingAssignment::create([
-            'subject_id' => 2,
-            'faculty_id' => 2,
+            'subject_id' => \App\Models\Subject::orderBy('id', 'desc')->first()->id,
+            'faculty_id' => \App\Models\Faculty::orderBy('id', 'desc')->first()->id,
             'batch_id' => $division->batch_id,
             'division_id' => $division->id,
             'section_id' => $section->id,
-            'academic_year_id' => 1,
+            'academic_year_id' => \App\Models\AcademicYear::first()->id,
             'semester_id' => $division->semester_id,
             'status' => 'ACTIVE'
         ]);
@@ -395,23 +395,23 @@ class TimetablePersistenceTest extends TestCase
         ]);
 
         $assignment1 = TeachingAssignment::create([
-            'subject_id' => 1,
-            'faculty_id' => 1,
+            'subject_id' => \App\Models\Subject::orderBy('id', 'asc')->first()->id,
+            'faculty_id' => \App\Models\Faculty::orderBy('id', 'asc')->first()->id,
             'batch_id' => $division1->batch_id,
             'division_id' => $division1->id,
             'section_id' => null,
-            'academic_year_id' => 1,
+            'academic_year_id' => \App\Models\AcademicYear::first()->id,
             'semester_id' => $division1->semester_id,
             'status' => 'ACTIVE'
         ]);
 
         $assignment2 = TeachingAssignment::create([
-            'subject_id' => 2,
-            'faculty_id' => 2,
+            'subject_id' => \App\Models\Subject::orderBy('id', 'desc')->first()->id,
+            'faculty_id' => \App\Models\Faculty::orderBy('id', 'desc')->first()->id,
             'batch_id' => $division2->batch_id,
             'division_id' => $division2->id, // Different division ID
             'section_id' => null,
-            'academic_year_id' => 1,
+            'academic_year_id' => \App\Models\AcademicYear::first()->id,
             'semester_id' => $division2->semester_id,
             'status' => 'ACTIVE'
         ]);
@@ -450,23 +450,23 @@ class TimetablePersistenceTest extends TestCase
         ]);
         
         $assignment1 = TeachingAssignment::create([
-            'subject_id' => 1,
-            'faculty_id' => 1,
+            'subject_id' => \App\Models\Subject::orderBy('id', 'asc')->first()->id,
+            'faculty_id' => \App\Models\Faculty::orderBy('id', 'asc')->first()->id,
             'batch_id' => $division->batch_id,
             'division_id' => $division->id,
             'section_id' => $section1->id,
-            'academic_year_id' => 1,
+            'academic_year_id' => \App\Models\AcademicYear::first()->id,
             'semester_id' => $division->semester_id,
             'status' => 'ACTIVE'
         ]);
 
         $assignment2 = TeachingAssignment::create([
-            'subject_id' => 2,
-            'faculty_id' => 2,
+            'subject_id' => \App\Models\Subject::orderBy('id', 'desc')->first()->id,
+            'faculty_id' => \App\Models\Faculty::orderBy('id', 'desc')->first()->id,
             'batch_id' => $division->batch_id,
             'division_id' => $division->id,
             'section_id' => $section2->id, // Different section ID
-            'academic_year_id' => 1,
+            'academic_year_id' => \App\Models\AcademicYear::first()->id,
             'semester_id' => $division->semester_id,
             'status' => 'ACTIVE'
         ]);
@@ -490,3 +490,4 @@ class TimetablePersistenceTest extends TestCase
         $response->assertStatus(201);
     }
 }
+

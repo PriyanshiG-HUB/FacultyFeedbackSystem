@@ -9,10 +9,13 @@ use App\Models\StudentElectiveEnrollment;
 use App\Models\Subject;
 use App\Models\SubjectOffering;
 use App\Models\UserAccount;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class ElectivesPersistenceTest extends TestCase
 {
+    use DatabaseTransactions;
+
     protected string $token;
     protected UserAccount $admin;
 
@@ -21,6 +24,29 @@ class ElectivesPersistenceTest extends TestCase
         parent::setUp();
         $this->admin = UserAccount::where('email', 'admin@college.edu')->first();
         $this->token = $this->admin->createToken('electives_test_token')->plainTextToken;
+
+        Subject::updateOrCreate(
+            ['subject_code' => 'CEUC301'],
+            [
+                'subject_name' => 'Big Data Analysis',
+                'department_id' => 1,
+                'semester_id' => 5,
+                'course_type' => 'ELECTIVE',
+                'credits' => 4.0,
+                'status' => 'ACTIVE'
+            ]
+        );
+        Subject::updateOrCreate(
+            ['subject_code' => 'CEUC303'],
+            [
+                'subject_name' => 'Cloud Computing Elective',
+                'department_id' => 1,
+                'semester_id' => 5,
+                'course_type' => 'ELECTIVE',
+                'credits' => 4.0,
+                'status' => 'ACTIVE'
+            ]
+        );
     }
 
     public function test_elective_subjects_and_offerings_lifecycle(): void

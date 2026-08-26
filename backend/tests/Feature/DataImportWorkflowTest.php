@@ -5,12 +5,12 @@ namespace Tests\Feature;
 use App\Models\Department;
 use App\Models\Faculty;
 use App\Models\UserAccount;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class DataImportWorkflowTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     protected UserAccount $adminUser;
 
@@ -18,12 +18,14 @@ class DataImportWorkflowTest extends TestCase
     {
         parent::setUp();
 
-        $this->adminUser = UserAccount::create([
-            'email' => 'admin@college.edu',
-            'password_hash' => bcrypt('password123'),
-            'role' => 'SUPER_ADMIN',
-            'status' => 'ACTIVE',
-        ]);
+        $this->adminUser = UserAccount::updateOrCreate(
+            ['email' => 'admin@college.edu'],
+            [
+                'password_hash' => bcrypt('password123'),
+                'role' => 'SUPER_ADMIN',
+                'status' => 'ACTIVE',
+            ]
+        );
     }
 
     public function test_can_retrieve_importable_datasets_list(): void
@@ -80,11 +82,13 @@ class DataImportWorkflowTest extends TestCase
 
     public function test_executes_transactional_bulk_import_and_provisions_user_account(): void
     {
-        Department::create([
-            'department_code' => 'IT',
-            'department_name' => 'Information Technology',
-            'status' => 'ACTIVE',
-        ]);
+        Department::updateOrCreate(
+            ['department_code' => 'IT'],
+            [
+                'department_name' => 'Information Technology',
+                'status' => 'ACTIVE',
+            ]
+        );
 
         $payload = [
             'dataset_key' => 'faculty',

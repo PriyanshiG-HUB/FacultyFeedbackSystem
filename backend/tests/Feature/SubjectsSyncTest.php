@@ -4,10 +4,13 @@ namespace Tests\Feature;
 
 use App\Models\Subject;
 use App\Models\UserAccount;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class SubjectsSyncTest extends TestCase
 {
+    use DatabaseTransactions;
+
     protected string $token;
 
     protected function setUp(): void
@@ -15,6 +18,18 @@ class SubjectsSyncTest extends TestCase
         parent::setUp();
         $admin = UserAccount::where('email', 'admin@college.edu')->first();
         $this->token = $admin->createToken('subjects_sync_test')->plainTextToken;
+
+        Subject::updateOrCreate(
+            ['subject_code' => 'CEUC301'],
+            [
+                'subject_name' => 'Big Data Analysis',
+                'department_id' => 1,
+                'semester_id' => 5,
+                'course_type' => 'ELECTIVE',
+                'credits' => 4.0,
+                'status' => 'ACTIVE'
+            ]
+        );
     }
 
     public function test_get_subjects_returns_ceuc301_and_relationships(): void
