@@ -416,7 +416,7 @@ export default function PublishForm({
       </div>
 
       {/* Create Form Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create Feedback Form">
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create Feedback Form" maxWidth="2xl">
         <form onSubmit={handleCreateForm} className="space-y-4">
           {formError && (
             <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs font-semibold flex items-center gap-2">

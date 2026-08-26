@@ -61,6 +61,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath, isCollapsed = fal
       items: [
         { name: 'Elective Catalog', href: '#Admin/Electives/Index', icon: FileSpreadsheet },
         { name: 'Session Allocations', href: '#Admin/SessionAssignments/Index', icon: CalendarRange },
+        { name: 'Timetables', href: '#Admin/Timetables/Index', icon: CalendarRange },
         { name: 'Data Import', href: '#Admin/FeedbackImport/Index', icon: UploadCloud },
         { name: 'System Settings', href: '#Admin/Settings/Index', icon: Settings },
       ],

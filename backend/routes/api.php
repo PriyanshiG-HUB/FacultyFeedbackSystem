@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\SubjectController;
 use App\Http\Controllers\Api\SubjectOfferingController;
 use App\Http\Controllers\Api\SystemSettingsController;
 use App\Http\Controllers\Api\TeachingAssignmentController;
+use App\Http\Controllers\Api\TimetableController;
 use App\Http\Middleware\CheckRole;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -105,8 +106,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('subject-offerings', SubjectOfferingController::class)->only(['index', 'store', 'show', 'destroy']);
         Route::apiResource('elective-enrollments', StudentElectiveEnrollmentController::class)->only(['index', 'store', 'destroy']);
 
-        // Teaching Assignments
+        // Teaching Assignments & Timetables
         Route::apiResource('teaching-assignments', TeachingAssignmentController::class);
+        Route::apiResource('timetables', TimetableController::class);
 
         // Feedback Question Categories & Forms Lifecycle
         Route::apiResource('feedback-question-categories', FeedbackQuestionCategoryController::class)->only(['index', 'store', 'destroy']);

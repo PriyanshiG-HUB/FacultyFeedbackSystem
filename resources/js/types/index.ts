@@ -577,3 +577,24 @@ export interface PublishFormIndexProps {
   forms?: PublishedFormItem[];
 }
 
+// 23. Admin/Timetables/Index
+export interface TimetableEntry {
+  id: number;
+  teaching_assignment_id: number;
+  day: 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
+  start_time: string;
+  end_time: string;
+  room?: string;
+  status: 'ACTIVE' | 'INACTIVE';
+  teaching_assignment?: {
+    id: number;
+    subject?: { id: number; subject_name: string; subject_code: string };
+    faculty?: { id: number; full_name: string };
+    batch?: { id: number; batch_title: string };
+    division?: { id: number; division_code: string };
+    section?: { id: number; section_code: string };
+    academic_year?: { id: number; year_code: string };
+    semester?: { id: number; semester_no: number };
+  };
+}
+
