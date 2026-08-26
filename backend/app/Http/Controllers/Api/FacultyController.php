@@ -99,6 +99,11 @@ class FacultyController extends Controller
 
         DB::transaction(function () use ($faculty) {
             $userAccount = $faculty->userAccount;
+            
+            // Unset HOD from any departments
+            \App\Models\Department::where('hod_faculty_id', $faculty->id)
+                ->update(['hod_faculty_id' => null]);
+            
             $faculty->delete();
             if ($userAccount) {
                 $userAccount->delete();

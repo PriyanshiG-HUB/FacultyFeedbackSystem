@@ -17,29 +17,15 @@ interface FacultyOption {
 export default function Create({ hodOptions = [] }: DepartmentsCreateProps) {
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
-  const [hodId, setHodId] = useState('');
   const [description, setDescription] = useState('');
-  const [facultyOptions, setFacultyOptions] = useState<FacultyOption[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
-    api.get('/faculty').then((res) => {
-      if (Array.isArray(res.data)) {
-        setFacultyOptions(
-          res.data.map((f: any) => ({
-            id: f.id,
-            name: f.full_name,
-            department: f.department?.department_name,
-          }))
-        );
-      }
-    }).catch(() => {});
+    // Empty for now, API calls can go here if needed.
   }, []);
-
-  const effectiveHodList = facultyOptions.length > 0 ? facultyOptions : hodOptions;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +38,6 @@ export default function Create({ hodOptions = [] }: DepartmentsCreateProps) {
       await api.post('/departments', {
         department_name: name.trim(),
         department_code: code.trim().toUpperCase(),
-        hod_faculty_id: hodId ? Number(hodId) : null,
         status: 'ACTIVE',
       });
       setSuccessMessage('Department registered successfully! Redirecting...');
@@ -119,20 +104,6 @@ export default function Create({ hodOptions = [] }: DepartmentsCreateProps) {
               />
             </div>
           </div>
-
-          <Select
-            label="Appoint Head of Department (HOD)"
-            value={hodId}
-            onChange={(e) => setHodId(e.target.value)}
-            error={fieldErrors.hod_faculty_id?.[0]}
-          >
-            <option value="">Select HOD Candidate (Optional)...</option>
-            {effectiveHodList.map((hod) => (
-              <option key={hod.id} value={hod.id}>
-                {hod.name} {hod.department ? `(${hod.department})` : ''}
-              </option>
-            ))}
-          </Select>
 
           <div className="space-y-1">
             <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">

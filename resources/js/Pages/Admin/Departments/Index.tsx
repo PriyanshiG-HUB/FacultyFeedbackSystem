@@ -4,7 +4,7 @@ import { DepartmentsIndexProps, DepartmentItem } from '../../../types';
 import { DataTable, Column } from '../../../Components/ui/DataTable';
 import { Button } from '../../../Components/ui/Button';
 import { Modal } from '../../../Components/ui/Modal';
-import { Input } from '../../../Components/ui/Input';
+import { Input, Select } from '../../../Components/ui/Input';
 import Link from '../../../Components/shared/Link';
 import { useForm } from '../../../Components/shared/useForm';
 import { Plus, Edit2, Star, ShieldCheck, RefreshCw, AlertCircle, Trash2 } from 'lucide-react';
@@ -22,7 +22,10 @@ export default function Index({
   const editForm = useForm({
     name: '',
     code: '',
+    hodId: '',
   });
+
+  const [deptFaculty, setDeptFaculty] = useState<{id: number, name: string}[]>([]);
 
   const [deptList, setDeptList] = useState<DepartmentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -39,6 +42,7 @@ export default function Index({
           id: d.id,
           code: d.department_code,
           name: d.department_name,
+          hod_faculty_id: d.hod_faculty_id,
           hod: d.hod_faculty?.full_name || 'Not Appointed',
           studentCount: d.students_count || 0,
           facultyCount: d.faculty_count || 0,
@@ -66,13 +70,26 @@ export default function Index({
           dept.code.toUpperCase() === (assignedDepartmentCode || 'CE').toUpperCase()
       );
 
-  const handleOpenEdit = (dept: DepartmentItem) => {
+  const handleOpenEdit = async (dept: any) => {
     setSelectedDept(dept);
     setErrorMessage('');
     editForm.setData({
       name: dept.name,
       code: dept.code,
+      hodId: dept.hod_faculty_id ? String(dept.hod_faculty_id) : '',
     });
+    
+    // Fetch faculty for this department
+    try {
+      const res = await api.get(`/departments/${dept.id}/faculty`);
+      if (Array.isArray(res.data)) {
+        setDeptFaculty(res.data.map((f: any) => ({ id: f.id, name: f.full_name })));
+      }
+    } catch (err) {
+      console.error('Failed to fetch faculty for department', err);
+      setDeptFaculty([]);
+    }
+
     setIsEditOpen(true);
   };
 
@@ -84,6 +101,7 @@ export default function Index({
       await api.put(`/departments/${selectedDept.id}`, {
         department_name: editForm.data.name.trim(),
         department_code: editForm.data.code.trim().toUpperCase(),
+        hod_faculty_id: editForm.data.hodId ? Number(editForm.data.hodId) : null,
       });
       await fetchDepartments();
       setIsEditOpen(false);
@@ -251,6 +269,19 @@ export default function Index({
             onChange={(e) => editForm.setData('code', e.target.value.toUpperCase())}
             required
           />
+
+          <Select
+            label="Appoint Head of Department (HOD)"
+            value={editForm.data.hodId}
+            onChange={(e) => editForm.setData('hodId', e.target.value)}
+          >
+            <option value="">Select HOD Candidate (Optional)...</option>
+            {deptFaculty.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.name}
+              </option>
+            ))}
+          </Select>
 
           <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
             <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>

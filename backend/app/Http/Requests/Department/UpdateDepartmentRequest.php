@@ -33,4 +33,22 @@ class UpdateDepartmentRequest extends FormRequest
             'department_code.unique' => 'This department code is already in use.',
         ];
     }
+
+    public function withValidator($validator)
+    {
+        $validator->after(function ($validator) {
+            if ($this->hod_faculty_id) {
+                $faculty = \App\Models\Faculty::find($this->hod_faculty_id);
+                $dept = $this->route('department');
+                $deptId = $dept instanceof Department ? $dept->id : $dept;
+                
+                if ($faculty && $faculty->department_id !== (int) $deptId) {
+                    $validator->errors()->add(
+                        'hod_faculty_id',
+                        'The selected faculty member must belong to this department to be assigned as HOD.'
+                    );
+                }
+            }
+        });
+    }
 }
