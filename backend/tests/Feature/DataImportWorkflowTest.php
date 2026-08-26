@@ -18,12 +18,7 @@ class DataImportWorkflowTest extends TestCase
     {
         parent::setUp();
 
-        $this->adminUser = UserAccount::create([
-            'email' => 'admin@college.edu',
-            'password_hash' => bcrypt('password123'),
-            'role' => 'SUPER_ADMIN',
-            'status' => 'ACTIVE',
-        ]);
+        $this->adminUser = UserAccount::where('email', 'admin@college.edu')->first();
     }
 
     public function test_can_retrieve_importable_datasets_list(): void
@@ -80,11 +75,10 @@ class DataImportWorkflowTest extends TestCase
 
     public function test_executes_transactional_bulk_import_and_provisions_user_account(): void
     {
-        Department::create([
-            'department_code' => 'IT',
-            'department_name' => 'Information Technology',
-            'status' => 'ACTIVE',
-        ]);
+        Department::firstOrCreate(
+            ['department_code' => 'IT'],
+            ['department_name' => 'Information Technology', 'status' => 'ACTIVE']
+        );
 
         $payload = [
             'dataset_key' => 'faculty',
@@ -124,5 +118,16 @@ class DataImportWorkflowTest extends TestCase
             'record_count' => 1,
             'status' => 'SUCCESS',
         ]);
+    }
+
+    public function test_get_method_on_execute_route_returns_405_json_response(): void
+    {
+        $response = $this->actingAs($this->adminUser, 'sanctum')
+            ->getJson('/api/data-imports/execute');
+
+        $response->assertStatus(405)
+            ->assertJson([
+                'success' => false,
+            ]);
     }
 }

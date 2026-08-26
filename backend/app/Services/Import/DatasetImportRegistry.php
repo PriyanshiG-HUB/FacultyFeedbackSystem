@@ -724,7 +724,11 @@ class DatasetImportRegistry
                 $dept = Department::where('department_code', trim($row['department_code']))->first();
                 if (!$dept) return false;
 
-                $desig = !empty($row['designation_name']) ? Designation::where('designation_name', trim($row['designation_name']))->first() : null;
+                $desigName = !empty($row['designation_name']) ? trim($row['designation_name']) : 'Assistant Professor';
+                $desig = Designation::firstOrCreate(
+                    ['designation_name' => $desigName],
+                    ['status' => 'ACTIVE']
+                );
 
                 // Provision User Account if not exists
                 $email = trim($row['email']);
@@ -954,10 +958,6 @@ class DatasetImportRegistry
 
     private static function mapDatasetToImportType(string $datasetKey): string
     {
-        return match ($datasetKey) {
-            'student' => 'STUDENT_ROSTER',
-            'teaching_assignment' => 'FACULTY_SESSION_MAPPING',
-            default => 'OTHER',
-        };
+        return strtoupper($datasetKey);
     }
 }

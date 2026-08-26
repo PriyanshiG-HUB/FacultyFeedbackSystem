@@ -68,6 +68,18 @@ class StudentEligibilityAndSubmissionTest extends TestCase
 
         $question = $form->questions->first();
 
+        // First submission
+        $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->postJson("/api/student/feedback-forms/{$form->id}/submit", [
+                'overall_remark' => 'First attempt',
+                'answers' => [
+                    [
+                        'question_id' => $question->id,
+                        'rating_value' => 5,
+                    ]
+                ]
+            ]);
+
         // Second submission attempt should be rejected with validation error (422)
         $response = $this->withHeader('Authorization', 'Bearer ' . $token)
             ->postJson("/api/student/feedback-forms/{$form->id}/submit", [

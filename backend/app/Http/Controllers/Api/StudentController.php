@@ -64,6 +64,7 @@ class StudentController extends Controller
             ]);
 
             $data['user_account_id'] = $userAccount->id;
+            $data['enrollment_no'] = $data['enrollment_no'] ?? 'ENR-' . strtoupper(substr(md5((string) microtime()), 0, 6));
             unset($data['password']);
 
             return Student::create($data);
