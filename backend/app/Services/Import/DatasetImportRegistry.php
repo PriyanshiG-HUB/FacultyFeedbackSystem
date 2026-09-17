@@ -100,18 +100,16 @@ class DatasetImportRegistry
                 'dependency_notice' => 'Before importing Faculty: Make sure the required Departments and Designations already exist in the system.',
                 'excluded_columns' => ['id', 'user_account_id', 'department_id', 'designation_id', 'created_at', 'updated_at'],
                 'columns' => [
-                    ['name' => 'employee_code', 'required' => true, 'type' => 'Text', 'description' => 'Unique faculty employee ID code', 'example' => 'FAC001'],
                     ['name' => 'full_name', 'required' => true, 'type' => 'Text', 'description' => 'Full name of faculty member', 'example' => 'Dr. Robert Vance'],
                     ['name' => 'email', 'required' => true, 'type' => 'Email', 'description' => 'Faculty email address (used for portal login)', 'example' => 'robert.vance@college.edu'],
                     ['name' => 'department_code', 'required' => true, 'type' => 'Text', 'description' => 'Department code (must exist in system)', 'example' => 'IT'],
                     ['name' => 'designation_name', 'required' => false, 'type' => 'Text', 'description' => 'Faculty designation (must exist in system)', 'example' => 'Professor & HOD'],
                     ['name' => 'mobile', 'required' => false, 'type' => 'Text', 'description' => 'Mobile phone number', 'example' => '+91 9876543210'],
-                    ['name' => 'joining_date', 'required' => false, 'type' => 'Date', 'description' => 'Joining date (YYYY-MM-DD)', 'example' => '2018-06-15'],
                     ['name' => 'status', 'required' => false, 'type' => 'Enum', 'description' => 'ACTIVE or INACTIVE (Default: ACTIVE)', 'example' => 'ACTIVE'],
                 ],
                 'sample_rows' => [
-                    ['employee_code' => 'FAC001', 'full_name' => 'Dr. Robert Vance', 'email' => 'robert.vance@college.edu', 'department_code' => 'IT', 'designation_name' => 'Professor & HOD', 'mobile' => '9876543210', 'joining_date' => '2018-06-15', 'status' => 'ACTIVE'],
-                    ['employee_code' => 'FAC002', 'full_name' => 'Prof. Sarah Jenkins', 'email' => 'sarah.jenkins@college.edu', 'department_code' => 'IT', 'designation_name' => 'Assistant Professor', 'mobile' => '9876543211', 'joining_date' => '2020-08-01', 'status' => 'ACTIVE'],
+                    ['full_name' => 'Dr. Robert Vance', 'email' => 'robert.vance@college.edu', 'department_code' => 'IT', 'designation_name' => 'Professor & HOD', 'mobile' => '9876543210', 'status' => 'ACTIVE'],
+                    ['full_name' => 'Prof. Sarah Jenkins', 'email' => 'sarah.jenkins@college.edu', 'department_code' => 'IT', 'designation_name' => 'Assistant Professor', 'mobile' => '9876543211', 'status' => 'ACTIVE'],
                 ],
             ],
 
@@ -265,7 +263,7 @@ class DatasetImportRegistry
                 'excluded_columns' => ['id', 'subject_id', 'faculty_id', 'batch_id', 'division_id', 'section_id', 'academic_year_id', 'semester_id', 'created_at', 'updated_at'],
                 'columns' => [
                     ['name' => 'subject_code', 'required' => true, 'type' => 'Text', 'description' => 'Subject code', 'example' => 'IT701'],
-                    ['name' => 'employee_code', 'required' => true, 'type' => 'Text', 'description' => 'Faculty employee code', 'example' => 'FAC001'],
+                    ['name' => 'faculty_email', 'required' => true, 'type' => 'Email', 'description' => 'Faculty email address', 'example' => 'robert.vance@college.edu'],
                     ['name' => 'batch_title', 'required' => true, 'type' => 'Text', 'description' => 'Batch title', 'example' => '2023-2027 B.Tech IT'],
                     ['name' => 'year_code', 'required' => true, 'type' => 'Text', 'description' => 'Academic year code', 'example' => '2026-2027'],
                     ['name' => 'semester_no', 'required' => true, 'type' => 'Number', 'description' => 'Semester number (1-8)', 'example' => '7'],
@@ -274,7 +272,7 @@ class DatasetImportRegistry
                     ['name' => 'status', 'required' => false, 'type' => 'Enum', 'description' => 'ACTIVE or INACTIVE', 'example' => 'ACTIVE'],
                 ],
                 'sample_rows' => [
-                    ['subject_code' => 'IT701', 'employee_code' => 'FAC001', 'batch_title' => '2023-2027 B.Tech IT', 'year_code' => '2026-2027', 'semester_no' => '7', 'division_code' => 'IT-1', 'section_code' => 'A', 'status' => 'ACTIVE'],
+                    ['subject_code' => 'IT701', 'faculty_email' => 'robert.vance@college.edu', 'batch_title' => '2023-2027 B.Tech IT', 'year_code' => '2026-2027', 'semester_no' => '7', 'division_code' => 'IT-1', 'section_code' => 'A', 'status' => 'ACTIVE'],
                 ],
             ],
 
@@ -309,13 +307,12 @@ class DatasetImportRegistry
                 'dependency_notice' => null,
                 'excluded_columns' => ['id'],
                 'columns' => [
-                    ['name' => 'category_code', 'required' => true, 'type' => 'Text', 'description' => 'Unique category code', 'example' => 'TEACHING_DELIVERY'],
                     ['name' => 'category_name', 'required' => true, 'type' => 'Text', 'description' => 'Category display title', 'example' => 'Teaching & Pedagogy Delivery'],
                     ['name' => 'display_order', 'required' => false, 'type' => 'Number', 'description' => 'Display sequence order number', 'example' => '1'],
                 ],
                 'sample_rows' => [
-                    ['category_code' => 'TEACHING_DELIVERY', 'category_name' => 'Teaching & Pedagogy Delivery', 'display_order' => '1'],
-                    ['category_code' => 'COURSE_CONTENT', 'category_name' => 'Course Content & Syllabus Coverage', 'display_order' => '2'],
+                    ['category_name' => 'Teaching & Pedagogy Delivery', 'display_order' => '1'],
+                    ['category_name' => 'Course Content & Syllabus Coverage', 'display_order' => '2'],
                 ],
             ],
         ];
@@ -587,13 +584,13 @@ class DatasetImportRegistry
                         ];
                     }
                 }
-                if (!empty($row['employee_code'])) {
-                    if (!Faculty::where('employee_code', trim($row['employee_code']))->exists()) {
+                if (!empty($row['faculty_email'])) {
+                    if (!Faculty::where('email', trim($row['faculty_email']))->exists()) {
                         $errors[] = [
                             'row' => $rowNumber,
-                            'column' => 'employee_code',
-                            'error' => "Faculty '{$row['employee_code']}' does not exist.",
-                            'value' => $row['employee_code'],
+                            'column' => 'faculty_email',
+                            'error' => "Faculty with email '{$row['faculty_email']}' does not exist.",
+                            'value' => $row['faculty_email'],
                         ];
                     }
                 }
@@ -612,13 +609,13 @@ class DatasetImportRegistry
             'department' => $row['department_code'] ?? null,
             'designation' => $row['designation_name'] ?? null,
             'academic_year' => $row['year_code'] ?? null,
-            'faculty' => $row['employee_code'] ?? ($row['email'] ?? null),
+            'faculty' => $row['email'] ?? null,
             'batch' => $row['batch_title'] ?? null,
             'division' => isset($row['batch_title'], $row['division_code']) ? "{$row['batch_title']}_{$row['division_code']}" : null,
             'section' => isset($row['division_code'], $row['section_code']) ? "{$row['division_code']}_{$row['section_code']}" : null,
             'student' => $row['roll_no'] ?? null,
             'subject' => $row['subject_code'] ?? null,
-            'feedback_question_category' => $row['category_code'] ?? null,
+            'feedback_question_category' => $row['category_name'] ?? null,
             default => null,
         };
     }
@@ -743,15 +740,13 @@ class DatasetImportRegistry
                 }
 
                 Faculty::updateOrCreate(
-                    ['employee_code' => trim($row['employee_code'])],
+                    ['email' => $email],
                     [
                         'user_account_id' => $user->id,
                         'full_name' => trim($row['full_name']),
-                        'email' => $email,
                         'mobile' => !empty($row['mobile']) ? trim($row['mobile']) : null,
                         'department_id' => $dept->id,
                         'designation_id' => $desig ? $desig->id : null,
-                        'joining_date' => !empty($row['joining_date']) ? trim($row['joining_date']) : null,
                         'status' => strtoupper(trim($row['status'] ?? 'ACTIVE')) === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE',
                     ]
                 );
@@ -814,10 +809,30 @@ class DatasetImportRegistry
             case 'student':
                 $dept = Department::where('department_code', trim($row['department_code']))->first();
                 $batch = Batch::where('batch_title', trim($row['batch_title']))->first();
-                $div = Division::where('division_code', trim($row['division_code']))->first();
-                $sec = Section::where('section_code', trim($row['section_code']))->first();
 
-                if (!$dept || !$batch || !$div || !$sec) return false;
+                if (!$dept || !$batch) return false;
+
+                $div = null;
+                if (!empty($row['division_code'])) {
+                    $divCode = trim($row['division_code']);
+                    $div = Division::firstOrCreate(
+                        ['batch_id' => $batch->id, 'division_code' => $divCode],
+                        [
+                            'department_id' => $dept->id,
+                            'semester_id' => $batch->current_semester_id ?? 1,
+                            'status' => 'ACTIVE',
+                        ]
+                    );
+                }
+
+                $sec = null;
+                if (!empty($row['section_code']) && $div) {
+                    $secCode = trim($row['section_code']);
+                    $sec = Section::firstOrCreate(
+                        ['division_id' => $div->id, 'section_code' => $secCode],
+                        ['status' => 'ACTIVE']
+                    );
+                }
 
                 $rollNo = trim($row['roll_no']);
                 $email = !empty($row['email']) ? trim($row['email']) : strtolower($rollNo) . '@student.college.edu';
@@ -842,8 +857,8 @@ class DatasetImportRegistry
                         'mobile' => !empty($row['mobile']) ? trim($row['mobile']) : null,
                         'department_id' => $dept->id,
                         'batch_id' => $batch->id,
-                        'division_id' => $div->id,
-                        'section_id' => $sec->id,
+                        'division_id' => $div ? $div->id : null,
+                        'section_id' => $sec ? $sec->id : null,
                         'status' => in_array(strtoupper(trim($row['status'] ?? '')), ['ACTIVE', 'INACTIVE', 'GRADUATED', 'WITHDRAWN']) ? strtoupper(trim($row['status'])) : 'ACTIVE',
                     ]
                 );
@@ -889,7 +904,7 @@ class DatasetImportRegistry
 
             case 'teaching_assignment':
                 $subject = Subject::where('subject_code', trim($row['subject_code']))->first();
-                $faculty = Faculty::where('employee_code', trim($row['employee_code']))->first();
+                $faculty = Faculty::where('email', trim($row['faculty_email']))->first();
                 $batch = Batch::where('batch_title', trim($row['batch_title']))->first();
                 $year = AcademicYear::where('year_code', trim($row['year_code']))->first();
                 $sem = Semester::where('semester_no', (int)$row['semester_no'])->first();
@@ -943,9 +958,8 @@ class DatasetImportRegistry
 
             case 'feedback_question_category':
                 FeedbackQuestionCategory::updateOrCreate(
-                    ['category_code' => trim($row['category_code'])],
+                    ['category_name' => trim($row['category_name'])],
                     [
-                        'category_name' => trim($row['category_name']),
                         'display_order' => (int)($row['display_order'] ?? 1),
                     ]
                 );

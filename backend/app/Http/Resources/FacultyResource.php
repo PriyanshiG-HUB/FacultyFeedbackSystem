@@ -12,13 +12,11 @@ class FacultyResource extends JsonResource
         return [
             'id' => $this->id,
             'user_account_id' => $this->user_account_id,
-            'employee_code' => $this->employee_code,
             'full_name' => $this->full_name,
             'email' => $this->email,
             'mobile' => $this->mobile,
             'department_id' => $this->department_id,
             'designation_id' => $this->designation_id,
-            'joining_date' => $this->joining_date?->format('Y-m-d'),
             'status' => $this->status,
             'department' => new DepartmentResource($this->whenLoaded('department')),
             'designation' => new DesignationResource($this->whenLoaded('designation')),

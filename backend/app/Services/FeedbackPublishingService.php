@@ -66,14 +66,14 @@ class FeedbackPublishingService
                 // Attach default standard questions
                 $categories = FeedbackQuestionCategory::orderBy('display_order')->get();
                 $defaultQuestions = [
-                    ['category_code' => 'PUNCTUALITY', 'text' => 'Faculty arrives on time and conducts lectures regularly.'],
-                    ['category_code' => 'SUBJECT_KNOWLEDGE', 'text' => 'Faculty demonstrates comprehensive knowledge of the course subject.'],
-                    ['category_code' => 'CLARITY_OF_TEACHING', 'text' => 'Course concepts, principles, and problems are explained with clarity.'],
-                    ['category_code' => 'STUDY_MATERIAL', 'text' => 'Faculty provides relevant study materials, assignments, and guidance.'],
+                    ['category_name' => 'Punctuality & Discipline', 'text' => 'Faculty arrives on time and conducts lectures regularly.'],
+                    ['category_name' => 'Subject Knowledge & Depth', 'text' => 'Faculty demonstrates comprehensive knowledge of the course subject.'],
+                    ['category_name' => 'Clarity of Teaching', 'text' => 'Course concepts, principles, and problems are explained with clarity.'],
+                    ['category_name' => 'Study Material / Practical Guidance', 'text' => 'Faculty provides relevant study materials, assignments, and guidance.'],
                 ];
 
                 foreach ($defaultQuestions as $idx => $dq) {
-                    $cat = $categories->firstWhere('category_code', $dq['category_code']);
+                    $cat = $categories->firstWhere('category_name', $dq['category_name']) ?? ($categories[$idx] ?? null);
                     FeedbackQuestion::create([
                         'feedback_form_id' => $form->id,
                         'category_id' => $cat?->id,

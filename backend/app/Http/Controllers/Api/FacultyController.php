@@ -28,8 +28,7 @@ class FacultyController extends Controller
             $search = $request->get('search');
             $query->where(function ($q) use ($search) {
                 $q->where('full_name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('employee_code', 'like', "%{$search}%");
+                  ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
@@ -54,7 +53,6 @@ class FacultyController extends Controller
             ]);
 
             $data['user_account_id'] = $userAccount->id;
-            $data['employee_code'] = $data['employee_code'] ?? 'FAC-' . strtoupper(substr(md5((string) microtime()), 0, 6));
             unset($data['password']);
 
             return Faculty::create($data);

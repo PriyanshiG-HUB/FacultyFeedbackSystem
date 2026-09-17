@@ -23,8 +23,7 @@ class FeedbackQuestionCategoryController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'category_code' => ['required', 'string', 'max:40', 'unique:feedback_question_category,category_code'],
-            'category_name' => ['required', 'string', 'max:100'],
+            'category_name' => ['required', 'string', 'max:100', 'unique:feedback_question_category,category_name'],
             'display_order' => ['nullable', 'integer'],
         ]);
 

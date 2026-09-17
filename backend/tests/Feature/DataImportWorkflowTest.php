@@ -49,7 +49,7 @@ class DataImportWorkflowTest extends TestCase
             ->get('/api/data-imports/template/faculty');
 
         $response->assertStatus(200);
-        $this->assertStringContainsString('employee_code', $response->getContent());
+        $this->assertStringContainsString('full_name', $response->getContent());
         $this->assertStringContainsString('department_code', $response->getContent());
     }
 
@@ -59,7 +59,6 @@ class DataImportWorkflowTest extends TestCase
             'dataset_key' => 'faculty',
             'rows' => [
                 [
-                    'employee_code' => 'FAC101',
                     'full_name' => 'John Doe',
                     'email' => 'invalid-email',
                     'department_code' => 'NON_EXISTENT_DEPT',
@@ -94,7 +93,6 @@ class DataImportWorkflowTest extends TestCase
             'dataset_key' => 'faculty',
             'rows' => [
                 [
-                    'employee_code' => 'FAC999',
                     'full_name' => 'Dr. Alan Turing',
                     'email' => 'alan.turing@college.edu',
                     'department_code' => 'IT',
@@ -114,8 +112,8 @@ class DataImportWorkflowTest extends TestCase
             ]);
 
         $this->assertDatabaseHas('faculty', [
-            'employee_code' => 'FAC999',
             'email' => 'alan.turing@college.edu',
+            'full_name' => 'Dr. Alan Turing',
         ]);
 
         $this->assertDatabaseHas('user_account', [

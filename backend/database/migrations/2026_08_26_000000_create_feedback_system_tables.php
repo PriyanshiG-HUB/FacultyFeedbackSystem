@@ -37,13 +37,11 @@ return new class extends Migration
         Schema::create('faculty', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_account_id')->constrained('user_account')->cascadeOnDelete();
-            $table->string('employee_code', 30)->unique();
             $table->string('full_name', 120);
             $table->string('email', 150)->unique();
             $table->string('mobile', 20)->nullable();
             $table->foreignId('department_id')->constrained('department');
             $table->foreignId('designation_id')->constrained('designation');
-            $table->date('joining_date')->nullable();
             $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
             $table->timestamps();
         });
@@ -105,7 +103,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_account_id')->constrained('user_account')->cascadeOnDelete();
             $table->string('roll_no', 30)->unique();
-            $table->string('enrollment_no', 40)->unique();
+            $table->string('enrollment_no', 40)->nullable()->unique();
             $table->string('full_name', 120);
             $table->string('email', 150)->unique();
             $table->string('mobile', 20)->nullable();
@@ -169,8 +167,7 @@ return new class extends Migration
 
         Schema::create('feedback_question_category', function (Blueprint $table) {
             $table->id();
-            $table->string('category_code', 40)->unique();
-            $table->string('category_name', 100);
+            $table->string('category_name', 100)->unique();
             $table->unsignedTinyInteger('display_order')->default(1);
         });
 

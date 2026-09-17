@@ -303,8 +303,6 @@ class CrudPersistenceAuditTest extends TestCase
             'email' => $uniqueFacEmail,
             'department_id' => 2,
             'designation_id' => 1,
-            'employee_code' => 'EMP-AUDIT-' . rand(100, 999),
-            'joining_date' => '2023-01-01',
             'status' => 'ACTIVE',
         ]);
         $facPost->assertStatus(201);

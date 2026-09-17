@@ -77,13 +77,11 @@ const FALLBACK_DATASETS: DatasetDefinition[] = [
     dependency_notice: 'Before importing Faculty: Make sure the required Departments and Designations already exist in the system.',
     excluded_columns: ['id', 'user_account_id', 'department_id', 'designation_id', 'created_at', 'updated_at'],
     columns: [
-      { name: 'employee_code', required: true, type: 'Text', description: 'Unique faculty employee ID code', example: 'FAC001' },
       { name: 'full_name', required: true, type: 'Text', description: 'Full name of faculty member', example: 'Dr. Robert Vance' },
       { name: 'email', required: true, type: 'Email', description: 'Faculty email address (used for portal login)', example: 'robert.vance@college.edu' },
       { name: 'department_code', required: true, type: 'Text', description: 'Department code (must exist in system)', example: 'IT' },
       { name: 'designation_name', required: false, type: 'Text', description: 'Faculty designation (must exist in system)', example: 'Professor & HOD' },
       { name: 'mobile', required: false, type: 'Text', description: 'Mobile phone number', example: '+91 9876543210' },
-      { name: 'joining_date', required: false, type: 'Date', description: 'Joining date (YYYY-MM-DD)', example: '2018-06-15' },
       { name: 'status', required: false, type: 'Enum', description: 'ACTIVE or INACTIVE (Default: ACTIVE)', example: 'ACTIVE' },
     ],
   },
@@ -201,7 +199,7 @@ const FALLBACK_DATASETS: DatasetDefinition[] = [
     excluded_columns: ['id', 'subject_id', 'faculty_id', 'batch_id', 'division_id', 'section_id', 'academic_year_id', 'semester_id', 'created_at', 'updated_at'],
     columns: [
       { name: 'subject_code', required: true, type: 'Text', description: 'Subject code', example: 'IT701' },
-      { name: 'employee_code', required: true, type: 'Text', description: 'Faculty employee code', example: 'FAC001' },
+      { name: 'faculty_email', required: true, type: 'Email', description: 'Faculty email address', example: 'robert.vance@college.edu' },
       { name: 'batch_title', required: true, type: 'Text', description: 'Batch title', example: '2023-2027 B.Tech IT' },
       { name: 'year_code', required: true, type: 'Text', description: 'Academic year code', example: '2026-2027' },
       { name: 'semester_no', required: true, type: 'Number', description: 'Semester number (1-8)', example: '7' },
@@ -234,7 +232,6 @@ const FALLBACK_DATASETS: DatasetDefinition[] = [
     dependencies: [],
     excluded_columns: ['id'],
     columns: [
-      { name: 'category_code', required: true, type: 'Text', description: 'Unique category code', example: 'TEACHING_DELIVERY' },
       { name: 'category_name', required: true, type: 'Text', description: 'Category display title', example: 'Teaching & Pedagogy Delivery' },
       { name: 'display_order', required: false, type: 'Number', description: 'Display sequence order number', example: '1' },
     ],

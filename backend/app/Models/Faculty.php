@@ -29,27 +29,13 @@ class Faculty extends Model
      */
     protected $fillable = [
         'user_account_id',
-        'employee_code',
         'full_name',
         'email',
         'mobile',
         'department_id',
         'designation_id',
-        'joining_date',
         'status',
     ];
-
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-            'joining_date' => 'date',
-        ];
-    }
 
     /**
      * Get the user account associated with this faculty member.

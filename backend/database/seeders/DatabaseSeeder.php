@@ -88,12 +88,10 @@ class DatabaseSeeder extends Seeder
                 ['email' => 'dr.smith@college.edu'],
                 [
                     'user_account_id' => $fac1User->id,
-                    'employee_code' => 'EMP-IT-001',
                     'full_name' => 'Dr. John Smith',
                     'mobile' => '9876543210',
                     'department_id' => $itDept->id,
                     'designation_id' => $profDesig->id,
-                    'joining_date' => '2018-06-01',
                     'status' => 'ACTIVE',
                 ]
             );
@@ -110,12 +108,10 @@ class DatabaseSeeder extends Seeder
                 ['email' => 'prof.jones@college.edu'],
                 [
                     'user_account_id' => $fac2User->id,
-                    'employee_code' => 'EMP-IT-002',
                     'full_name' => 'Prof. Sarah Jones',
                     'mobile' => '9876543211',
                     'department_id' => $itDept->id,
                     'designation_id' => $assocDesig->id,
-                    'joining_date' => '2020-01-15',
                     'status' => 'ACTIVE',
                 ]
             );
@@ -164,6 +160,37 @@ class DatabaseSeeder extends Seeder
 
             $secA1 = Section::firstOrCreate(
                 ['division_id' => $div1->id, 'section_code' => 'A1'],
+                ['status' => 'ACTIVE']
+            );
+
+            // Standard Template Cohort (2023-2027 B.Tech IT)
+            $batch2023 = Batch::firstOrCreate(
+                ['department_id' => $itDept->id, 'batch_title' => '2023-2027 B.Tech IT'],
+                [
+                    'program_name' => 'B.Tech IT',
+                    'admission_year' => 2023,
+                    'graduation_year' => 2027,
+                    'current_semester_id' => $sem7->id,
+                    'status' => 'ACTIVE',
+                ]
+            );
+
+            $divIT1 = Division::firstOrCreate(
+                ['batch_id' => $batch2023->id, 'division_code' => 'IT-1'],
+                [
+                    'department_id' => $itDept->id,
+                    'semester_id' => $sem7->id,
+                    'status' => 'ACTIVE',
+                ]
+            );
+
+            Section::firstOrCreate(
+                ['division_id' => $divIT1->id, 'section_code' => 'A'],
+                ['status' => 'ACTIVE']
+            );
+
+            Section::firstOrCreate(
+                ['division_id' => $divIT1->id, 'section_code' => 'B'],
                 ['status' => 'ACTIVE']
             );
 
@@ -248,12 +275,12 @@ class DatabaseSeeder extends Seeder
 
             // 11. Feedback Form & Questions
             $catPunctuality = FeedbackQuestionCategory::firstOrCreate(
-                ['category_code' => 'PUNCTUALITY'],
-                ['category_name' => 'Punctuality & Discipline', 'display_order' => 1]
+                ['category_name' => 'Punctuality & Discipline'],
+                ['display_order' => 1]
             );
             $catClarity = FeedbackQuestionCategory::firstOrCreate(
-                ['category_code' => 'CLARITY_OF_TEACHING'],
-                ['category_name' => 'Clarity of Teaching', 'display_order' => 2]
+                ['category_name' => 'Clarity of Teaching'],
+                ['display_order' => 2]
             );
 
             $form = FeedbackForm::firstOrCreate(

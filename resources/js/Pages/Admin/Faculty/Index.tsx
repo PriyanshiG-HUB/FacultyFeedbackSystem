@@ -57,7 +57,6 @@ export default function Index({
   // Form State
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [employeeCode, setEmployeeCode] = useState('');
   const [selectedDeptId, setSelectedDeptId] = useState<number | ''>('');
   const [selectedDesignationId, setSelectedDesignationId] = useState<number | ''>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -136,7 +135,6 @@ export default function Index({
   const handleOpenAddModal = () => {
     setName('');
     setEmail('');
-    setEmployeeCode('');
     setFormError('');
     setFieldErrors({});
     if (departments.length > 0) {
@@ -164,9 +162,6 @@ export default function Index({
         designation_id: Number(selectedDesignationId),
         status: 'ACTIVE',
       };
-      if (employeeCode.trim()) {
-        payload.employee_code = employeeCode.trim();
-      }
 
       await api.post('/faculty', payload);
       await fetchFacultyAndMetadata();
@@ -462,13 +457,6 @@ export default function Index({
             onChange={(e) => setEmail(e.target.value)}
             error={fieldErrors.email?.[0]}
             required
-          />
-          <Input
-            label="Employee Code (Optional)"
-            placeholder="e.g. EMP-IT-005"
-            value={employeeCode}
-            onChange={(e) => setEmployeeCode(e.target.value.toUpperCase())}
-            error={fieldErrors.employee_code?.[0]}
           />
           <Select
             label="Department Assignment"

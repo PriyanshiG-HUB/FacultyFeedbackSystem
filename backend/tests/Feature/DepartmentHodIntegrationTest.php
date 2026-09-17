@@ -44,8 +44,6 @@ class DepartmentHodIntegrationTest extends TestCase
             'designation_id' => $designation->id,
             'full_name' => 'Dr. Test '.uniqid(),
             'email' => $facultyUser->email,
-            'employee_code' => 'EMP'.uniqid(),
-            'joining_date' => '2023-01-01',
             'status' => 'ACTIVE'
         ]);
     }

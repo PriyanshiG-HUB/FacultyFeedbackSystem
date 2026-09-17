@@ -34,7 +34,6 @@ class FeedbackQuestionCategory extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'category_code',
         'category_name',
         'display_order',
     ];

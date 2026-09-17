@@ -75,13 +75,11 @@ CREATE TABLE department (
 CREATE TABLE faculty (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     user_account_id BIGINT UNSIGNED NULL UNIQUE,
-    employee_code VARCHAR(50) NULL UNIQUE,
     full_name VARCHAR(200) NOT NULL,
     email VARCHAR(200) NOT NULL UNIQUE,
     mobile VARCHAR(30) NULL,
     department_id BIGINT UNSIGNED NOT NULL,
     designation_id BIGINT UNSIGNED NULL,
-    joining_date DATE NULL,
     status ENUM('ACTIVE','INACTIVE') NOT NULL DEFAULT 'ACTIVE',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -475,8 +473,7 @@ DELIMITER ;
 
 CREATE TABLE feedback_question_category (
     id TINYINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    category_code VARCHAR(40) NOT NULL UNIQUE,
-    category_name VARCHAR(100) NOT NULL,
+    category_name VARCHAR(100) NOT NULL UNIQUE,
     display_order TINYINT UNSIGNED NOT NULL DEFAULT 1
 ) ENGINE=InnoDB;
 
@@ -678,11 +675,11 @@ INSERT INTO department (department_code, department_name) VALUES
 ('ECE','Electronics & Communication'),
 ('ME','Mechanical Engineering');
 
-INSERT INTO feedback_question_category (category_code, category_name, display_order) VALUES
-('PUNCTUALITY','Punctuality & Discipline',1),
-('SUBJECT_KNOWLEDGE','Subject Knowledge & Depth',2),
-('CLARITY_OF_TEACHING','Clarity of Teaching',3),
-('STUDY_MATERIAL','Study Material / Practical Guidance',4);
+INSERT INTO feedback_question_category (category_name, display_order) VALUES
+('Punctuality & Discipline',1),
+('Subject Knowledge & Depth',2),
+('Clarity of Teaching',3),
+('Study Material / Practical Guidance',4);
 
 INSERT INTO system_settings (department_id, min_responses_threshold, window_start_date, window_end_date)
 VALUES (NULL, 10, '2026-08-01', '2026-08-31');
@@ -711,7 +708,6 @@ CREATE OR REPLACE VIEW vw_subject_category_scores AS
 SELECT
     sub.id AS subject_id,
     sub.subject_code,
-    fqc.category_code,
     fqc.category_name,
     ROUND(AVG(fa.rating_value), 2) AS average_rating
 FROM feedback_answer fa
@@ -721,7 +717,7 @@ JOIN feedback_response fr ON fr.id = fa.response_id AND fr.is_excluded = FALSE
 JOIN feedback_form ff ON ff.id = fr.feedback_form_id
 JOIN teaching_assignment ta ON ta.id = ff.teaching_assignment_id
 JOIN subject sub ON sub.id = ta.subject_id
-GROUP BY sub.id, sub.subject_code, fqc.category_code, fqc.category_name;
+GROUP BY sub.id, sub.subject_code, fqc.category_name;
 
 CREATE OR REPLACE VIEW vw_faculty_rating_summary AS
 SELECT

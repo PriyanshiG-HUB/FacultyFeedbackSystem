@@ -11,7 +11,6 @@ class FeedbackQuestionCategoryResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'category_code' => $this->category_code,
             'category_name' => $this->category_name,
             'display_order' => $this->display_order,
         ];
