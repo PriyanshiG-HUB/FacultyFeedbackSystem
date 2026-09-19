@@ -119,9 +119,23 @@ export function buildApiUrl(endpoint: string): { url: string; isExternal: boolea
 
 export async function apiRequest<T = any>(
   endpoint: string,
-  options: RequestInit & { timeoutMs?: number } = {}
+  options: RequestInit & { timeoutMs?: number; params?: Record<string, any> } = {}
 ): Promise<T> {
-  const { url, isExternal } = buildApiUrl(endpoint);
+  let { url, isExternal } = buildApiUrl(endpoint);
+
+  if (options.params) {
+    const searchParams = new URLSearchParams();
+    Object.entries(options.params).forEach(([key, val]) => {
+      if (val !== undefined && val !== null && val !== '') {
+        searchParams.append(key, String(val));
+      }
+    });
+    const queryString = searchParams.toString();
+    if (queryString) {
+      url += (url.includes('?') ? '&' : '?') + queryString;
+    }
+  }
+
   const token = getAuthToken();
 
   const headers: Record<string, string> = {
@@ -201,7 +215,7 @@ export async function apiRequest<T = any>(
 }
 
 export const api = {
-  get: <T = any>(endpoint: string, options?: RequestInit) =>
+  get: <T = any>(endpoint: string, options?: RequestInit & { timeoutMs?: number; params?: Record<string, any> }) =>
     apiRequest<T>(endpoint, { method: 'GET', ...options }),
   post: <T = any>(endpoint: string, body?: any, options?: RequestInit) =>
     apiRequest<T>(endpoint, { method: 'POST', body: body ? JSON.stringify(body) : undefined, ...options }),

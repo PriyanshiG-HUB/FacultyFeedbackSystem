@@ -18,6 +18,7 @@ import AdminSessionAssignmentsIndex from '../Pages/Admin/SessionAssignments/Inde
 import AdminFeedbackImportIndex from '../Pages/Admin/FeedbackImport/Index';
 import AdminAnalyticsIndex from '../Pages/Admin/Analytics/Index';
 import AdminReportsIndex from '../Pages/Admin/Reports/Index';
+import AdminFacultyReportsIndex from '../Pages/Admin/FacultyReports/Index';
 import AdminCriticalCommentsIndex from '../Pages/Admin/CriticalComments/Index';
 import AdminSettingsIndex from '../Pages/Admin/Settings/Index';
 import AdminPublishForm from '../Pages/Admin/Feedback/PublishForm';
@@ -51,6 +52,7 @@ const componentRegistry: Record<string, React.ComponentType<any>> = {
   'Admin/FeedbackImport/Index': AdminFeedbackImportIndex,
   'Admin/Analytics/Index': AdminAnalyticsIndex,
   'Admin/Reports/Index': AdminReportsIndex,
+  'Admin/FacultyReports/Index': AdminFacultyReportsIndex,
   'Admin/CriticalComments/Index': AdminCriticalCommentsIndex,
   'Admin/Settings/Index': AdminSettingsIndex,
   'Admin/Feedback/PublishForm': AdminPublishForm,

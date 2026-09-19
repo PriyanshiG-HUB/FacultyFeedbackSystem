@@ -353,6 +353,7 @@ export interface ValidationReport {
     isValid: boolean;
     status: string;
   }[];
+  valid_rows?: Record<string, any>[];
   raw_rows?: Record<string, any>[];
   message?: string;
 }

@@ -12,6 +12,7 @@ import {
   UploadCloud,
   BarChart3,
   FileText,
+  UserCheck,
   AlertTriangle,
   Settings,
   GraduationCap as StudentIcon,
@@ -34,6 +35,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath, isCollapsed = fal
         { name: 'Dashboard', href: '#Admin/Dashboard', icon: LayoutDashboard },
         { name: 'Analytics', href: '#Admin/Analytics/Index', icon: BarChart3 },
         { name: 'Reports', href: '#Admin/Reports/Index', icon: FileText },
+        { name: 'Faculty Reports', href: '#Admin/FacultyReports/Index', icon: UserCheck },
       ],
     },
     {

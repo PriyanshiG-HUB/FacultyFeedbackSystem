@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\DesignationController;
 use App\Http\Controllers\Api\DivisionController;
 use App\Http\Controllers\Api\FacultyController;
 use App\Http\Controllers\Api\FacultyDashboardController;
+use App\Http\Controllers\Api\FacultyReportController;
 use App\Http\Controllers\Api\FeedbackFormController;
 use App\Http\Controllers\Api\FeedbackModerationController;
 use App\Http\Controllers\Api\FeedbackQuestionCategoryController;
@@ -124,6 +125,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Reporting, System Settings & Import Logging
         Route::apiResource('reports', ReportController::class);
+        Route::middleware(CheckRole::class . ':ADMIN,SUPER_ADMIN,FACULTY')->group(function () {
+            Route::get('/faculty-reports/faculty-list', [FacultyReportController::class, 'getFacultyList']);
+            Route::get('/faculty-reports/assignments', [FacultyReportController::class, 'getFacultyAssignments']);
+            Route::get('/faculty-reports/report', [FacultyReportController::class, 'generateReport']);
+        });
         Route::get('/system-settings', [SystemSettingsController::class, 'show']);
         Route::put('/system-settings/{systemSettings}', [SystemSettingsController::class, 'update']);
         Route::put('/system-settings', [SystemSettingsController::class, 'update']);
