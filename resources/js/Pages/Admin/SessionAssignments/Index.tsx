@@ -87,6 +87,7 @@ export default function Index({
           sectionName: ta.section?.section_code || 'All Sections',
           semester: ta.semester?.semester_no || ta.semester_id || 5,
           department: ta.batch?.department?.department_name || ta.subject?.department?.department_name || '',
+          departmentCode: ta.batch?.department?.department_code || ta.subject?.department?.department_code || '',
         }));
         setAssignmentList(mapped);
       }
@@ -189,14 +190,24 @@ export default function Index({
     }
   };
 
-  const filteredAssignments = assignmentList.filter((a) => {
+  const filteredAssignments = assignmentList.filter((a: any) => {
     if (!isAdministrator && assignedDepartmentCode) {
       const targetName = getDepartmentName(assignedDepartmentCode).toLowerCase();
-      return (a.department || '').toLowerCase().includes(targetName) || targetName.includes((a.department || '').toLowerCase());
+      const targetCode = assignedDepartmentCode.toLowerCase();
+      return (
+        (a.department || '').toLowerCase().includes(targetName) ||
+        targetName.includes((a.department || '').toLowerCase()) ||
+        (a.departmentCode || '').toLowerCase() === targetCode
+      );
     }
     if (isAdministrator && deptFilter !== 'ALL') {
       const targetDept = departments.find((d) => d.department_code === deptFilter)?.department_name || getDepartmentName(deptFilter);
-      return (a.department || '').toLowerCase().includes(targetDept.toLowerCase()) || targetDept.toLowerCase().includes((a.department || '').toLowerCase());
+      const targetCode = deptFilter.toLowerCase();
+      return (
+        (a.department || '').toLowerCase().includes(targetDept.toLowerCase()) ||
+        targetDept.toLowerCase().includes((a.department || '').toLowerCase()) ||
+        (a.departmentCode || '').toLowerCase() === targetCode
+      );
     }
     return true;
   });

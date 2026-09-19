@@ -18,9 +18,9 @@ class TeachingAssignmentController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = TeachingAssignment::with([
-            'subject',
+            'subject.department',
             'faculty',
-            'batch',
+            'batch.department',
             'division',
             'section',
             'academicYear',

@@ -337,7 +337,9 @@ export default function Index({ recentImports }: FeedbackImportIndexProps) {
   const parseCsvText = (text: string) => {
     const lines = text.split(/\r\n|\n/).filter((l) => l.trim().length > 0);
     if (lines.length === 0) return [];
-    const headers = lines[0].split(',').map((h) => h.trim().replace(/^["']|["']$/g, '').toLowerCase());
+    const headers = lines[0].split(',').map((h) => 
+      h.trim().replace(/^["']|["']$/g, '').toLowerCase().replace(/[\s-]+/g, '_').replace(/[^a-z0-9_]/g, '')
+    );
     
     const rows: Record<string, string>[] = [];
     for (let i = 1; i < lines.length; i++) {
@@ -438,7 +440,7 @@ export default function Index({ recentImports }: FeedbackImportIndexProps) {
     setImportResult(null);
 
     try {
-      const validRowsToImport = validationReport.raw_rows || validationReport.preview_rows.filter((p) => p.isValid).map((p) => p.data);
+      const validRowsToImport = validationReport.valid_rows || validationReport.preview_rows.filter((p) => p.isValid).map((p) => p.data);
 
       const { api } = await import('../../../lib/api');
       const res = await api.post('/data-imports/execute', {

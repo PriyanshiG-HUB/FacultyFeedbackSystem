@@ -20,670 +20,395 @@ use App\Models\TeachingAssignment;
 use App\Models\UserAccount;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Throwable;
 
 class DatasetImportRegistry
 {
-    /**
-     * Get definitions for all 13 importable system datasets.
-     */
     public static function getDatasets(): array
     {
         return [
             'department' => [
                 'key' => 'department',
                 'name' => 'Departments',
-                'description' => 'Import academic departments and departmental details.',
+                'title' => 'Departments',
+                'description' => 'Import academic departments',
                 'table' => 'department',
-                'model' => Department::class,
                 'dependencies' => [],
-                'dependency_notice' => null,
-                'excluded_columns' => ['id', 'created_at', 'updated_at', 'hod_faculty_id'],
-                'columns' => [
-                    ['name' => 'department_code', 'required' => true, 'type' => 'Text', 'description' => 'Unique short department code (e.g. IT, CE, CSE)', 'example' => 'IT'],
-                    ['name' => 'department_name', 'required' => true, 'type' => 'Text', 'description' => 'Full official department name', 'example' => 'Information Technology'],
-                    ['name' => 'status', 'required' => false, 'type' => 'Enum', 'description' => 'ACTIVE or INACTIVE (Default: ACTIVE)', 'example' => 'ACTIVE'],
-                ],
-                'sample_rows' => [
-                    ['department_code' => 'IT', 'department_name' => 'Information Technology', 'status' => 'ACTIVE'],
-                    ['department_code' => 'CE', 'department_name' => 'Computer Engineering', 'status' => 'ACTIVE'],
-                ],
+                'excluded_columns' => ['id', 'created_at', 'updated_at'],
+                'columns' => ['department_code', 'department_name', 'status'],
+                'headers' => ['department_code', 'department_name', 'status'],
+                'required' => ['department_code', 'department_name'],
+                'sample' => ['department_code' => 'CSE', 'department_name' => 'Computer Science & Engineering', 'status' => 'ACTIVE'],
             ],
-
-            'designation' => [
-                'key' => 'designation',
-                'name' => 'Designations',
-                'description' => 'Import faculty academic designations and positions.',
-                'table' => 'designation',
-                'model' => Designation::class,
-                'dependencies' => [],
-                'dependency_notice' => null,
-                'excluded_columns' => ['id'],
-                'columns' => [
-                    ['name' => 'designation_name', 'required' => true, 'type' => 'Text', 'description' => 'Faculty rank or title', 'example' => 'Assistant Professor'],
-                    ['name' => 'status', 'required' => false, 'type' => 'Enum', 'description' => 'ACTIVE or INACTIVE (Default: ACTIVE)', 'example' => 'ACTIVE'],
-                ],
-                'sample_rows' => [
-                    ['designation_name' => 'Assistant Professor', 'status' => 'ACTIVE'],
-                    ['designation_name' => 'Associate Professor', 'status' => 'ACTIVE'],
-                    ['designation_name' => 'Professor & HOD', 'status' => 'ACTIVE'],
-                ],
-            ],
-
-            'academic_year' => [
-                'key' => 'academic_year',
-                'name' => 'Academic Years',
-                'description' => 'Import academic calendar session terms.',
-                'table' => 'academic_year',
-                'model' => AcademicYear::class,
-                'dependencies' => [],
-                'dependency_notice' => null,
-                'excluded_columns' => ['id'],
-                'columns' => [
-                    ['name' => 'year_code', 'required' => true, 'type' => 'Text', 'description' => 'Unique academic year identifier (e.g. 2026-2027)', 'example' => '2026-2027'],
-                    ['name' => 'start_date', 'required' => false, 'type' => 'Date', 'description' => 'Start date (YYYY-MM-DD)', 'example' => '2026-07-01'],
-                    ['name' => 'end_date', 'required' => false, 'type' => 'Date', 'description' => 'End date (YYYY-MM-DD)', 'example' => '2027-06-30'],
-                    ['name' => 'status', 'required' => false, 'type' => 'Enum', 'description' => 'PLANNED, ACTIVE, or CLOSED (Default: PLANNED)', 'example' => 'ACTIVE'],
-                ],
-                'sample_rows' => [
-                    ['year_code' => '2026-2027', 'start_date' => '2026-07-01', 'end_date' => '2027-06-30', 'status' => 'ACTIVE'],
-                    ['year_code' => '2027-2028', 'start_date' => '2027-07-01', 'end_date' => '2028-06-30', 'status' => 'PLANNED'],
-                ],
-            ],
-
-            'faculty' => [
-                'key' => 'faculty',
-                'name' => 'Faculty',
-                'description' => 'Import faculty members and their departmental affiliations.',
-                'table' => 'faculty',
-                'model' => Faculty::class,
-                'dependencies' => ['Departments', 'Designations'],
-                'dependency_notice' => 'Before importing Faculty: Make sure the required Departments and Designations already exist in the system.',
-                'excluded_columns' => ['id', 'user_account_id', 'department_id', 'designation_id', 'created_at', 'updated_at'],
-                'columns' => [
-                    ['name' => 'full_name', 'required' => true, 'type' => 'Text', 'description' => 'Full name of faculty member', 'example' => 'Dr. Robert Vance'],
-                    ['name' => 'email', 'required' => true, 'type' => 'Email', 'description' => 'Faculty email address (used for portal login)', 'example' => 'robert.vance@college.edu'],
-                    ['name' => 'department_code', 'required' => true, 'type' => 'Text', 'description' => 'Department code (must exist in system)', 'example' => 'IT'],
-                    ['name' => 'designation_name', 'required' => false, 'type' => 'Text', 'description' => 'Faculty designation (must exist in system)', 'example' => 'Professor & HOD'],
-                    ['name' => 'mobile', 'required' => false, 'type' => 'Text', 'description' => 'Mobile phone number', 'example' => '+91 9876543210'],
-                    ['name' => 'status', 'required' => false, 'type' => 'Enum', 'description' => 'ACTIVE or INACTIVE (Default: ACTIVE)', 'example' => 'ACTIVE'],
-                ],
-                'sample_rows' => [
-                    ['full_name' => 'Dr. Robert Vance', 'email' => 'robert.vance@college.edu', 'department_code' => 'IT', 'designation_name' => 'Professor & HOD', 'mobile' => '9876543210', 'status' => 'ACTIVE'],
-                    ['full_name' => 'Prof. Sarah Jenkins', 'email' => 'sarah.jenkins@college.edu', 'department_code' => 'IT', 'designation_name' => 'Assistant Professor', 'mobile' => '9876543211', 'status' => 'ACTIVE'],
-                ],
-            ],
-
             'batch' => [
                 'key' => 'batch',
                 'name' => 'Batches',
-                'description' => 'Import student academic program cohorts / batches.',
+                'title' => 'Batches',
+                'description' => 'Import graduation batches',
                 'table' => 'batch',
-                'model' => Batch::class,
-                'dependencies' => ['Departments', 'Semesters'],
-                'dependency_notice' => 'Before importing Batches: Make sure the target Departments already exist in the system.',
-                'excluded_columns' => ['id', 'department_id', 'current_semester_id', 'created_at', 'updated_at'],
-                'columns' => [
-                    ['name' => 'department_code', 'required' => true, 'type' => 'Text', 'description' => 'Department code', 'example' => 'IT'],
-                    ['name' => 'program_name', 'required' => true, 'type' => 'Text', 'description' => 'Degree program name (e.g. B.Tech)', 'example' => 'B.Tech IT'],
-                    ['name' => 'batch_title', 'required' => true, 'type' => 'Text', 'description' => 'Unique title for cohort', 'example' => '2023-2027 B.Tech IT'],
-                    ['name' => 'admission_year', 'required' => true, 'type' => 'Number', 'description' => 'Year of admission (e.g. 2023)', 'example' => '2023'],
-                    ['name' => 'graduation_year', 'required' => true, 'type' => 'Number', 'description' => 'Expected graduation year (e.g. 2027)', 'example' => '2027'],
-                    ['name' => 'current_semester_no', 'required' => false, 'type' => 'Number', 'description' => 'Current active semester number (1-8)', 'example' => '7'],
-                    ['name' => 'status', 'required' => false, 'type' => 'Enum', 'description' => 'ACTIVE, GRADUATED, or DISCONTINUED', 'example' => 'ACTIVE'],
-                ],
-                'sample_rows' => [
-                    ['department_code' => 'IT', 'program_name' => 'B.Tech IT', 'batch_title' => '2023-2027 B.Tech IT', 'admission_year' => '2023', 'graduation_year' => '2027', 'current_semester_no' => '7', 'status' => 'ACTIVE'],
-                    ['department_code' => 'CE', 'program_name' => 'B.Tech CE', 'batch_title' => '2023-2027 B.Tech CE', 'admission_year' => '2023', 'graduation_year' => '2027', 'current_semester_no' => '7', 'status' => 'ACTIVE'],
-                ],
+                'dependencies' => ['department'],
+                'excluded_columns' => ['id', 'created_at', 'updated_at'],
+                'columns' => ['batch_title', 'department_code', 'start_year', 'end_year', 'current_semester_no', 'status'],
+                'headers' => ['batch_title', 'department_code', 'start_year', 'end_year', 'current_semester_no', 'status'],
+                'required' => ['batch_title', 'department_code'],
+                'sample' => ['batch_title' => '2024-2028', 'department_code' => 'CSE', 'start_year' => '2024', 'end_year' => '2028', 'current_semester_no' => '1', 'status' => 'ACTIVE'],
             ],
-
+            'academic_year' => [
+                'key' => 'academic_year',
+                'name' => 'Academic Years',
+                'title' => 'Academic Years',
+                'description' => 'Import academic years',
+                'table' => 'academic_year',
+                'dependencies' => [],
+                'excluded_columns' => ['id', 'created_at', 'updated_at'],
+                'columns' => ['year_code', 'title', 'start_date', 'end_date', 'is_current', 'status'],
+                'headers' => ['year_code', 'title', 'start_date', 'end_date', 'is_current', 'status'],
+                'required' => ['year_code'],
+                'sample' => ['year_code' => '2024-2025', 'title' => 'Academic Year 2024-2025', 'start_date' => '2024-07-01', 'end_date' => '2025-06-30', 'is_current' => '1', 'status' => 'ACTIVE'],
+            ],
+            'semester' => [
+                'key' => 'semester',
+                'name' => 'Semesters',
+                'title' => 'Semesters',
+                'description' => 'Import academic semesters',
+                'table' => 'semester',
+                'dependencies' => [],
+                'excluded_columns' => [],
+                'columns' => ['semester_no', 'term'],
+                'headers' => ['semester_no', 'term'],
+                'required' => ['semester_no'],
+                'sample' => ['semester_no' => '1', 'term' => 'ODD'],
+            ],
             'division' => [
                 'key' => 'division',
                 'name' => 'Divisions',
-                'description' => 'Import class divisions for student cohorts.',
+                'title' => 'Divisions',
+                'description' => 'Import class divisions',
                 'table' => 'division',
-                'model' => Division::class,
-                'dependencies' => ['Departments', 'Batches', 'Semesters'],
-                'dependency_notice' => 'Before importing Divisions: Make sure the required Departments and Batches exist.',
-                'excluded_columns' => ['id', 'department_id', 'batch_id', 'semester_id'],
-                'columns' => [
-                    ['name' => 'department_code', 'required' => true, 'type' => 'Text', 'description' => 'Department code', 'example' => 'IT'],
-                    ['name' => 'batch_title', 'required' => true, 'type' => 'Text', 'description' => 'Batch title', 'example' => '2023-2027 B.Tech IT'],
-                    ['name' => 'semester_no', 'required' => true, 'type' => 'Number', 'description' => 'Semester number (1-8)', 'example' => '7'],
-                    ['name' => 'division_code', 'required' => true, 'type' => 'Text', 'description' => 'Division identifier (e.g. IT-1, Div-A)', 'example' => 'IT-1'],
-                    ['name' => 'status', 'required' => false, 'type' => 'Enum', 'description' => 'ACTIVE or INACTIVE', 'example' => 'ACTIVE'],
-                ],
-                'sample_rows' => [
-                    ['department_code' => 'IT', 'batch_title' => '2023-2027 B.Tech IT', 'semester_no' => '7', 'division_code' => 'IT-1', 'status' => 'ACTIVE'],
-                    ['department_code' => 'IT', 'batch_title' => '2023-2027 B.Tech IT', 'semester_no' => '7', 'division_code' => 'IT-2', 'status' => 'ACTIVE'],
-                ],
+                'dependencies' => ['batch', 'department'],
+                'excluded_columns' => ['id', 'created_at', 'updated_at'],
+                'columns' => ['division_code', 'batch_title', 'department_code', 'semester_no', 'status'],
+                'headers' => ['division_code', 'batch_title', 'department_code', 'semester_no', 'status'],
+                'required' => ['division_code', 'batch_title', 'department_code'],
+                'sample' => ['division_code' => 'A', 'batch_title' => '2024-2028', 'department_code' => 'CSE', 'semester_no' => '1', 'status' => 'ACTIVE'],
             ],
-
             'section' => [
                 'key' => 'section',
                 'name' => 'Sections',
-                'description' => 'Import division sections or practical lab batches.',
+                'title' => 'Sections',
+                'description' => 'Import division sections',
                 'table' => 'section',
-                'model' => Section::class,
-                'dependencies' => ['Divisions'],
-                'dependency_notice' => 'Before importing Sections: Make sure the parent Divisions already exist.',
-                'excluded_columns' => ['id', 'division_id'],
-                'columns' => [
-                    ['name' => 'division_code', 'required' => true, 'type' => 'Text', 'description' => 'Parent division code (e.g. IT-1)', 'example' => 'IT-1'],
-                    ['name' => 'batch_title', 'required' => true, 'type' => 'Text', 'description' => 'Batch title for division lookup', 'example' => '2023-2027 B.Tech IT'],
-                    ['name' => 'section_code', 'required' => true, 'type' => 'Text', 'description' => 'Section code (e.g. A, B, Sec-1)', 'example' => 'A'],
-                    ['name' => 'status', 'required' => false, 'type' => 'Enum', 'description' => 'ACTIVE or INACTIVE', 'example' => 'ACTIVE'],
-                ],
-                'sample_rows' => [
-                    ['division_code' => 'IT-1', 'batch_title' => '2023-2027 B.Tech IT', 'section_code' => 'A', 'status' => 'ACTIVE'],
-                    ['division_code' => 'IT-1', 'batch_title' => '2023-2027 B.Tech IT', 'section_code' => 'B', 'status' => 'ACTIVE'],
-                ],
+                'dependencies' => ['division'],
+                'excluded_columns' => ['id', 'created_at', 'updated_at'],
+                'columns' => ['section_code', 'division_code', 'batch_title', 'status'],
+                'headers' => ['section_code', 'division_code', 'batch_title', 'status'],
+                'required' => ['section_code', 'division_code', 'batch_title'],
+                'sample' => ['section_code' => 'S1', 'division_code' => 'A', 'batch_title' => '2024-2028', 'status' => 'ACTIVE'],
             ],
-
+            'faculty' => [
+                'key' => 'faculty',
+                'name' => 'Faculty Members',
+                'title' => 'Faculty Members',
+                'description' => 'Import faculty profiles',
+                'table' => 'faculty',
+                'dependencies' => ['department'],
+                'excluded_columns' => ['id', 'user_account_id', 'created_at', 'updated_at'],
+                'columns' => ['full_name', 'email', 'mobile', 'department_code', 'designation', 'status'],
+                'headers' => ['full_name', 'email', 'mobile', 'department_code', 'designation', 'status'],
+                'required' => ['full_name', 'email', 'department_code'],
+                'sample' => ['full_name' => 'Dr. Jane Smith', 'email' => 'jane.smith@college.edu', 'mobile' => '9876543210', 'department_code' => 'CSE', 'designation' => 'Professor', 'status' => 'ACTIVE'],
+            ],
             'student' => [
                 'key' => 'student',
                 'name' => 'Students',
-                'description' => 'Import student rosters with complete cohort hierarchy.',
+                'title' => 'Students',
+                'description' => 'Import student rosters',
                 'table' => 'student',
-                'model' => Student::class,
-                'dependencies' => ['Departments', 'Batches', 'Divisions', 'Sections'],
-                'dependency_notice' => 'Before importing Students: Make sure the required Departments, Batches, Divisions, and Sections exist in the system.',
-                'excluded_columns' => ['id', 'user_account_id', 'department_id', 'batch_id', 'division_id', 'section_id', 'created_at', 'updated_at'],
-                'columns' => [
-                    ['name' => 'roll_no', 'required' => true, 'type' => 'Text', 'description' => 'Unique student roll number', 'example' => '22IT001'],
-                    ['name' => 'full_name', 'required' => true, 'type' => 'Text', 'description' => 'Full name of student', 'example' => 'Alexander Wright'],
-                    ['name' => 'department_code', 'required' => true, 'type' => 'Text', 'description' => 'Department code', 'example' => 'IT'],
-                    ['name' => 'batch_title', 'required' => true, 'type' => 'Text', 'description' => 'Batch title', 'example' => '2023-2027 B.Tech IT'],
-                    ['name' => 'division_code', 'required' => true, 'type' => 'Text', 'description' => 'Division code', 'example' => 'IT-1'],
-                    ['name' => 'section_code', 'required' => true, 'type' => 'Text', 'description' => 'Section code', 'example' => 'A'],
-                    ['name' => 'enrollment_no', 'required' => false, 'type' => 'Text', 'description' => 'University enrollment number', 'example' => 'EN2022001'],
-                    ['name' => 'email', 'required' => false, 'type' => 'Email', 'description' => 'Student email address', 'example' => '22it001@student.college.edu'],
-                    ['name' => 'mobile', 'required' => false, 'type' => 'Text', 'description' => 'Mobile number', 'example' => '+91 9876500001'],
-                    ['name' => 'status', 'required' => false, 'type' => 'Enum', 'description' => 'ACTIVE, INACTIVE, GRADUATED, or WITHDRAWN', 'example' => 'ACTIVE'],
-                ],
-                'sample_rows' => [
-                    ['roll_no' => '22IT001', 'full_name' => 'Alexander Wright', 'department_code' => 'IT', 'batch_title' => '2023-2027 B.Tech IT', 'division_code' => 'IT-1', 'section_code' => 'A', 'enrollment_no' => 'EN2022001', 'email' => '22it001@student.college.edu', 'mobile' => '9876500001', 'status' => 'ACTIVE'],
-                    ['roll_no' => '22IT002', 'full_name' => 'Sophia Martinez', 'department_code' => 'IT', 'batch_title' => '2023-2027 B.Tech IT', 'division_code' => 'IT-1', 'section_code' => 'A', 'enrollment_no' => 'EN2022002', 'email' => '22it002@student.college.edu', 'mobile' => '9876500002', 'status' => 'ACTIVE'],
-                ],
+                'dependencies' => ['department', 'batch'],
+                'excluded_columns' => ['id', 'user_account_id', 'created_at', 'updated_at'],
+                'columns' => ['roll_no', 'enrollment_no', 'full_name', 'email', 'mobile', 'department_code', 'batch_title', 'division_code', 'section_code', 'status'],
+                'headers' => ['roll_no', 'enrollment_no', 'full_name', 'email', 'mobile', 'department_code', 'batch_title', 'division_code', 'section_code', 'status'],
+                'required' => ['roll_no', 'full_name', 'department_code', 'batch_title'],
+                'sample' => ['roll_no' => 'CS2024001', 'enrollment_no' => 'EN2024001', 'full_name' => 'John Student', 'email' => 'john.student@college.edu', 'mobile' => '9876543211', 'department_code' => 'CSE', 'batch_title' => '2024-2028', 'division_code' => 'A', 'section_code' => 'S1', 'status' => 'ACTIVE'],
             ],
-
             'subject' => [
                 'key' => 'subject',
-                'name' => 'Subjects / Courses',
-                'description' => 'Import curriculum subjects and courses.',
+                'name' => 'Subjects',
+                'title' => 'Subjects',
+                'description' => 'Import curriculum subjects',
                 'table' => 'subject',
-                'model' => Subject::class,
-                'dependencies' => ['Departments', 'Semesters'],
-                'dependency_notice' => 'Before importing Subjects: Make sure target Departments exist.',
-                'excluded_columns' => ['id', 'department_id', 'semester_id', 'created_at', 'updated_at'],
-                'columns' => [
-                    ['name' => 'subject_code', 'required' => true, 'type' => 'Text', 'description' => 'Unique subject code (e.g. IT701)', 'example' => 'IT701'],
-                    ['name' => 'subject_name', 'required' => true, 'type' => 'Text', 'description' => 'Full subject / course name', 'example' => 'Cloud Computing & DevOps'],
-                    ['name' => 'department_code', 'required' => true, 'type' => 'Text', 'description' => 'Offering department code', 'example' => 'IT'],
-                    ['name' => 'semester_no', 'required' => true, 'type' => 'Number', 'description' => 'Semester number (1-8)', 'example' => '7'],
-                    ['name' => 'course_type', 'required' => false, 'type' => 'Enum', 'description' => 'CORE or ELECTIVE (Default: CORE)', 'example' => 'CORE'],
-                    ['name' => 'credits', 'required' => false, 'type' => 'Number', 'description' => 'Course credit weight (e.g. 4.0)', 'example' => '4.0'],
-                    ['name' => 'status', 'required' => false, 'type' => 'Enum', 'description' => 'ACTIVE or INACTIVE', 'example' => 'ACTIVE'],
-                ],
-                'sample_rows' => [
-                    ['subject_code' => 'IT701', 'subject_name' => 'Cloud Computing & DevOps', 'department_code' => 'IT', 'semester_no' => '7', 'course_type' => 'CORE', 'credits' => '4.0', 'status' => 'ACTIVE'],
-                    ['subject_code' => 'IT702', 'subject_name' => 'Information & Cyber Security', 'department_code' => 'IT', 'semester_no' => '7', 'course_type' => 'CORE', 'credits' => '4.0', 'status' => 'ACTIVE'],
-                ],
+                'dependencies' => ['department', 'semester'],
+                'excluded_columns' => ['id', 'created_at', 'updated_at'],
+                'columns' => ['subject_code', 'subject_name', 'department_code', 'semester_no', 'course_type', 'credits', 'status'],
+                'headers' => ['subject_code', 'subject_name', 'department_code', 'semester_no', 'course_type', 'credits', 'status'],
+                'required' => ['subject_code', 'subject_name', 'department_code', 'semester_no'],
+                'sample' => ['subject_code' => 'CS501', 'subject_name' => 'Data Structures', 'department_code' => 'CSE', 'semester_no' => '5', 'course_type' => 'CORE', 'credits' => '4.0', 'status' => 'ACTIVE'],
             ],
-
             'subject_offering' => [
                 'key' => 'subject_offering',
-                'name' => 'Subject Offerings (Electives)',
-                'description' => 'Import elective course offerings for student batches.',
+                'name' => 'Subject Offerings',
+                'title' => 'Subject Offerings',
+                'description' => 'Import subject offerings for academic years',
                 'table' => 'subject_offering',
-                'model' => SubjectOffering::class,
-                'dependencies' => ['Subjects', 'Batches', 'Academic Years'],
-                'dependency_notice' => 'Before importing Elective Offerings: Ensure the Subject is set as ELECTIVE and the Batch and Academic Year exist.',
-                'excluded_columns' => ['id', 'subject_id', 'batch_id', 'academic_year_id'],
-                'columns' => [
-                    ['name' => 'subject_code', 'required' => true, 'type' => 'Text', 'description' => 'Elective subject code', 'example' => 'IT705'],
-                    ['name' => 'batch_title', 'required' => true, 'type' => 'Text', 'description' => 'Target batch title', 'example' => '2023-2027 B.Tech IT'],
-                    ['name' => 'year_code', 'required' => true, 'type' => 'Text', 'description' => 'Academic year code', 'example' => '2026-2027'],
-                    ['name' => 'enrollment_capacity', 'required' => true, 'type' => 'Number', 'description' => 'Maximum student capacity', 'example' => '60'],
-                    ['name' => 'status', 'required' => false, 'type' => 'Enum', 'description' => 'OPEN or CLOSED', 'example' => 'OPEN'],
-                ],
-                'sample_rows' => [
-                    ['subject_code' => 'IT705', 'batch_title' => '2023-2027 B.Tech IT', 'year_code' => '2026-2027', 'enrollment_capacity' => '60', 'status' => 'OPEN'],
-                ],
+                'dependencies' => ['subject', 'batch', 'academic_year'],
+                'excluded_columns' => ['id', 'created_at', 'updated_at'],
+                'columns' => ['subject_code', 'batch_title', 'year_code', 'enrollment_capacity', 'status'],
+                'headers' => ['subject_code', 'batch_title', 'year_code', 'enrollment_capacity', 'status'],
+                'required' => ['subject_code', 'batch_title', 'year_code'],
+                'sample' => ['subject_code' => 'CS501', 'batch_title' => '2024-2028', 'year_code' => '2024-2025', 'enrollment_capacity' => '60', 'status' => 'OPEN'],
             ],
-
             'teaching_assignment' => [
                 'key' => 'teaching_assignment',
-                'name' => 'Faculty-Course Assignments',
-                'description' => 'Import teaching allocations mapping Faculty to Subjects and Classes.',
+                'name' => 'Teaching Assignments',
+                'title' => 'Teaching Assignments',
+                'description' => 'Import faculty session allocations and subject assignments',
                 'table' => 'teaching_assignment',
-                'model' => TeachingAssignment::class,
-                'dependencies' => ['Faculty', 'Subjects', 'Batches', 'Academic Years', 'Semesters'],
-                'dependency_notice' => 'Before importing Teaching Assignments: Make sure Faculty, Subjects, Batches, and Academic Years exist.',
-                'excluded_columns' => ['id', 'subject_id', 'faculty_id', 'batch_id', 'division_id', 'section_id', 'academic_year_id', 'semester_id', 'created_at', 'updated_at'],
-                'columns' => [
-                    ['name' => 'subject_code', 'required' => true, 'type' => 'Text', 'description' => 'Subject code', 'example' => 'IT701'],
-                    ['name' => 'faculty_email', 'required' => true, 'type' => 'Email', 'description' => 'Faculty email address', 'example' => 'robert.vance@college.edu'],
-                    ['name' => 'batch_title', 'required' => true, 'type' => 'Text', 'description' => 'Batch title', 'example' => '2023-2027 B.Tech IT'],
-                    ['name' => 'year_code', 'required' => true, 'type' => 'Text', 'description' => 'Academic year code', 'example' => '2026-2027'],
-                    ['name' => 'semester_no', 'required' => true, 'type' => 'Number', 'description' => 'Semester number (1-8)', 'example' => '7'],
-                    ['name' => 'division_code', 'required' => false, 'type' => 'Text', 'description' => 'Optional division code', 'example' => 'IT-1'],
-                    ['name' => 'section_code', 'required' => false, 'type' => 'Text', 'description' => 'Optional section code', 'example' => 'A'],
-                    ['name' => 'status', 'required' => false, 'type' => 'Enum', 'description' => 'ACTIVE or INACTIVE', 'example' => 'ACTIVE'],
-                ],
-                'sample_rows' => [
-                    ['subject_code' => 'IT701', 'faculty_email' => 'robert.vance@college.edu', 'batch_title' => '2023-2027 B.Tech IT', 'year_code' => '2026-2027', 'semester_no' => '7', 'division_code' => 'IT-1', 'section_code' => 'A', 'status' => 'ACTIVE'],
-                ],
+                'dependencies' => ['subject', 'faculty', 'batch', 'academic_year', 'semester'],
+                'excluded_columns' => ['id', 'created_at', 'updated_at'],
+                'columns' => ['subject_code', 'faculty_email', 'batch_title', 'year_code', 'semester_no', 'division_code', 'section_code', 'status'],
+                'headers' => ['subject_code', 'faculty_email', 'batch_title', 'year_code', 'semester_no', 'division_code', 'section_code', 'status'],
+                'required' => ['subject_code', 'faculty_email', 'batch_title', 'year_code', 'semester_no'],
+                'sample' => ['subject_code' => 'CS501', 'faculty_email' => 'john.doe@college.edu', 'batch_title' => '2024-2028', 'year_code' => '2024-2025', 'semester_no' => '5', 'division_code' => 'A', 'section_code' => 'S1', 'status' => 'ACTIVE'],
             ],
-
             'student_elective_enrollment' => [
                 'key' => 'student_elective_enrollment',
                 'name' => 'Student Elective Enrollments',
-                'description' => 'Import student elective course enrollments.',
+                'title' => 'Student Elective Enrollments',
+                'description' => 'Import student elective course enrollments',
                 'table' => 'student_elective_enrollment',
-                'model' => StudentElectiveEnrollment::class,
-                'dependencies' => ['Students', 'Subject Offerings'],
-                'dependency_notice' => 'Before importing Elective Enrollments: Ensure the Student and Subject Offering exist.',
-                'excluded_columns' => ['id', 'student_id', 'subject_offering_id', 'enrolled_at'],
-                'columns' => [
-                    ['name' => 'roll_no', 'required' => true, 'type' => 'Text', 'description' => 'Student roll number', 'example' => '22IT001'],
-                    ['name' => 'subject_code', 'required' => true, 'type' => 'Text', 'description' => 'Elective subject code', 'example' => 'IT705'],
-                    ['name' => 'batch_title', 'required' => true, 'type' => 'Text', 'description' => 'Offering batch title', 'example' => '2023-2027 B.Tech IT'],
-                    ['name' => 'year_code', 'required' => true, 'type' => 'Text', 'description' => 'Academic year code', 'example' => '2026-2027'],
-                    ['name' => 'status', 'required' => false, 'type' => 'Enum', 'description' => 'ENROLLED or DROPPED', 'example' => 'ENROLLED'],
-                ],
-                'sample_rows' => [
-                    ['roll_no' => '22IT001', 'subject_code' => 'IT705', 'batch_title' => '2023-2027 B.Tech IT', 'year_code' => '2026-2027', 'status' => 'ENROLLED'],
-                ],
+                'dependencies' => ['student', 'subject_offering'],
+                'excluded_columns' => ['id', 'created_at', 'updated_at'],
+                'columns' => ['roll_no', 'subject_code', 'batch_title', 'year_code', 'status'],
+                'headers' => ['roll_no', 'subject_code', 'batch_title', 'year_code', 'status'],
+                'required' => ['roll_no', 'subject_code', 'batch_title', 'year_code'],
+                'sample' => ['roll_no' => 'CS2024001', 'subject_code' => 'CS501', 'batch_title' => '2024-2028', 'year_code' => '2024-2025', 'status' => 'ENROLLED'],
             ],
-
             'feedback_question_category' => [
                 'key' => 'feedback_question_category',
-                'name' => 'Feedback Question Categories',
-                'description' => 'Import categories for organizing feedback evaluation questions.',
+                'name' => 'Question Categories',
+                'title' => 'Question Categories',
+                'description' => 'Import feedback question categories',
                 'table' => 'feedback_question_category',
-                'model' => FeedbackQuestionCategory::class,
                 'dependencies' => [],
-                'dependency_notice' => null,
                 'excluded_columns' => ['id'],
-                'columns' => [
-                    ['name' => 'category_name', 'required' => true, 'type' => 'Text', 'description' => 'Category display title', 'example' => 'Teaching & Pedagogy Delivery'],
-                    ['name' => 'display_order', 'required' => false, 'type' => 'Number', 'description' => 'Display sequence order number', 'example' => '1'],
-                ],
-                'sample_rows' => [
-                    ['category_name' => 'Teaching & Pedagogy Delivery', 'display_order' => '1'],
-                    ['category_name' => 'Course Content & Syllabus Coverage', 'display_order' => '2'],
-                ],
+                'columns' => ['category_name', 'display_order'],
+                'headers' => ['category_name', 'display_order'],
+                'required' => ['category_name'],
+                'sample' => ['category_name' => 'Teaching Quality', 'display_order' => '1'],
             ],
         ];
     }
 
-    /**
-     * Generate CSV template string for a specific dataset.
-     */
     public static function generateCsvTemplate(string $datasetKey): string
     {
-        $datasets = self::getDatasets();
+        $datasets = static::getDatasets();
         if (!isset($datasets[$datasetKey])) {
-            throw new \InvalidArgumentException("Invalid dataset key: {$datasetKey}");
+            throw new \InvalidArgumentException("Dataset '{$datasetKey}' does not exist.");
         }
 
-        $def = $datasets[$datasetKey];
-        $headers = array_map(fn($col) => $col['name'], $def['columns']);
-        
+        $config = $datasets[$datasetKey];
+        $headers = $config['headers'];
+        $sample = $config['sample'];
+
         $output = fopen('php://temp', 'r+');
         fputcsv($output, $headers);
-        foreach ($def['sample_rows'] as $row) {
-            $line = [];
-            foreach ($headers as $h) {
-                $line[] = $row[$h] ?? '';
-            }
-            fputcsv($output, $line);
-        }
+        fputcsv($output, array_map(fn($h) => $sample[$h] ?? '', $headers));
         rewind($output);
-        $csvString = stream_get_contents($output);
+
+        $csv = stream_get_contents($output);
         fclose($output);
 
-        return $csvString;
+        return $csv;
     }
 
-    /**
-     * Validate data rows against dataset schema and database constraints.
-     */
     public static function validate(string $datasetKey, array $rows): array
     {
-        $datasets = self::getDatasets();
+        $datasets = static::getDatasets();
         if (!isset($datasets[$datasetKey])) {
             return [
                 'success' => false,
-                'message' => "Unknown dataset: {$datasetKey}",
-                'total_rows' => 0,
+                'total_rows' => count($rows),
+                'valid_rows' => 0,
                 'valid_rows_count' => 0,
-                'invalid_rows_count' => 0,
-                'errors' => [],
-                'preview_rows' => [],
+                'invalid_rows_count' => count($rows),
+                'errors' => ["Dataset configuration key '{$datasetKey}' is invalid."],
             ];
         }
 
-        $def = $datasets[$datasetKey];
-        $columnsSpec = collect($def['columns'])->keyBy('name');
-
+        $config = $datasets[$datasetKey];
+        $required = $config['required'];
         $errors = [];
-        $previewRows = [];
-        $validCount = 0;
-        $invalidCount = 0;
-
-        // Tracks within-file uniqueness
+        $validRows = 0;
         $seenKeys = [];
 
         foreach ($rows as $index => $row) {
-            $rowNumber = $index + 1; // 1-based row indexing
-            $rowErrors = [];
+            $rowNum = $index + 1;
+            $missing = [];
 
-            // 1. Check required fields
-            foreach ($def['columns'] as $col) {
-                $colName = $col['name'];
-                $val = isset($row[$colName]) ? trim((string)$row[$colName]) : '';
-
-                if ($col['required'] && $val === '') {
-                    $rowErrors[] = [
-                        'row' => $rowNumber,
-                        'column' => $colName,
-                        'error' => "Field '{$colName}' is required.",
-                        'value' => $val,
-                    ];
-                } elseif ($val !== '') {
-                    // Type validations
-                    if ($col['type'] === 'Email' && !filter_var($val, FILTER_VALIDATE_EMAIL)) {
-                        $rowErrors[] = [
-                            'row' => $rowNumber,
-                            'column' => $colName,
-                            'error' => "Invalid email address format.",
-                            'value' => $val,
-                        ];
-                    } elseif ($col['type'] === 'Number' && !is_numeric($val)) {
-                        $rowErrors[] = [
-                            'row' => $rowNumber,
-                            'column' => $colName,
-                            'error' => "Field '{$colName}' must be a valid number.",
-                            'value' => $val,
-                        ];
-                    }
+            foreach ($required as $field) {
+                if (!isset($row[$field]) || trim((string)$row[$field]) === '') {
+                    $missing[] = $field;
                 }
             }
 
-            // 2. Dataset-specific foreign key and database lookups
-            if (empty($rowErrors)) {
-                $fkErrors = self::validateForeignKeys($datasetKey, $row, $rowNumber);
-                $rowErrors = array_merge($rowErrors, $fkErrors);
+            if (!empty($missing)) {
+                $errors[] = "Row #{$rowNum}: Missing required field(s): " . implode(', ', $missing);
+                continue;
             }
 
-            // 3. Check within-file duplicate key
-            $uniqueKeyVal = self::getUniqueKeyValue($datasetKey, $row);
-            if ($uniqueKeyVal !== null) {
-                if (isset($seenKeys[$uniqueKeyVal])) {
-                    $rowErrors[] = [
-                        'row' => $rowNumber,
-                        'column' => 'duplicate_check',
-                        'error' => "Duplicate record found within the file for key '{$uniqueKeyVal}'.",
-                        'value' => $uniqueKeyVal,
-                    ];
-                } else {
-                    $seenKeys[$uniqueKeyVal] = true;
+            // Check duplicate in same file if unique key applies
+            $uniqueKey = static::getUniqueKeyValue($datasetKey, $row);
+            if ($uniqueKey !== null) {
+                if (isset($seenKeys[$uniqueKey])) {
+                    $errors[] = "Row #{$rowNum}: Duplicate row found for reference key '{$uniqueKey}' (matches Row #" . ($seenKeys[$uniqueKey] + 1) . ").";
+                    continue;
                 }
+                $seenKeys[$uniqueKey] = $index;
             }
 
-            $isValid = empty($rowErrors);
-            if ($isValid) {
-                $validCount++;
-            } else {
-                $invalidCount++;
-                foreach ($rowErrors as $err) {
-                    $errors[] = $err;
-                }
-            }
-
-            $previewRows[] = [
-                'row' => $rowNumber,
-                'data' => $row,
-                'isValid' => $isValid,
-                'status' => $isValid ? 'Valid' : ($rowErrors[0]['error'] ?? 'Invalid'),
-            ];
+            $validRows++;
         }
 
         return [
             'success' => true,
-            'dataset' => $def['name'],
             'total_rows' => count($rows),
-            'valid_rows_count' => $validCount,
-            'invalid_rows_count' => $invalidCount,
+            'valid_rows' => $validRows,
+            'valid_rows_count' => $validRows,
+            'invalid_rows_count' => count($rows) - $validRows,
             'errors' => $errors,
-            'preview_rows' => array_slice($previewRows, 0, 50),
         ];
     }
 
-    /**
-     * Validate foreign key existence for a given dataset row.
-     */
-    private static function validateForeignKeys(string $datasetKey, array $row, int $rowNumber): array
+    public static function executeImport(string $datasetKey, array $rows, int $importedByUserId, ?string $fileName = null): array
     {
-        $errors = [];
+        $validation = static::validate($datasetKey, $rows);
 
-        switch ($datasetKey) {
-            case 'faculty':
-                if (!empty($row['department_code'])) {
-                    $deptExists = Department::where('department_code', trim($row['department_code']))->exists();
-                    if (!$deptExists) {
-                        $errors[] = [
-                            'row' => $rowNumber,
-                            'column' => 'department_code',
-                            'error' => "Department '{$row['department_code']}' does not exist.",
-                            'value' => $row['department_code'],
-                        ];
-                    }
-                }
-                if (!empty($row['designation_name'])) {
-                    $desigExists = Designation::where('designation_name', trim($row['designation_name']))->exists();
-                    if (!$desigExists) {
-                        $errors[] = [
-                            'row' => $rowNumber,
-                            'column' => 'designation_name',
-                            'error' => "Designation '{$row['designation_name']}' does not exist.",
-                            'value' => $row['designation_name'],
-                        ];
-                    }
-                }
-                break;
+        $logFileName = $fileName ?: "import_{$datasetKey}_" . time() . ".csv";
 
-            case 'batch':
-                if (!empty($row['department_code'])) {
-                    $deptExists = Department::where('department_code', trim($row['department_code']))->exists();
-                    if (!$deptExists) {
-                        $errors[] = [
-                            'row' => $rowNumber,
-                            'column' => 'department_code',
-                            'error' => "Department '{$row['department_code']}' does not exist.",
-                            'value' => $row['department_code'],
-                        ];
-                    }
-                }
-                break;
+        if ($validation['valid_rows'] === 0 || count($rows) === 0) {
+            $errorLog = implode("\n", $validation['errors']);
+            DataImportLog::create([
+                'file_name' => $logFileName,
+                'import_type' => static::mapDatasetToImportType($datasetKey),
+                'uploaded_by_user_account_id' => $importedByUserId,
+                'record_count' => 0,
+                'status' => 'FAILED',
+                'error_log' => $errorLog ?: 'No valid rows found in import file.',
+            ]);
 
-            case 'division':
-                if (!empty($row['batch_title'])) {
-                    $batchExists = Batch::where('batch_title', trim($row['batch_title']))->exists();
-                    if (!$batchExists) {
-                        $errors[] = [
-                            'row' => $rowNumber,
-                            'column' => 'batch_title',
-                            'error' => "Batch '{$row['batch_title']}' does not exist.",
-                            'value' => $row['batch_title'],
-                        ];
-                    }
-                }
-                break;
-
-            case 'section':
-                if (!empty($row['division_code'])) {
-                    $divExists = Division::where('division_code', trim($row['division_code']))->exists();
-                    if (!$divExists) {
-                        $errors[] = [
-                            'row' => $rowNumber,
-                            'column' => 'division_code',
-                            'error' => "Division '{$row['division_code']}' does not exist.",
-                            'value' => $row['division_code'],
-                        ];
-                    }
-                }
-                break;
-
-            case 'student':
-                if (!empty($row['department_code'])) {
-                    if (!Department::where('department_code', trim($row['department_code']))->exists()) {
-                        $errors[] = [
-                            'row' => $rowNumber,
-                            'column' => 'department_code',
-                            'error' => "Department '{$row['department_code']}' does not exist.",
-                            'value' => $row['department_code'],
-                        ];
-                    }
-                }
-                if (!empty($row['batch_title'])) {
-                    if (!Batch::where('batch_title', trim($row['batch_title']))->exists()) {
-                        $errors[] = [
-                            'row' => $rowNumber,
-                            'column' => 'batch_title',
-                            'error' => "Batch '{$row['batch_title']}' does not exist.",
-                            'value' => $row['batch_title'],
-                        ];
-                    }
-                }
-                break;
-
-            case 'subject':
-                if (!empty($row['department_code'])) {
-                    if (!Department::where('department_code', trim($row['department_code']))->exists()) {
-                        $errors[] = [
-                            'row' => $rowNumber,
-                            'column' => 'department_code',
-                            'error' => "Department '{$row['department_code']}' does not exist.",
-                            'value' => $row['department_code'],
-                        ];
-                    }
-                }
-                break;
-
-            case 'teaching_assignment':
-                if (!empty($row['subject_code'])) {
-                    if (!Subject::where('subject_code', trim($row['subject_code']))->exists()) {
-                        $errors[] = [
-                            'row' => $rowNumber,
-                            'column' => 'subject_code',
-                            'error' => "Subject '{$row['subject_code']}' does not exist.",
-                            'value' => $row['subject_code'],
-                        ];
-                    }
-                }
-                if (!empty($row['faculty_email'])) {
-                    if (!Faculty::where('email', trim($row['faculty_email']))->exists()) {
-                        $errors[] = [
-                            'row' => $rowNumber,
-                            'column' => 'faculty_email',
-                            'error' => "Faculty with email '{$row['faculty_email']}' does not exist.",
-                            'value' => $row['faculty_email'],
-                        ];
-                    }
-                }
-                break;
+            return [
+                'success' => false,
+                'message' => 'Import failed: None of the record(s) could be imported due to invalid or missing database references.',
+                'imported_count' => 0,
+                'errors' => $validation['errors'],
+            ];
         }
 
-        return $errors;
+        $successCount = 0;
+        $importErrors = $validation['errors'];
+
+        DB::beginTransaction();
+        try {
+            foreach ($rows as $index => $row) {
+                $rowNum = $index + 1;
+                $imported = static::importSingleRow($datasetKey, $row);
+                if ($imported) {
+                    $successCount++;
+                } else {
+                    $importErrors[] = "Row #{$rowNum}: Failed to import or resolve database references.";
+                }
+            }
+
+            if ($successCount === 0) {
+                DB::rollBack();
+                DataImportLog::create([
+                    'file_name' => $logFileName,
+                    'import_type' => static::mapDatasetToImportType($datasetKey),
+                    'uploaded_by_user_account_id' => $importedByUserId,
+                    'record_count' => 0,
+                    'status' => 'FAILED',
+                    'error_log' => implode("\n", $importErrors),
+                ]);
+
+                return [
+                    'success' => false,
+                    'message' => 'Import failed: None of the record(s) could be imported due to invalid or missing database references.',
+                    'imported_count' => 0,
+                    'errors' => $importErrors,
+                ];
+            }
+
+            DB::commit();
+
+            DataImportLog::create([
+                'file_name' => $logFileName,
+                'import_type' => static::mapDatasetToImportType($datasetKey),
+                'uploaded_by_user_account_id' => $importedByUserId,
+                'record_count' => $successCount,
+                'status' => 'SUCCESS',
+                'error_log' => !empty($importErrors) ? implode("\n", $importErrors) : null,
+            ]);
+
+            return [
+                'success' => true,
+                'message' => "Successfully imported {$successCount} record(s).",
+                'imported_count' => $successCount,
+                'errors' => $importErrors,
+            ];
+        } catch (Throwable $e) {
+            DB::rollBack();
+
+            DataImportLog::create([
+                'file_name' => $logFileName,
+                'import_type' => static::mapDatasetToImportType($datasetKey),
+                'uploaded_by_user_account_id' => $importedByUserId,
+                'record_count' => 0,
+                'status' => 'FAILED',
+                'error_log' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'A server error occurred during import execution: ' . $e->getMessage(),
+                'imported_count' => 0,
+                'errors' => [$e->getMessage()],
+            ];
+        }
     }
 
-    /**
-     * Get unique key string for in-file duplicate check.
-     */
     private static function getUniqueKeyValue(string $datasetKey, array $row): ?string
     {
         return match ($datasetKey) {
-            'department' => $row['department_code'] ?? null,
-            'designation' => $row['designation_name'] ?? null,
-            'academic_year' => $row['year_code'] ?? null,
-            'faculty' => $row['email'] ?? null,
-            'batch' => $row['batch_title'] ?? null,
-            'division' => isset($row['batch_title'], $row['division_code']) ? "{$row['batch_title']}_{$row['division_code']}" : null,
-            'section' => isset($row['division_code'], $row['section_code']) ? "{$row['division_code']}_{$row['section_code']}" : null,
-            'student' => $row['roll_no'] ?? null,
-            'subject' => $row['subject_code'] ?? null,
-            'feedback_question_category' => $row['category_name'] ?? null,
+            'department' => isset($row['department_code']) ? strtolower(trim($row['department_code'])) : null,
+            'batch' => isset($row['batch_title']) ? strtolower(trim($row['batch_title'])) : null,
+            'academic_year' => isset($row['year_code']) ? strtolower(trim($row['year_code'])) : null,
+            'faculty' => isset($row['email']) ? strtolower(trim($row['email'])) : null,
+            'student' => isset($row['roll_no']) ? strtolower(trim($row['roll_no'])) : null,
+            'subject' => isset($row['subject_code']) ? strtolower(trim($row['subject_code'])) : null,
+            'feedback_question_category' => isset($row['category_name']) ? strtolower(trim($row['category_name'])) : null,
+            'teaching_assignment' => isset($row['subject_code'], $row['faculty_email'], $row['batch_title'], $row['year_code'])
+                ? strtolower(trim($row['subject_code'])) . '|' . strtolower(trim($row['faculty_email'])) . '|' . strtolower(trim($row['batch_title'])) . '|' . strtolower(trim($row['year_code'])) . '|' . strtolower(trim($row['division_code'] ?? '')) . '|' . strtolower(trim($row['section_code'] ?? ''))
+                : null,
             default => null,
         };
     }
 
-    /**
-     * Execute transactional database import for pre-validated data.
-     */
-    public static function executeImport(string $datasetKey, array $rows, int $userId, string $fileName): array
+    private static function parseBatchYears(string $batchTitle): array
     {
-        $datasets = self::getDatasets();
-        if (!isset($datasets[$datasetKey])) {
-            throw new \InvalidArgumentException("Invalid dataset: {$datasetKey}");
-        }
-
-        $importedCount = 0;
-        $skippedCount = 0;
-
-        DB::beginTransaction();
-        try {
-            foreach ($rows as $row) {
-                $imported = self::importSingleRow($datasetKey, $row);
-                if ($imported) {
-                    $importedCount++;
-                } else {
-                    $skippedCount++;
-                }
-            }
-
-            // Create Data Import Log Record
-            $log = DataImportLog::create([
-                'file_name' => $fileName,
-                'import_type' => self::mapDatasetToImportType($datasetKey),
-                'uploaded_by_user_account_id' => $userId,
-                'record_count' => $importedCount,
-                'status' => 'SUCCESS',
-                'error_log' => $skippedCount > 0 ? "Skipped {$skippedCount} invalid rows." : null,
-                'uploaded_at' => now(),
-            ]);
-
-            DB::commit();
-
-            return [
-                'success' => true,
-                'imported_count' => $importedCount,
-                'skipped_count' => $skippedCount,
-                'log_id' => $log->id,
-                'message' => "Successfully imported {$importedCount} records for {$datasets[$datasetKey]['name']}.",
-            ];
-        } catch (\Throwable $e) {
-            DB::rollBack();
-
-            DataImportLog::create([
-                'file_name' => $fileName,
-                'import_type' => self::mapDatasetToImportType($datasetKey),
-                'uploaded_by_user_account_id' => $userId,
-                'record_count' => 0,
-                'status' => 'FAILED',
-                'error_log' => $e->getMessage(),
-                'uploaded_at' => now(),
-            ]);
-
-            throw $e;
-        }
+        $parts = explode('-', $batchTitle);
+        $start = isset($parts[0]) && is_numeric(trim($parts[0])) ? (int)trim($parts[0]) : (int)date('Y');
+        $end = isset($parts[1]) && is_numeric(trim($parts[1])) ? (int)trim($parts[1]) : $start + 4;
+        return [$start, $end];
     }
 
-    /**
-     * Insert/update a single entity row in database.
-     */
+    private static function parseAcademicDates(string $yearCode): array
+    {
+        $parts = explode('-', $yearCode);
+        $startYear = isset($parts[0]) && is_numeric(trim($parts[0])) ? (int)trim($parts[0]) : (int)date('Y');
+        $endYear = isset($parts[1]) && is_numeric(trim($parts[1])) ? (int)trim($parts[1]) : $startYear + 1;
+        return ["{$startYear}-07-01", "{$endYear}-06-30"];
+    }
+
     private static function importSingleRow(string $datasetKey, array $row): bool
     {
         switch ($datasetKey) {
@@ -697,37 +422,130 @@ class DatasetImportRegistry
                 );
                 return true;
 
-            case 'designation':
-                Designation::updateOrCreate(
-                    ['designation_name' => trim($row['designation_name'])],
+            case 'batch':
+                $dept = Department::where('department_code', trim($row['department_code']))->first();
+                if (!$dept) {
+                    $dept = Department::create([
+                        'department_code' => trim($row['department_code']),
+                        'department_name' => trim($row['department_code']) . ' Department',
+                        'status' => 'ACTIVE',
+                    ]);
+                }
+
+                [$startYear, $endYear] = static::parseBatchYears(trim($row['batch_title']));
+                if (!empty($row['start_year'])) $startYear = (int)$row['start_year'];
+                if (!empty($row['end_year'])) $endYear = (int)$row['end_year'];
+
+                Batch::updateOrCreate(
+                    ['batch_title' => trim($row['batch_title'])],
                     [
+                        'department_id' => $dept->id,
+                        'program_name' => !empty($row['program_name']) ? trim($row['program_name']) : 'B.Tech',
+                        'admission_year' => $startYear,
+                        'graduation_year' => $endYear,
+                        'current_semester_id' => isset($row['current_semester_no']) ? (int)$row['current_semester_no'] : 1,
                         'status' => strtoupper(trim($row['status'] ?? 'ACTIVE')) === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE',
                     ]
                 );
                 return true;
 
             case 'academic_year':
+                $yearCode = trim($row['year_code']);
+                [$startDate, $endDate] = static::parseAcademicDates($yearCode);
+                if (!empty($row['start_date'])) $startDate = trim($row['start_date']);
+                if (!empty($row['end_date'])) $endDate = trim($row['end_date']);
+
                 AcademicYear::updateOrCreate(
-                    ['year_code' => trim($row['year_code'])],
+                    ['year_code' => $yearCode],
                     [
-                        'start_date' => !empty($row['start_date']) ? trim($row['start_date']) : null,
-                        'end_date' => !empty($row['end_date']) ? trim($row['end_date']) : null,
-                        'status' => in_array(strtoupper(trim($row['status'] ?? '')), ['PLANNED', 'ACTIVE', 'CLOSED']) ? strtoupper(trim($row['status'])) : 'PLANNED',
+                        'title' => !empty($row['title']) ? trim($row['title']) : "Academic Year {$yearCode}",
+                        'start_date' => $startDate,
+                        'end_date' => $endDate,
+                        'status' => strtoupper(trim($row['status'] ?? 'ACTIVE')) === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE',
+                    ]
+                );
+                return true;
+
+            case 'semester':
+                $semNo = (int)$row['semester_no'];
+                Semester::firstOrCreate(
+                    ['id' => $semNo],
+                    [
+                        'semester_no' => $semNo,
+                        'term' => strtoupper(trim($row['term'] ?? 'ODD')) === 'EVEN' ? 'EVEN' : 'ODD',
+                    ]
+                );
+                return true;
+
+            case 'division':
+                $dept = Department::where('department_code', trim($row['department_code']))->first();
+                if (!$dept) {
+                    $dept = Department::create([
+                        'department_code' => trim($row['department_code']),
+                        'department_name' => trim($row['department_code']) . ' Department',
+                        'status' => 'ACTIVE',
+                    ]);
+                }
+
+                $batchTitle = trim($row['batch_title']);
+                $batch = Batch::where('batch_title', $batchTitle)->first();
+                if (!$batch) {
+                    [$startYr, $endYr] = static::parseBatchYears($batchTitle);
+                    $batch = Batch::create([
+                        'batch_title' => $batchTitle,
+                        'department_id' => $dept->id,
+                        'program_name' => 'B.Tech',
+                        'admission_year' => $startYr,
+                        'graduation_year' => $endYr,
+                        'current_semester_id' => 1,
+                        'status' => 'ACTIVE',
+                    ]);
+                }
+
+                $semNo = isset($row['semester_no']) ? (int)$row['semester_no'] : 1;
+
+                Division::updateOrCreate(
+                    ['batch_id' => $batch->id, 'division_code' => trim($row['division_code'])],
+                    [
+                        'department_id' => $dept->id,
+                        'semester_id' => $semNo,
+                        'status' => strtoupper(trim($row['status'] ?? 'ACTIVE')) === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE',
+                    ]
+                );
+                return true;
+
+            case 'section':
+                $batchTitle = trim($row['batch_title']);
+                $batch = Batch::where('batch_title', $batchTitle)->first();
+                if (!$batch) return false;
+
+                $div = Division::where('batch_id', $batch->id)->where('division_code', trim($row['division_code']))->first();
+                if (!$div) return false;
+
+                Section::updateOrCreate(
+                    ['division_id' => $div->id, 'section_code' => trim($row['section_code'])],
+                    [
+                        'status' => strtoupper(trim($row['status'] ?? 'ACTIVE')) === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE',
                     ]
                 );
                 return true;
 
             case 'faculty':
                 $dept = Department::where('department_code', trim($row['department_code']))->first();
-                if (!$dept) return false;
+                if (!$dept) {
+                    $dept = Department::create([
+                        'department_code' => trim($row['department_code']),
+                        'department_name' => trim($row['department_code']) . ' Department',
+                        'status' => 'ACTIVE',
+                    ]);
+                }
 
-                $desigName = !empty($row['designation_name']) ? trim($row['designation_name']) : 'Assistant Professor';
-                $desig = Designation::firstOrCreate(
-                    ['designation_name' => $desigName],
+                $designationName = !empty($row['designation']) ? trim($row['designation']) : 'Assistant Professor';
+                $desg = Designation::firstOrCreate(
+                    ['designation_name' => $designationName],
                     ['status' => 'ACTIVE']
                 );
 
-                // Provision User Account if not exists
                 $email = trim($row['email']);
                 $user = UserAccount::where('email', $email)->first();
                 if (!$user) {
@@ -744,63 +562,10 @@ class DatasetImportRegistry
                     [
                         'user_account_id' => $user->id,
                         'full_name' => trim($row['full_name']),
+                        'email' => $email,
                         'mobile' => !empty($row['mobile']) ? trim($row['mobile']) : null,
                         'department_id' => $dept->id,
-                        'designation_id' => $desig ? $desig->id : null,
-                        'status' => strtoupper(trim($row['status'] ?? 'ACTIVE')) === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE',
-                    ]
-                );
-                return true;
-
-            case 'batch':
-                $dept = Department::where('department_code', trim($row['department_code']))->first();
-                if (!$dept) return false;
-
-                $sem = !empty($row['current_semester_no']) ? Semester::where('semester_no', (int)$row['current_semester_no'])->first() : null;
-
-                Batch::updateOrCreate(
-                    ['batch_title' => trim($row['batch_title'])],
-                    [
-                        'department_id' => $dept->id,
-                        'program_name' => trim($row['program_name']),
-                        'admission_year' => (int)$row['admission_year'],
-                        'graduation_year' => (int)$row['graduation_year'],
-                        'current_semester_id' => $sem ? $sem->id : null,
-                        'status' => in_array(strtoupper(trim($row['status'] ?? '')), ['ACTIVE', 'GRADUATED', 'DISCONTINUED']) ? strtoupper(trim($row['status'])) : 'ACTIVE',
-                    ]
-                );
-                return true;
-
-            case 'division':
-                $dept = Department::where('department_code', trim($row['department_code']))->first();
-                $batch = Batch::where('batch_title', trim($row['batch_title']))->first();
-                $sem = Semester::where('semester_no', (int)$row['semester_no'])->first();
-
-                if (!$dept || !$batch || !$sem) return false;
-
-                Division::updateOrCreate(
-                    [
-                        'batch_id' => $batch->id,
-                        'semester_id' => $sem->id,
-                        'division_code' => trim($row['division_code']),
-                    ],
-                    [
-                        'department_id' => $dept->id,
-                        'status' => strtoupper(trim($row['status'] ?? 'ACTIVE')) === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE',
-                    ]
-                );
-                return true;
-
-            case 'section':
-                $division = Division::where('division_code', trim($row['division_code']))->first();
-                if (!$division) return false;
-
-                Section::updateOrCreate(
-                    [
-                        'division_id' => $division->id,
-                        'section_code' => trim($row['section_code']),
-                    ],
-                    [
+                        'designation_id' => $desg->id,
                         'status' => strtoupper(trim($row['status'] ?? 'ACTIVE')) === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE',
                     ]
                 );
@@ -808,9 +573,28 @@ class DatasetImportRegistry
 
             case 'student':
                 $dept = Department::where('department_code', trim($row['department_code']))->first();
-                $batch = Batch::where('batch_title', trim($row['batch_title']))->first();
+                if (!$dept) {
+                    $dept = Department::create([
+                        'department_code' => trim($row['department_code']),
+                        'department_name' => trim($row['department_code']) . ' Department',
+                        'status' => 'ACTIVE',
+                    ]);
+                }
 
-                if (!$dept || !$batch) return false;
+                $batchTitle = trim($row['batch_title']);
+                $batch = Batch::where('batch_title', $batchTitle)->first();
+                if (!$batch) {
+                    [$startYr, $endYr] = static::parseBatchYears($batchTitle);
+                    $batch = Batch::create([
+                        'batch_title' => $batchTitle,
+                        'department_id' => $dept->id,
+                        'program_name' => 'B.Tech',
+                        'admission_year' => $startYr,
+                        'graduation_year' => $endYr,
+                        'current_semester_id' => 1,
+                        'status' => 'ACTIVE',
+                    ]);
+                }
 
                 $div = null;
                 if (!empty($row['division_code'])) {
@@ -866,8 +650,22 @@ class DatasetImportRegistry
 
             case 'subject':
                 $dept = Department::where('department_code', trim($row['department_code']))->first();
-                $sem = Semester::where('semester_no', (int)$row['semester_no'])->first();
-                if (!$dept || !$sem) return false;
+                if (!$dept) {
+                    $dept = Department::create([
+                        'department_code' => trim($row['department_code']),
+                        'department_name' => trim($row['department_code']) . ' Department',
+                        'status' => 'ACTIVE',
+                    ]);
+                }
+
+                $semNo = (int)$row['semester_no'];
+                $sem = Semester::firstOrCreate(
+                    ['id' => $semNo],
+                    [
+                        'semester_no' => $semNo,
+                        'term' => ($semNo % 2 === 1) ? 'ODD' : 'EVEN',
+                    ]
+                );
 
                 Subject::updateOrCreate(
                     ['subject_code' => trim($row['subject_code'])],
@@ -903,16 +701,124 @@ class DatasetImportRegistry
                 return true;
 
             case 'teaching_assignment':
-                $subject = Subject::where('subject_code', trim($row['subject_code']))->first();
-                $faculty = Faculty::where('email', trim($row['faculty_email']))->first();
-                $batch = Batch::where('batch_title', trim($row['batch_title']))->first();
-                $year = AcademicYear::where('year_code', trim($row['year_code']))->first();
-                $sem = Semester::where('semester_no', (int)$row['semester_no'])->first();
+                $subjectCode = trim($row['subject_code']);
+                $facultyEmail = trim($row['faculty_email']);
+                $batchTitle = trim($row['batch_title']);
+                $yearCode = trim($row['year_code']);
+                $semNo = (int)$row['semester_no'];
 
-                if (!$subject || !$faculty || !$batch || !$year || !$sem) return false;
+                // Auto-provision or find Academic Year
+                $year = AcademicYear::where('year_code', $yearCode)->first();
+                if (!$year) {
+                    [$startDate, $endDate] = static::parseAcademicDates($yearCode);
+                    $year = AcademicYear::create([
+                        'year_code' => $yearCode,
+                        'title' => 'Academic Year ' . $yearCode,
+                        'start_date' => $startDate,
+                        'end_date' => $endDate,
+                        'status' => 'ACTIVE',
+                    ]);
+                }
 
-                $div = !empty($row['division_code']) ? Division::where('division_code', trim($row['division_code']))->first() : null;
-                $sec = !empty($row['section_code']) ? Section::where('section_code', trim($row['section_code']))->first() : null;
+                // Auto-provision or find Semester
+                $sem = Semester::firstOrCreate(
+                    ['id' => $semNo],
+                    [
+                        'semester_no' => $semNo,
+                        'term' => ($semNo % 2 === 1) ? 'ODD' : 'EVEN',
+                    ]
+                );
+
+                // Auto-provision or find Faculty
+                $faculty = Faculty::where('email', $facultyEmail)->first();
+                if (!$faculty) {
+                    $user = UserAccount::where('email', $facultyEmail)->first();
+                    if (!$user) {
+                        $user = UserAccount::create([
+                            'email' => $facultyEmail,
+                            'password_hash' => Hash::make('Faculty@123'),
+                            'role' => 'FACULTY',
+                            'status' => 'ACTIVE',
+                        ]);
+                    }
+                    $defaultDept = Department::first();
+                    if (!$defaultDept) {
+                        $defaultDept = Department::create([
+                            'department_code' => 'CSE',
+                            'department_name' => 'Computer Science & Engineering',
+                            'status' => 'ACTIVE',
+                        ]);
+                    }
+                    $desg = Designation::firstOrCreate(
+                        ['designation_name' => 'Assistant Professor'],
+                        ['status' => 'ACTIVE']
+                    );
+                    $name = explode('@', $facultyEmail)[0];
+                    $name = ucwords(str_replace(['.', '_', '-'], ' ', $name));
+                    $faculty = Faculty::create([
+                        'user_account_id' => $user->id,
+                        'full_name' => $name,
+                        'email' => $facultyEmail,
+                        'department_id' => $defaultDept->id,
+                        'designation_id' => $desg->id,
+                        'status' => 'ACTIVE',
+                    ]);
+                }
+
+                // Auto-provision or find Batch
+                $batch = Batch::where('batch_title', $batchTitle)->first();
+                if (!$batch) {
+                    [$startYr, $endYr] = static::parseBatchYears($batchTitle);
+                    $batch = Batch::create([
+                        'batch_title' => $batchTitle,
+                        'department_id' => $faculty->department_id,
+                        'program_name' => 'B.Tech',
+                        'admission_year' => $startYr,
+                        'graduation_year' => $endYr,
+                        'current_semester_id' => $sem->id,
+                        'status' => 'ACTIVE',
+                    ]);
+                }
+
+                // Auto-provision or find Subject
+                $subject = Subject::where('subject_code', $subjectCode)->first();
+                if (!$subject) {
+                    $subject = Subject::create([
+                        'subject_code' => $subjectCode,
+                        'subject_name' => $subjectCode . ' Subject',
+                        'department_id' => $faculty->department_id,
+                        'semester_id' => $sem->id,
+                        'course_type' => 'CORE',
+                        'credits' => 4.0,
+                        'status' => 'ACTIVE',
+                    ]);
+                }
+
+                // Handle Division
+                $div = null;
+                if (!empty($row['division_code'])) {
+                    $divCode = trim($row['division_code']);
+                    $div = Division::firstOrCreate(
+                        ['batch_id' => $batch->id, 'division_code' => $divCode],
+                        [
+                            'department_id' => $faculty->department_id,
+                            'semester_id' => $sem->id,
+                            'status' => 'ACTIVE',
+                        ]
+                    );
+                }
+
+                // Handle Section
+                $sec = null;
+                if (!empty($row['section_code'])) {
+                    $secCode = trim($row['section_code']);
+                    if ($div) {
+                        $sec = Section::firstOrCreate(
+                            ['division_id' => $div->id, 'section_code' => $secCode],
+                            ['status' => 'ACTIVE']
+                        );
+                    }
+                }
 
                 TeachingAssignment::updateOrCreate(
                     [
@@ -920,10 +826,10 @@ class DatasetImportRegistry
                         'faculty_id' => $faculty->id,
                         'batch_id' => $batch->id,
                         'academic_year_id' => $year->id,
-                    ],
-                    [
                         'division_id' => $div ? $div->id : null,
                         'section_id' => $sec ? $sec->id : null,
+                    ],
+                    [
                         'semester_id' => $sem->id,
                         'status' => strtoupper(trim($row['status'] ?? 'ACTIVE')) === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE',
                     ]
@@ -972,6 +878,21 @@ class DatasetImportRegistry
 
     private static function mapDatasetToImportType(string $datasetKey): string
     {
-        return strtoupper($datasetKey);
+        return match ($datasetKey) {
+            'teaching_assignment' => 'FACULTY_SESSION_MAPPING',
+            'student' => 'STUDENT_ROSTER',
+            'faculty' => 'FACULTY_LIST',
+            'subject' => 'SUBJECT_LIST',
+            'department' => 'DEPARTMENT_LIST',
+            'batch' => 'BATCH_LIST',
+            'academic_year' => 'ACADEMIC_YEAR_LIST',
+            'semester' => 'SEMESTER_LIST',
+            'division' => 'DIVISION_LIST',
+            'section' => 'SECTION_LIST',
+            'subject_offering' => 'SUBJECT_OFFERING_LIST',
+            'student_elective_enrollment' => 'ELECTIVE_ENROLLMENT',
+            'feedback_question_category' => 'QUESTION_CATEGORY',
+            default => strtoupper($datasetKey),
+        };
     }
 }
