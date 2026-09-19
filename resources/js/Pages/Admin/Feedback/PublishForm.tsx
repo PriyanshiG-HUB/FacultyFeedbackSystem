@@ -121,10 +121,27 @@ export default function PublishForm({
     fetchFormsAndMetadata();
   }, [fetchFormsAndMetadata]);
 
+  // Synchronize department filter when assignedDepartmentCode changes
+  useEffect(() => {
+    if (!isAdministrator && assignedDepartmentCode) {
+      setDeptFilter(assignedDepartmentCode.toUpperCase());
+    }
+  }, [isAdministrator, assignedDepartmentCode]);
+
+  const availableTeachingAssignments = teachingAssignments.filter((ta) => {
+    if (!isAdministrator && assignedDepartmentCode) {
+      const deptCode = ta.batch?.department?.department_code || ta.subject?.department?.department_code;
+      if (deptCode && deptCode.toUpperCase() !== assignedDepartmentCode.toUpperCase()) {
+        return false;
+      }
+    }
+    return true;
+  });
+
   const handleOpenAddModal = () => {
     setFormError('');
     setFieldErrors({});
-    const firstAssignment = teachingAssignments[0];
+    const firstAssignment = availableTeachingAssignments[0] || teachingAssignments[0];
     setSelectedAssignmentId(firstAssignment?.id || '');
     setFormTitle(
       firstAssignment
@@ -275,12 +292,10 @@ export default function PublishForm({
             Refresh
           </Button>
 
-          {isAdministrator && (
-            <Button variant="primary" onClick={handleOpenAddModal}>
-              <Plus className="w-4 h-4 mr-1.5" />
-              Create & Publish Form
-            </Button>
-          )}
+          <Button variant="primary" onClick={handleOpenAddModal}>
+            <Plus className="w-4 h-4 mr-1.5" />
+            Create & Publish Form
+          </Button>
         </div>
       </div>
 
@@ -391,17 +406,15 @@ export default function PublishForm({
                     )}
                   </Button>
 
-                  {isAdministrator && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteForm(form)}
-                      className="text-rose-600 hover:bg-rose-50"
-                      title="Delete Form"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDeleteForm(form)}
+                    className="text-rose-600 hover:bg-rose-50"
+                    title="Delete Form"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
             </Card>
@@ -432,7 +445,7 @@ export default function PublishForm({
             error={fieldErrors.teaching_assignment_id?.[0]}
             required
           >
-            {teachingAssignments.map((a) => (
+            {availableTeachingAssignments.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.subject?.subject_code} &mdash; {a.subject?.subject_name} &bull; {a.faculty?.full_name} ({a.batch?.batch_title}, Sem {a.semester_id || a.semester?.semester_no})
               </option>

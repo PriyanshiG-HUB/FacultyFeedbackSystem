@@ -327,7 +327,7 @@ export default function Index({
       />
 
       {/* New Assignment Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Assign Faculty to Session">
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Assign Faculty to Session" maxWidth="3xl">
         <form onSubmit={handleSubmit} className="space-y-4">
           {formError && (
             <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs font-semibold flex items-center gap-2">

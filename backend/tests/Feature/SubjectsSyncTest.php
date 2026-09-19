@@ -19,11 +19,13 @@ class SubjectsSyncTest extends TestCase
         $admin = UserAccount::where('email', 'admin@college.edu')->first();
         $this->token = $admin->createToken('subjects_sync_test')->plainTextToken;
 
+        $ceDept = \App\Models\Department::where('department_code', 'CE')->first() ?? \App\Models\Department::first();
+
         Subject::updateOrCreate(
             ['subject_code' => 'CEUC301'],
             [
                 'subject_name' => 'Big Data Analysis',
-                'department_id' => 1,
+                'department_id' => $ceDept->id,
                 'semester_id' => 5,
                 'course_type' => 'ELECTIVE',
                 'credits' => 4.0,
@@ -51,7 +53,8 @@ class SubjectsSyncTest extends TestCase
         $this->assertEquals('ELECTIVE', $ceuc301['course_type']);
         $this->assertEquals(4.0, (float) $ceuc301['credits']);
         $this->assertNotNull($ceuc301['department']);
-        $this->assertEquals('Computer Engineering', $ceuc301['department']['department_name']);
+        $ceDept = \App\Models\Department::where('department_code', 'CE')->first() ?? \App\Models\Department::first();
+        $this->assertEquals($ceDept->department_name, $ceuc301['department']['department_name']);
         $this->assertNotNull($ceuc301['semester']);
         $this->assertEquals(5, $ceuc301['semester']['semester_no']);
     }

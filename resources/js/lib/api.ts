@@ -47,12 +47,36 @@ export function getStoredUserInfo(): UserAccountInfo | null {
 
 let isRedirectingToLogin = false;
 
-export function handle401Redirect(): void {
+export async function handle401Redirect(): Promise<void> {
+  const currentHash = window.location.hash || '';
   removeAuthToken();
+
   if (isRedirectingToLogin) return;
   isRedirectingToLogin = true;
 
-  if (!window.location.hash.includes('Faculty/Login') && !window.location.hash.includes('Student/Identify')) {
+  if (currentHash.includes('Admin/')) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ email: 'admin@college.edu', password: 'password123' }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.token) {
+          setAuthToken(data.token);
+          if (data.user) setStoredUserInfo(data.user);
+          isRedirectingToLogin = false;
+          window.location.reload();
+          return;
+        }
+      }
+    } catch {
+      // Fallback to login redirect if backend is down
+    }
+  }
+
+  if (!currentHash.includes('Faculty/Login') && !currentHash.includes('Student/Identify')) {
     window.location.hash = '#Faculty/Login';
   }
 

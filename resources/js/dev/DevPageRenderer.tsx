@@ -67,11 +67,27 @@ export const DevPageRenderer: React.FC = () => {
   const [devRoleMode, setDevRoleMode] = useState<string>('admin');
   const [studentDivisionMode, setStudentDivisionMode] = useState<string>('Division 1');
   const [authUser, setAuthUser] = useState<any>(null);
+  const [isAuthReady, setIsAuthReady] = useState<boolean>(false);
 
   useEffect(() => {
-    import('../lib/api').then(async ({ getAuthToken, setAuthToken, api, setStoredUserInfo }) => {
+    import('../lib/api').then(async ({ getAuthToken, setAuthToken, api, setStoredUserInfo, removeAuthToken }) => {
       let token = getAuthToken();
-      if (!token) {
+      let valid = false;
+
+      if (token) {
+        try {
+          const res = await api.get('/auth/me');
+          if (res.user) {
+            setAuthUser(res.user);
+            setStoredUserInfo(res.user);
+            valid = true;
+          }
+        } catch {
+          removeAuthToken();
+        }
+      }
+
+      if (!valid) {
         try {
           const res = await api.post('/auth/login', {
             email: 'admin@college.edu',
@@ -79,7 +95,6 @@ export const DevPageRenderer: React.FC = () => {
           });
           if (res.token) {
             setAuthToken(res.token);
-            token = res.token;
             if (res.user) {
               setAuthUser(res.user);
               setStoredUserInfo(res.user);
@@ -90,14 +105,7 @@ export const DevPageRenderer: React.FC = () => {
         }
       }
 
-      if (token) {
-        api.get('/auth/me').then((res) => {
-          if (res.user) {
-            setAuthUser(res.user);
-            setStoredUserInfo(res.user);
-          }
-        }).catch(() => {});
-      }
+      setIsAuthReady(true);
     });
 
     const handleHashChange = () => {
@@ -304,7 +312,16 @@ export const DevPageRenderer: React.FC = () => {
       </header>
 
       {/* Render Active Inertia Page with Injected Controller Props */}
-      <PageComponent {...activeProps} />
+      {!isAuthReady ? (
+        <div className="flex-1 flex items-center justify-center p-12">
+          <div className="flex items-center gap-3 text-slate-500 font-semibold text-sm">
+            <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+            <span>Initializing Session & Authenticating API...</span>
+          </div>
+        </div>
+      ) : (
+        <PageComponent {...activeProps} />
+      )}
     </div>
   );
 };
