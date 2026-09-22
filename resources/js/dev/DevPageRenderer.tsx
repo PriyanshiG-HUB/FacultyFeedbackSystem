@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { mockPropsMap } from './mockProps';
+import { getAuthToken, setAuthToken, api, setStoredUserInfo, attemptDevAutoLogin } from '../lib/api';
 
 // Admin Page Imports
 import AdminDashboard from '../Pages/Admin/Dashboard';
@@ -72,43 +73,42 @@ export const DevPageRenderer: React.FC = () => {
   const [isAuthReady, setIsAuthReady] = useState<boolean>(false);
 
   useEffect(() => {
-    import('../lib/api').then(async ({ getAuthToken, setAuthToken, api, setStoredUserInfo, removeAuthToken }) => {
-      let token = getAuthToken();
-      let valid = false;
+    let isMounted = true;
 
+    const initAuth = async () => {
+      let token = getAuthToken();
       if (token) {
         try {
-          const res = await api.get('/auth/me');
-          if (res.user) {
-            setAuthUser(res.user);
-            setStoredUserInfo(res.user);
-            valid = true;
+          const meRes = await api.get('/auth/me');
+          if (meRes?.user && isMounted) {
+            setAuthUser(meRes.user);
+            setStoredUserInfo(meRes.user);
+            setIsAuthReady(true);
+            return;
           }
         } catch {
-          removeAuthToken();
+          token = null;
         }
       }
 
-      if (!valid) {
+      const newToken = await attemptDevAutoLogin();
+      if (newToken && isMounted) {
         try {
-          const res = await api.post('/auth/login', {
-            email: 'admin@college.edu',
-            password: 'password123',
-          });
-          if (res.token) {
-            setAuthToken(res.token);
-            if (res.user) {
-              setAuthUser(res.user);
-              setStoredUserInfo(res.user);
-            }
+          const meRes = await api.get('/auth/me');
+          if (meRes?.user && isMounted) {
+            setAuthUser(meRes.user);
+            setStoredUserInfo(meRes.user);
           }
         } catch {
-          // Ignore failure
+          // Ignore
         }
       }
+      if (isMounted) {
+        setIsAuthReady(true);
+      }
+    };
 
-      setIsAuthReady(true);
-    });
+    initAuth();
 
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '');
@@ -120,7 +120,10 @@ export const DevPageRenderer: React.FC = () => {
 
     handleHashChange();
     window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('hashchange', handleHashChange);
+    };
   }, []);
 
   const changePage = (pageKey: string) => {
@@ -239,6 +242,7 @@ export const DevPageRenderer: React.FC = () => {
                 <option value="Admin/FeedbackImport/Index">Admin &rarr; FeedbackImport/Index</option>
                 <option value="Admin/Analytics/Index">Admin &rarr; Analytics/Index</option>
                 <option value="Admin/Reports/Index">Admin &rarr; Reports/Index</option>
+                <option value="Admin/FacultyReports/Index">Admin &rarr; FacultyReports/Index</option>
                 <option value="Admin/CriticalComments/Index">Admin &rarr; CriticalComments/Index</option>
                 <option value="Admin/Feedback/PublishForm">Admin &rarr; Feedback/PublishForm</option>
                 <option value="Admin/Timetables/Index">Admin &rarr; Timetables/Index</option>
@@ -313,16 +317,14 @@ export const DevPageRenderer: React.FC = () => {
         </div>
       </header>
 
-      {/* Render Active Inertia Page with Injected Controller Props */}
-      {!isAuthReady ? (
-        <div className="flex-1 flex items-center justify-center p-12">
-          <div className="flex items-center gap-3 text-slate-500 font-semibold text-sm">
-            <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-            <span>Initializing Session & Authenticating API...</span>
-          </div>
-        </div>
+      {/* Render Active Inertia Page with Injected Controller Props once Auth is Ready */}
+      {isAuthReady ? (
+        <PageComponent key={`${activePage}-${devRoleMode}`} {...activeProps} />
       ) : (
-        <PageComponent {...activeProps} />
+        <div className="flex-1 flex flex-col items-center justify-center min-h-[450px] gap-3 text-slate-500">
+          <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+          <span className="text-xs font-semibold tracking-wide">Connecting to Academic Database...</span>
+        </div>
       )}
     </div>
   );

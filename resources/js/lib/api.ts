@@ -46,6 +46,47 @@ export function getStoredUserInfo(): UserAccountInfo | null {
 }
 
 let isRedirectingToLogin = false;
+let isRefreshingAuth = false;
+let authRefreshPromise: Promise<string | null> | null = null;
+
+export async function attemptDevAutoLogin(): Promise<string | null> {
+  if (isRefreshingAuth && authRefreshPromise) {
+    return authRefreshPromise;
+  }
+  isRefreshingAuth = true;
+  authRefreshPromise = (async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          email: 'admin@college.edu',
+          password: 'password123',
+        }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.token) {
+          setAuthToken(data.token);
+          if (data.user) {
+            setStoredUserInfo(data.user);
+          }
+          return data.token;
+        }
+      }
+    } catch {
+      // Backend server may be offline or starting up
+    } finally {
+      isRefreshingAuth = false;
+      authRefreshPromise = null;
+    }
+    return null;
+  })();
+  return authRefreshPromise;
+}
 
 export async function handle401Redirect(): Promise<void> {
   const currentHash = window.location.hash || '';
@@ -76,6 +117,7 @@ export async function handle401Redirect(): Promise<void> {
     }
   }
 
+  // Only redirect if not already on login/identify pages
   if (!currentHash.includes('Faculty/Login') && !currentHash.includes('Student/Identify')) {
     window.location.hash = '#Faculty/Login';
   }
@@ -187,6 +229,23 @@ export async function apiRequest<T = any>(
     let message = data.message;
 
     if (errorStatus === 401) {
+      const isAuthEndpoint = endpoint.includes('/auth/login') || endpoint.includes('/auth/logout');
+      const isRetry = (options as any)._isRetry;
+
+      if (!isAuthEndpoint && !isRetry) {
+        const newToken = await attemptDevAutoLogin();
+        if (newToken) {
+          return apiRequest<T>(endpoint, {
+            ...options,
+            _isRetry: true,
+            headers: {
+              ...(options.headers as Record<string, string> || {}),
+              'Authorization': `Bearer ${newToken}`,
+            },
+          } as any);
+        }
+      }
+
       handle401Redirect();
       message = message || 'Unauthenticated. Please log in again.';
     } else if (errorStatus === 403) {
