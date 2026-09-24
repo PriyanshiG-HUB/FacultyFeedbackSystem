@@ -114,6 +114,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Feedback Question Categories & Forms Lifecycle
         Route::apiResource('feedback-question-categories', FeedbackQuestionCategoryController::class)->only(['index', 'store', 'destroy']);
+        Route::get('/custom-feedback-questions/template', [\App\Http\Controllers\Api\CustomFeedbackQuestionController::class, 'template']);
+        Route::post('/custom-feedback-questions/validate', [\App\Http\Controllers\Api\CustomFeedbackQuestionController::class, 'validateImport']);
+        Route::post('/custom-feedback-questions/import', [\App\Http\Controllers\Api\CustomFeedbackQuestionController::class, 'import']);
+        Route::apiResource('custom-feedback-questions', \App\Http\Controllers\Api\CustomFeedbackQuestionController::class)->only(['index', 'store', 'destroy']);
+
         Route::apiResource('feedback-forms', FeedbackFormController::class);
         Route::post('/feedback-forms/{feedbackForm}/publish', [FeedbackFormController::class, 'publish']);
         Route::post('/feedback-forms/{feedbackForm}/unpublish', [FeedbackFormController::class, 'unpublish']);

@@ -26,6 +26,9 @@ class FeedbackPublishingService
             $title = $data['title'] ?? ($assignment->subject->subject_name . ' Feedback');
             $shouldPublish = !empty($data['is_published']);
 
+            $questionSource = strtoupper($data['question_source'] ?? 'EXISTING');
+            $responseType = strtoupper($data['response_type'] ?? 'RATING');
+
             $form = FeedbackForm::create([
                 'form_code' => $formCode,
                 'title' => $title,
@@ -37,15 +40,22 @@ class FeedbackPublishingService
                 'published_at' => $shouldPublish ? now() : null,
                 'status' => $shouldPublish ? 'PUBLISHED' : 'DRAFT',
                 'created_by_user_account_id' => $userAccount->id,
+                'question_source' => $questionSource,
+                'response_type' => $responseType,
             ]);
 
             if (!empty($data['questions']) && is_array($data['questions'])) {
                 foreach ($data['questions'] as $index => $qData) {
+                    $qType = strtoupper($qData['question_type'] ?? 'RATING');
+                    if ($responseType === 'TEXT' && $qType === 'RATING') {
+                        $qType = 'TEXT';
+                    }
+
                     $question = FeedbackQuestion::create([
                         'feedback_form_id' => $form->id,
                         'category_id' => $qData['category_id'] ?? null,
-                        'question_text' => $qData['question_text'],
-                        'question_type' => $qData['question_type'] ?? 'RATING',
+                        'question_text' => $qData['question_text'] ?? $qData['question'] ?? '',
+                        'question_type' => $qType,
                         'display_order' => $qData['display_order'] ?? ($index + 1),
                         'is_required' => $qData['is_required'] ?? true,
                         'max_rating' => $qData['max_rating'] ?? 5,
@@ -53,11 +63,13 @@ class FeedbackPublishingService
 
                     if (!empty($qData['options']) && is_array($qData['options'])) {
                         foreach ($qData['options'] as $optIndex => $oData) {
+                            $optValue = is_array($oData) ? ($oData['option_value'] ?? $oData['value'] ?? '') : (string)$oData;
+                            $optLabel = is_array($oData) ? ($oData['option_label'] ?? $oData['label'] ?? $optValue) : (string)$oData;
                             FeedbackQuestionOption::create([
                                 'question_id' => $question->id,
-                                'option_value' => $oData['option_value'],
-                                'option_label' => $oData['option_label'],
-                                'display_order' => $oData['display_order'] ?? ($optIndex + 1),
+                                'option_value' => $optValue,
+                                'option_label' => $optLabel,
+                                'display_order' => is_array($oData) ? ($oData['display_order'] ?? ($optIndex + 1)) : ($optIndex + 1),
                             ]);
                         }
                     }
@@ -72,13 +84,15 @@ class FeedbackPublishingService
                     ['category_name' => 'Study Material / Practical Guidance', 'text' => 'Faculty provides relevant study materials, assignments, and guidance.'],
                 ];
 
+                $defaultQType = $responseType === 'TEXT' ? 'TEXT' : ($responseType === 'BOTH' ? 'BOTH' : 'RATING');
+
                 foreach ($defaultQuestions as $idx => $dq) {
                     $cat = $categories->firstWhere('category_name', $dq['category_name']) ?? ($categories[$idx] ?? null);
                     FeedbackQuestion::create([
                         'feedback_form_id' => $form->id,
                         'category_id' => $cat?->id,
                         'question_text' => $dq['text'],
-                        'question_type' => 'RATING',
+                        'question_type' => $defaultQType,
                         'display_order' => $idx + 1,
                         'is_required' => true,
                         'max_rating' => 5,
