@@ -290,13 +290,24 @@ export default function Index({
     }
   };
 
-  const handleDeleteStudent = async (studentId: number) => {
-    if (!confirm('Are you sure you want to delete this student record?')) return;
+  const handleDeleteStudent = async (studentId: number, studentName?: string) => {
+    if (!confirm(`Are you sure you want to delete student "${studentName || 'this student'}"?`)) return;
     try {
       await api.delete(`/students/${studentId}`);
       await fetchStudentsAndMetadata();
     } catch (err: any) {
-      alert(err.message || 'Cannot delete student record.');
+      if (err.status === 409) {
+        if (confirm(`Student "${studentName || 'this student'}" has submitted feedback responses or enrollments.\n\nDo you want to permanently delete this student AND all associated records?`)) {
+          try {
+            await api.delete(`/students/${studentId}?cascade=true`);
+            await fetchStudentsAndMetadata();
+          } catch (cascadeErr: any) {
+            alert(cascadeErr.message || 'Failed to delete student.');
+          }
+        }
+      } else {
+        alert(err.message || 'Cannot delete student record.');
+      }
     }
   };
 
@@ -395,7 +406,7 @@ export default function Index({
             variant="outline"
             onClick={(e) => {
               e.stopPropagation();
-              handleDeleteStudent(row.id);
+              handleDeleteStudent(row.id, row.name);
             }}
             className="text-xs py-1 px-2 text-rose-600 hover:bg-rose-50 border-rose-200"
           >

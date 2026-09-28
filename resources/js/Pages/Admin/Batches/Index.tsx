@@ -6,7 +6,7 @@ import { StatusBadge } from '../../../Components/ui/StatusBadge';
 import { Button } from '../../../Components/ui/Button';
 import { Modal } from '../../../Components/ui/Modal';
 import { Input, Select } from '../../../Components/ui/Input';
-import { Plus, RefreshCw, AlertCircle } from 'lucide-react';
+import { Plus, RefreshCw, AlertCircle, Trash2 } from 'lucide-react';
 import { api } from '../../../lib/api';
 
 interface DepartmentOption {
@@ -128,6 +128,27 @@ export default function Index({
     }
   };
 
+  const handleDeleteBatch = async (batchId: number, batchName: string) => {
+    if (!confirm(`Are you sure you want to delete batch "${batchName}"?`)) return;
+    try {
+      await api.delete(`/batches/${batchId}`);
+      await fetchBatchesAndMetadata();
+    } catch (err: any) {
+      if (err.status === 409) {
+        if (confirm(`Batch "${batchName}" has active divisions, students, or teaching assignments.\n\nDo you want to permanently delete this batch AND all associated records?`)) {
+          try {
+            await api.delete(`/batches/${batchId}?cascade=true`);
+            await fetchBatchesAndMetadata();
+          } catch (cascadeErr: any) {
+            alert(cascadeErr.message || 'Failed to delete batch.');
+          }
+        }
+      } else {
+        alert(err.message || 'Cannot delete batch.');
+      }
+    }
+  };
+
   const columns: Column<BatchItem>[] = [
     {
       header: 'Graduation Batch / Cohort',
@@ -157,6 +178,23 @@ export default function Index({
       header: 'Status',
       accessor: (row) => <StatusBadge status={row.status} />,
       sortable: true,
+    },
+    {
+      header: 'Action',
+      accessor: (row) => (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDeleteBatch(row.id, row.name);
+          }}
+          className="text-rose-600 hover:bg-rose-50 border-rose-200 p-1.5"
+          title="Delete Batch"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </Button>
+      ),
     },
   ];
 

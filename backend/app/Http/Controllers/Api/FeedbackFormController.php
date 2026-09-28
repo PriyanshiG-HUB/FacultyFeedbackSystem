@@ -6,13 +6,18 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\FeedbackForm\StoreFeedbackFormRequest;
 use App\Http\Resources\FeedbackFormResource;
 use App\Models\FeedbackForm;
+use App\Models\TeachingAssignment;
 use App\Services\FeedbackPublishingService;
+use App\Traits\AuthorizesDepartmentScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 class FeedbackFormController extends Controller
 {
+    use AuthorizesDepartmentScope;
+
     protected FeedbackPublishingService $publishingService;
 
     public function __construct(FeedbackPublishingService $publishingService)
@@ -32,6 +37,13 @@ class FeedbackFormController extends Controller
             'questions.category',
         ]);
 
+        $hodDeptId = $this->getAuthorizedDepartmentId($request);
+        if ($hodDeptId !== null) {
+            $query->whereHas('teachingAssignment.batch', function ($q) use ($hodDeptId) {
+                $q->where('department_id', $hodDeptId);
+            });
+        }
+
         if ($request->has('status')) {
             $query->where('status', $request->get('status'));
         }
@@ -49,7 +61,14 @@ class FeedbackFormController extends Controller
     public function store(StoreFeedbackFormRequest $request): JsonResponse
     {
         $user = $request->user();
-        $form = $this->publishingService->createForm($request->validated(), $user);
+        $validated = $request->validated();
+
+        $ta = TeachingAssignment::with('subject')->findOrFail($validated['teaching_assignment_id']);
+        if ($ta->subject) {
+            $this->validateDepartmentAccess($request, $ta->subject->department_id);
+        }
+
+        $form = $this->publishingService->createForm($validated, $user);
 
         return response()->json([
             'message' => 'Feedback form created successfully',
@@ -57,8 +76,13 @@ class FeedbackFormController extends Controller
         ], Response::HTTP_CREATED);
     }
 
-    public function show(FeedbackForm $feedbackForm): JsonResponse
+    public function show(Request $request, FeedbackForm $feedbackForm): JsonResponse
     {
+        $feedbackForm->loadMissing('teachingAssignment.subject');
+        if ($feedbackForm->teachingAssignment?->subject) {
+            $this->validateDepartmentAccess($request, $feedbackForm->teachingAssignment->subject->department_id);
+        }
+
         return response()->json([
             'data' => new FeedbackFormResource($feedbackForm->load([
                 'teachingAssignment.subject',
@@ -72,23 +96,58 @@ class FeedbackFormController extends Controller
         ], Response::HTTP_OK);
     }
 
-    public function destroy(FeedbackForm $feedbackForm): JsonResponse
+    public function destroy(Request $request, FeedbackForm $feedbackForm): JsonResponse
     {
-        if ($feedbackForm->responses()->exists()) {
-            return response()->json([
-                'message' => 'Cannot delete feedback form with submitted student responses.'
-            ], Response::HTTP_CONFLICT);
+        $feedbackForm->loadMissing('teachingAssignment.subject');
+        if ($feedbackForm->teachingAssignment?->subject) {
+            $this->validateDepartmentAccess($request, $feedbackForm->teachingAssignment->subject->department_id);
         }
 
-        $feedbackForm->delete();
+        if ($feedbackForm->responses()->exists()) {
+            if (!$request->boolean('cascade')) {
+                return response()->json([
+                    'message' => 'Cannot delete feedback form with submitted student responses.',
+                    'has_dependencies' => true
+                ], Response::HTTP_CONFLICT);
+            }
+
+            DB::transaction(function () use ($feedbackForm) {
+                foreach ($feedbackForm->responses as $r) {
+                    $r->feedbackAnswers()->delete();
+                    $r->delete();
+                }
+                foreach ($feedbackForm->questions as $q) {
+                    $q->options()->delete();
+                    $q->delete();
+                }
+                $feedbackForm->delete();
+            });
+
+            return response()->json([
+                'message' => 'Feedback form and all associated responses deleted successfully'
+            ], Response::HTTP_OK);
+        }
+
+        DB::transaction(function () use ($feedbackForm) {
+            foreach ($feedbackForm->questions as $q) {
+                $q->options()->delete();
+                $q->delete();
+            }
+            $feedbackForm->delete();
+        });
 
         return response()->json([
             'message' => 'Feedback form deleted successfully'
         ], Response::HTTP_OK);
     }
 
-    public function publish(FeedbackForm $feedbackForm): JsonResponse
+    public function publish(Request $request, FeedbackForm $feedbackForm): JsonResponse
     {
+        $feedbackForm->loadMissing('teachingAssignment.subject');
+        if ($feedbackForm->teachingAssignment?->subject) {
+            $this->validateDepartmentAccess($request, $feedbackForm->teachingAssignment->subject->department_id);
+        }
+
         $publishedForm = $this->publishingService->publishForm($feedbackForm);
 
         return response()->json([
@@ -97,8 +156,13 @@ class FeedbackFormController extends Controller
         ], Response::HTTP_OK);
     }
 
-    public function unpublish(FeedbackForm $feedbackForm): JsonResponse
+    public function unpublish(Request $request, FeedbackForm $feedbackForm): JsonResponse
     {
+        $feedbackForm->loadMissing('teachingAssignment.subject');
+        if ($feedbackForm->teachingAssignment?->subject) {
+            $this->validateDepartmentAccess($request, $feedbackForm->teachingAssignment->subject->department_id);
+        }
+
         $unpublishedForm = $this->publishingService->unpublishForm($feedbackForm);
 
         return response()->json([

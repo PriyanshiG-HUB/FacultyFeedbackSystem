@@ -164,13 +164,25 @@ export default function Index({
     }
   };
 
-  const handleDeleteSubject = async (subjectId: number) => {
-    if (!confirm('Are you sure you want to delete this subject?')) return;
+  const handleDeleteSubject = async (subjectId: number, subjectName?: string) => {
+    const displayName = subjectName || 'this subject';
+    if (!confirm(`Are you sure you want to delete subject "${displayName}"?`)) return;
     try {
       await api.delete(`/subjects/${subjectId}`);
       await fetchSubjectsAndMetadata();
     } catch (err: any) {
-      alert(err.message || 'Cannot delete subject. Dependent teaching assignments exist.');
+      if (err.status === 409) {
+        if (confirm(`Subject "${subjectName}" has active teaching assignments or offerings.\n\nDo you want to permanently delete this subject AND all associated assignments/offerings?`)) {
+          try {
+            await api.delete(`/subjects/${subjectId}?cascade=true`);
+            await fetchSubjectsAndMetadata();
+          } catch (cascadeErr: any) {
+            alert(cascadeErr.message || 'Failed to delete subject.');
+          }
+        }
+      } else {
+        alert(err.message || 'Cannot delete subject.');
+      }
     }
   };
 
@@ -233,6 +245,23 @@ export default function Index({
       header: 'Credits',
       accessor: (row) => <span className="text-slate-700 font-medium">{row.credits} Credits</span>,
       sortable: true,
+    },
+    {
+      header: 'Action',
+      accessor: (row) => (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDeleteSubject(row.id, row.name);
+          }}
+          className="text-rose-600 hover:bg-rose-50 border-rose-200 p-1.5"
+          title="Delete Subject"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </Button>
+      ),
     },
   ];
 
@@ -306,7 +335,7 @@ export default function Index({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => handleDeleteSubject(row.id)}
+              onClick={() => handleDeleteSubject(row.id, row.name)}
               className="text-rose-600 hover:bg-rose-50"
               title="Delete Subject"
             >

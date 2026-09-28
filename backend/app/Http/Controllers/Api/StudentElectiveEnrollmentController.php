@@ -5,15 +5,26 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\StudentElectiveEnrollmentResource;
 use App\Models\StudentElectiveEnrollment;
+use App\Models\SubjectOffering;
+use App\Traits\AuthorizesDepartmentScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class StudentElectiveEnrollmentController extends Controller
 {
+    use AuthorizesDepartmentScope;
+
     public function index(Request $request): JsonResponse
     {
         $query = StudentElectiveEnrollment::with(['student', 'subjectOffering.subject']);
+
+        $hodDeptId = $this->getAuthorizedDepartmentId($request);
+        if ($hodDeptId !== null) {
+            $query->whereHas('subjectOffering.subject', function ($q) use ($hodDeptId) {
+                $q->where('department_id', $hodDeptId);
+            });
+        }
 
         if ($request->has('student_id')) {
             $query->where('student_id', $request->get('student_id'));
@@ -37,6 +48,11 @@ class StudentElectiveEnrollmentController extends Controller
             'status' => ['nullable', 'in:ENROLLED,DROPPED'],
         ]);
 
+        $offering = SubjectOffering::with('subject')->findOrFail($validated['subject_offering_id']);
+        if ($offering->subject) {
+            $this->validateDepartmentAccess($request, $offering->subject->department_id);
+        }
+
         $exists = StudentElectiveEnrollment::where('student_id', $validated['student_id'])
             ->where('subject_offering_id', $validated['subject_offering_id'])
             ->exists();
@@ -56,9 +72,32 @@ class StudentElectiveEnrollmentController extends Controller
         ], Response::HTTP_CREATED);
     }
 
-    public function destroy($id): JsonResponse
+    public function update(Request $request, $id): JsonResponse
     {
-        $enrollment = StudentElectiveEnrollment::findOrFail($id);
+        $enrollment = StudentElectiveEnrollment::with('subjectOffering.subject')->findOrFail($id);
+        if ($enrollment->subjectOffering?->subject) {
+            $this->validateDepartmentAccess($request, $enrollment->subjectOffering->subject->department_id);
+        }
+
+        $validated = $request->validate([
+            'status' => ['required', 'in:ENROLLED,DROPPED'],
+        ]);
+
+        $enrollment->update($validated);
+
+        return response()->json([
+            'message' => 'Elective enrollment updated successfully',
+            'data' => new StudentElectiveEnrollmentResource($enrollment->fresh(['student', 'subjectOffering.subject']))
+        ], Response::HTTP_OK);
+    }
+
+    public function destroy(Request $request, $id): JsonResponse
+    {
+        $enrollment = StudentElectiveEnrollment::with('subjectOffering.subject')->findOrFail($id);
+        if ($enrollment->subjectOffering?->subject) {
+            $this->validateDepartmentAccess($request, $enrollment->subjectOffering->subject->department_id);
+        }
+
         $enrollment->delete();
 
         return response()->json([

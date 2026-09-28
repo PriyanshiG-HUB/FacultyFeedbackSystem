@@ -117,6 +117,7 @@ export default function Login({ status }: FacultyLoginProps) {
             </div>
 
             <Button
+              id="faculty-login-submit-button"
               type="submit"
               variant="primary"
               className="w-full bg-teal-600 hover:bg-teal-700 border-teal-600 focus:ring-teal-500 shadow-teal-600/20"

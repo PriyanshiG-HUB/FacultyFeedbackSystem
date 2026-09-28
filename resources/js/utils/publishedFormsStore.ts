@@ -5,50 +5,7 @@ import { api } from '../lib/api';
 const STORAGE_KEY = 'faculty_feedback_published_forms';
 const EVENT_NAME = 'faculty_feedback_published_forms_changed';
 
-export const INITIAL_PUBLISHED_FORMS: PublishedFormItem[] = [
-  {
-    id: 'FORM-IT-501',
-    title: 'Faculty Feedback — Semester 5 (Data Structures)',
-    academicYear: '2025-26',
-    semester: 5,
-    departmentCode: 'IT',
-    departmentName: 'Information Technology',
-    division: 'Division 1',
-    batch: '2022-26',
-    facultyId: 'FAC_JENKINS',
-    facultyName: 'Dr. Sarah Jenkins',
-    facultyDesignation: 'Professor',
-    subjectCode: 'IT501',
-    subjectName: 'Data Structures & Algorithms',
-    questions: SYSTEM_QUESTIONS.map((q) => ({ id: q.id, statement: q.text })),
-    status: 'Published',
-    createdBy: 'Dr. Sarah Jenkins (HOD IT)',
-    createdAt: '15 Aug 2026',
-    publishedAt: '15 Aug 2026',
-  },
-  {
-    id: 'FORM-CE-501',
-    assignmentId: 5,
-    title: 'Faculty Feedback — Semester 5 (Theory of Computation)',
-    academicYear: '2025-26',
-    semester: 5,
-    departmentCode: 'CE',
-    departmentName: 'Computer Engineering',
-    division: 'Division 1',
-    section: 'All',
-    batch: '2022-26',
-    facultyId: 'FAC_TURING',
-    facultyName: 'Dr. Alan Turing',
-    facultyDesignation: 'Professor & HOD',
-    subjectCode: 'CE501',
-    subjectName: 'Theory of Computation',
-    questions: SYSTEM_QUESTIONS.map((q) => ({ id: q.id, statement: q.text })),
-    status: 'Published',
-    createdBy: 'Dr. Alan Turing (HOD CE)',
-    createdAt: '14 Aug 2026',
-    publishedAt: '14 Aug 2026',
-  },
-];
+export const INITIAL_PUBLISHED_FORMS: PublishedFormItem[] = [];
 
 const emitChange = () => {
   if (typeof window !== 'undefined') {

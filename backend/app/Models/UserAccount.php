@@ -87,6 +87,25 @@ class UserAccount extends Authenticatable
     }
 
     /**
+     * Get department where this user's faculty profile is appointed as HOD.
+     */
+    public function getHodDepartment(): ?Department
+    {
+        if ($this->faculty) {
+            return Department::where('hod_faculty_id', $this->faculty->id)->first();
+        }
+        return null;
+    }
+
+    /**
+     * Check if this user is an active Head of Department (HOD).
+     */
+    public function isHod(): bool
+    {
+        return $this->getHodDepartment() !== null;
+    }
+
+    /**
      * Get all feedback forms created by this user account.
      */
     public function createdFeedbackForms(): HasMany

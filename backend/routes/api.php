@@ -63,7 +63,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/auth/me', [AuthController::class, 'me']);
 
     // Faculty Scope Routes (placed before apiResource('faculty'))
-    Route::middleware(CheckRole::class . ':FACULTY')->group(function () {
+    Route::middleware(CheckRole::class . ':FACULTY,HOD')->group(function () {
         Route::get('/faculty/dashboard', [FacultyDashboardController::class, 'dashboard']);
         Route::get('/faculty/teaching-assignments', [FacultyDashboardController::class, 'teachingAssignments']);
         Route::get('/faculty/feedback-forms', [FacultyDashboardController::class, 'feedbackForms']);
@@ -78,7 +78,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Admin & HOD Scope Routes
-    Route::middleware(CheckRole::class . ':ADMIN,SUPER_ADMIN')->group(function () {
+    Route::middleware(CheckRole::class . ':ADMIN,SUPER_ADMIN,HOD')->group(function () {
         // Dashboard
         Route::get('/admin/dashboard', [AdminDashboardController::class, 'dashboard']);
 
@@ -105,15 +105,15 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Subject & Offering Management
         Route::apiResource('subjects', SubjectController::class);
-        Route::apiResource('subject-offerings', SubjectOfferingController::class)->only(['index', 'store', 'show', 'destroy']);
-        Route::apiResource('elective-enrollments', StudentElectiveEnrollmentController::class)->only(['index', 'store', 'destroy']);
+        Route::apiResource('subject-offerings', SubjectOfferingController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
+        Route::apiResource('elective-enrollments', StudentElectiveEnrollmentController::class)->only(['index', 'store', 'update', 'destroy']);
 
         // Teaching Assignments & Timetables
         Route::apiResource('teaching-assignments', TeachingAssignmentController::class);
         Route::apiResource('timetables', TimetableController::class);
 
         // Feedback Question Categories & Forms Lifecycle
-        Route::apiResource('feedback-question-categories', FeedbackQuestionCategoryController::class)->only(['index', 'store', 'destroy']);
+        Route::apiResource('feedback-question-categories', FeedbackQuestionCategoryController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::apiResource('feedback-forms', FeedbackFormController::class);
         Route::post('/feedback-forms/{feedbackForm}/publish', [FeedbackFormController::class, 'publish']);
         Route::post('/feedback-forms/{feedbackForm}/unpublish', [FeedbackFormController::class, 'unpublish']);
@@ -125,7 +125,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Reporting, System Settings & Import Logging
         Route::apiResource('reports', ReportController::class);
-        Route::middleware(CheckRole::class . ':ADMIN,SUPER_ADMIN,FACULTY')->group(function () {
+        Route::middleware(CheckRole::class . ':ADMIN,SUPER_ADMIN,FACULTY,HOD')->group(function () {
             Route::get('/faculty-reports/faculty-list', [FacultyReportController::class, 'getFacultyList']);
             Route::get('/faculty-reports/assignments', [FacultyReportController::class, 'getFacultyAssignments']);
             Route::get('/faculty-reports/report', [FacultyReportController::class, 'generateReport']);

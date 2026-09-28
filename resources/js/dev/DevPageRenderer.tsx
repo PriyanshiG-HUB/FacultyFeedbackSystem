@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { mockPropsMap } from './mockProps';
-import { getAuthToken, setAuthToken, api, setStoredUserInfo, attemptDevAutoLogin } from '../lib/api';
+import { getAuthToken, setAuthToken, api, setStoredUserInfo, getStoredUserInfo, removeAuthToken } from '../lib/api';
 
 // Admin Page Imports
 import AdminDashboard from '../Pages/Admin/Dashboard';
@@ -65,8 +65,28 @@ const componentRegistry: Record<string, React.ComponentType<any>> = {
   'Student/Feedback/Show': StudentFeedbackShow,
 };
 
+const isPublicPage = (pageKey: string): boolean => {
+  return pageKey === 'Faculty/Login' || pageKey === 'Student/Identify';
+};
+
+const getInitialPage = (): string => {
+  const hash = (window.location.hash || '').replace(/^#\/?/, '').split('?')[0];
+  const token = getAuthToken();
+  if (!token) {
+    if (hash === 'Student/Identify') return 'Student/Identify';
+    return 'Faculty/Login';
+  }
+  if (hash && componentRegistry[hash]) {
+    return hash;
+  }
+  const storedUser = getStoredUserInfo();
+  if (storedUser?.role === 'STUDENT') return 'Student/Feedback/Show';
+  if (storedUser?.role === 'FACULTY') return 'Faculty/MyReports/Index';
+  return 'Admin/Dashboard';
+};
+
 export const DevPageRenderer: React.FC = () => {
-  const [activePage, setActivePage] = useState<string>('Admin/Dashboard');
+  const [activePage, setActivePage] = useState<string>(getInitialPage);
   const [devRoleMode, setDevRoleMode] = useState<string>('admin');
   const [studentDivisionMode, setStudentDivisionMode] = useState<string>('Division 1');
   const [authUser, setAuthUser] = useState<any>(null);
@@ -76,63 +96,102 @@ export const DevPageRenderer: React.FC = () => {
     let isMounted = true;
 
     const initAuth = async () => {
-      let token = getAuthToken();
-      if (token) {
-        try {
-          const meRes = await api.get('/auth/me');
-          if (meRes?.user && isMounted) {
-            setAuthUser(meRes.user);
-            setStoredUserInfo(meRes.user);
-            setIsAuthReady(true);
-            return;
+      const token = getAuthToken();
+      const currentRoute = (window.location.hash || '').replace(/^#\/?/, '').split('?')[0];
+
+      if (!token) {
+        if (isMounted) {
+          setAuthUser(null);
+          setIsAuthReady(true);
+          if (!isPublicPage(currentRoute)) {
+            const target = currentRoute.startsWith('Student/') ? 'Student/Identify' : 'Faculty/Login';
+            window.location.hash = `#${target}`;
+            setActivePage(target);
           }
-        } catch {
-          token = null;
         }
+        return;
       }
 
-      const newToken = await attemptDevAutoLogin();
-      if (newToken && isMounted) {
-        try {
-          const meRes = await api.get('/auth/me');
-          if (meRes?.user && isMounted) {
-            setAuthUser(meRes.user);
-            setStoredUserInfo(meRes.user);
+      try {
+        const meRes = await api.get('/auth/me');
+        if (meRes?.user && isMounted) {
+          setAuthUser(meRes.user);
+          setStoredUserInfo(meRes.user);
+        } else if (isMounted) {
+          removeAuthToken();
+          setAuthUser(null);
+          if (!isPublicPage(currentRoute)) {
+            window.location.hash = '#Faculty/Login';
+            setActivePage('Faculty/Login');
           }
-        } catch {
-          // Ignore
         }
-      }
-      if (isMounted) {
-        setIsAuthReady(true);
+      } catch (err) {
+        if (isMounted) {
+          removeAuthToken();
+          setAuthUser(null);
+          if (!isPublicPage(currentRoute)) {
+            window.location.hash = '#Faculty/Login';
+            setActivePage('Faculty/Login');
+          }
+        }
+      } finally {
+        if (isMounted) {
+          setIsAuthReady(true);
+        }
       }
     };
 
     initAuth();
 
     const handleHashChange = () => {
-      const hash = window.location.hash.replace('#', '');
-      const routeKey = hash.split('?')[0];
+      const routeKey = (window.location.hash || '').replace(/^#\/?/, '').split('?')[0];
+      const token = getAuthToken();
+
+      if (!token && !isPublicPage(routeKey)) {
+        const target = routeKey.startsWith('Student/') ? 'Student/Identify' : 'Faculty/Login';
+        window.location.hash = `#${target}`;
+        setActivePage(target);
+        return;
+      }
+
       if (routeKey && componentRegistry[routeKey]) {
         setActivePage(routeKey);
       }
     };
 
-    handleHashChange();
+    const handleAuthLogout = () => {
+      if (isMounted) {
+        setAuthUser(null);
+        setActivePage('Faculty/Login');
+      }
+    };
+
     window.addEventListener('hashchange', handleHashChange);
+    window.addEventListener('auth:logout', handleAuthLogout);
     return () => {
       isMounted = false;
       window.removeEventListener('hashchange', handleHashChange);
+      window.removeEventListener('auth:logout', handleAuthLogout);
     };
   }, []);
 
   const changePage = (pageKey: string) => {
+    const token = getAuthToken();
+    if (!token && !isPublicPage(pageKey)) {
+      window.location.hash = '#Faculty/Login';
+      setActivePage('Faculty/Login');
+      return;
+    }
     setActivePage(pageKey);
     window.location.hash = `#${pageKey}`;
   };
 
-  const PageComponent = componentRegistry[activePage] || AdminDashboard;
-  const baseProps = mockPropsMap[activePage] || mockPropsMap['Admin/Dashboard'];
+  const isCurrentPublic = isPublicPage(activePage);
+  const currentToken = getAuthToken();
+  const PageComponent = (!currentToken && !isCurrentPublic)
+    ? (activePage.startsWith('Student/') ? StudentIdentify : FacultyLogin)
+    : (componentRegistry[activePage] || (currentToken ? AdminDashboard : FacultyLogin));
+  const baseProps = mockPropsMap[activePage] || mockPropsMap[currentToken ? 'Admin/Dashboard' : 'Faculty/Login'];
 
   // Role Scope Mock Props Generation
   const isHodRole = devRoleMode.startsWith('hod_');
@@ -281,9 +340,15 @@ export const DevPageRenderer: React.FC = () => {
           {/* Role Shortcut Badges & Compact Toggle */}
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={() => {
-                setDevRoleMode('admin');
-                changePage('Admin/Dashboard');
+                const token = getAuthToken();
+                if (!token) {
+                  changePage('Faculty/Login');
+                } else {
+                  setDevRoleMode('admin');
+                  changePage('Admin/Dashboard');
+                }
               }}
               className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all ${
                 userRole === 'admin'
@@ -294,7 +359,15 @@ export const DevPageRenderer: React.FC = () => {
               Admin
             </button>
             <button
-              onClick={() => changePage('Faculty/MyReports/Index')}
+              type="button"
+              onClick={() => {
+                const token = getAuthToken();
+                if (!token) {
+                  changePage('Faculty/Login');
+                } else {
+                  changePage('Faculty/MyReports/Index');
+                }
+              }}
               className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all ${
                 activePage.startsWith('Faculty/')
                   ? 'bg-teal-600 text-white shadow-xs'
@@ -304,7 +377,15 @@ export const DevPageRenderer: React.FC = () => {
               Faculty
             </button>
             <button
-              onClick={() => changePage('Student/Feedback/Show')}
+              type="button"
+              onClick={() => {
+                const token = getAuthToken();
+                if (!token) {
+                  changePage('Student/Identify');
+                } else {
+                  changePage('Student/Feedback/Show');
+                }
+              }}
               className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all ${
                 activePage.startsWith('Student/')
                   ? 'bg-amber-600 text-white shadow-xs'
@@ -313,6 +394,19 @@ export const DevPageRenderer: React.FC = () => {
             >
               Student
             </button>
+          </div>
+
+          {/* Auth State Badge in Header Bar */}
+          <div className="flex items-center gap-1.5 pl-2 border-l border-slate-700">
+            {authUser ? (
+              <span className="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700 font-mono text-[10px] font-bold">
+                Auth: {authUser.role} ({authUser.email})
+              </span>
+            ) : (
+              <span className="px-2 py-0.5 rounded-full bg-rose-950/80 text-rose-300 border border-rose-700/80 font-mono text-[10px] font-bold">
+                Auth: Unauthenticated
+              </span>
+            )}
           </div>
         </div>
       </header>

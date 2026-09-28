@@ -7,6 +7,7 @@ use App\Http\Resources\AcademicYearResource;
 use App\Models\AcademicYear;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 class AcademicYearController extends Controller
@@ -61,12 +62,35 @@ class AcademicYearController extends Controller
         ], Response::HTTP_OK);
     }
 
-    public function destroy(AcademicYear $academicYear): JsonResponse
+    public function destroy(Request $request, AcademicYear $academicYear): JsonResponse
     {
-        if ($academicYear->teachingAssignments()->exists() || $academicYear->subjectOfferings()->exists()) {
+        $hasDependencies = $academicYear->teachingAssignments()->exists() || $academicYear->subjectOfferings()->exists();
+
+        if ($hasDependencies) {
+            if (!$request->boolean('cascade')) {
+                return response()->json([
+                    'message' => 'Cannot delete academic year with active teaching assignments or offerings.',
+                    'has_dependencies' => true
+                ], Response::HTTP_CONFLICT);
+            }
+
+            DB::transaction(function () use ($academicYear) {
+                // Delete teaching assignments
+                foreach ($academicYear->teachingAssignments as $assignment) {
+                    \App\Models\FeedbackForm::where('teaching_assignment_id', $assignment->id)->delete();
+                    \App\Models\Timetable::where('teaching_assignment_id', $assignment->id)->delete();
+                    $assignment->delete();
+                }
+
+                // Delete subject offerings
+                $academicYear->subjectOfferings()->delete();
+
+                $academicYear->delete();
+            });
+
             return response()->json([
-                'message' => 'Cannot delete academic year with active teaching assignments or offerings.'
-            ], Response::HTTP_CONFLICT);
+                'message' => 'Academic year and all associated records deleted successfully'
+            ], Response::HTTP_OK);
         }
 
         $academicYear->delete();

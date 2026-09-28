@@ -17,6 +17,7 @@ import {
   Plus,
   RefreshCw,
   AlertCircle,
+  Trash2,
 } from 'lucide-react';
 import { api } from '../../../lib/api';
 
@@ -168,6 +169,29 @@ export default function Index({
     }
   };
 
+  const handleDeleteAcademicYear = async (yearId: string, yearCode: string) => {
+    if (!confirm(`Are you sure you want to delete academic year "${yearCode}"?`)) return;
+    try {
+      await api.delete(`/academic-years/${yearId}`);
+      if (selectedYearId === yearId) setSelectedYearId(null);
+      await fetchAcademicData();
+    } catch (err: any) {
+      if (err.status === 409) {
+        if (confirm(`Academic year "${yearCode}" has active teaching assignments or subject offerings.\n\nDo you want to permanently delete this academic year AND all associated assignments/offerings?`)) {
+          try {
+            await api.delete(`/academic-years/${yearId}?cascade=true`);
+            if (selectedYearId === yearId) setSelectedYearId(null);
+            await fetchAcademicData();
+          } catch (cascadeErr: any) {
+            alert(cascadeErr.message || 'Failed to delete academic year.');
+          }
+        }
+      } else {
+        alert(err.message || 'Cannot delete academic year.');
+      }
+    }
+  };
+
   const currentDeptName = isAdministrator
     ? selectedDeptCode === 'ALL'
       ? 'All Departments'
@@ -314,18 +338,34 @@ export default function Index({
                       <span className="text-xs text-slate-400 font-medium">
                         Click to view semester records
                       </span>
-                      <Button
-                        variant={isOdd ? 'primary' : 'secondary'}
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedYearId(ay.id);
-                        }}
-                        className="group-hover:translate-x-0.5 transition-transform"
-                      >
-                        <span>View Records</span>
-                        <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        {isAdministrator && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteAcademicYear(ay.id, ay.academicYear);
+                            }}
+                            className="text-rose-600 hover:bg-rose-50 border-rose-200 p-1.5"
+                            title="Delete Academic Year"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                        <Button
+                          variant={isOdd ? 'primary' : 'secondary'}
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedYearId(ay.id);
+                          }}
+                          className="group-hover:translate-x-0.5 transition-transform"
+                        >
+                          <span>View Records</span>
+                          <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 );

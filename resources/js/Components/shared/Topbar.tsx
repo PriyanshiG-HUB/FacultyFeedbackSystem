@@ -1,5 +1,5 @@
-import React from 'react';
-import { Bell, ShieldCheck, User, LogOut } from 'lucide-react';
+import React, { useState } from 'react';
+import { Bell, ShieldCheck, User, LogOut, Loader2 } from 'lucide-react';
 import { handleLogout } from '../../lib/api';
 
 interface TopbarProps {
@@ -17,6 +17,7 @@ export const Topbar: React.FC<TopbarProps> = ({
   userRoleType,
   departmentScope,
 }) => {
+  const [isLoggingOut, setIsLoggingOut] = useState<boolean>(false);
   const isAdministrator = userRoleType === 'admin';
   const roleBadgeText = isAdministrator
     ? 'Administrator • All Departments'
@@ -24,8 +25,22 @@ export const Topbar: React.FC<TopbarProps> = ({
     ? `HOD • ${departmentScope}`
     : userRole;
 
+  const onLogoutClick = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      await handleLogout();
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
   return (
-    <header className="h-16 bg-white/90 border-b border-slate-200/90 backdrop-blur-md sticky top-0 z-20 flex items-center justify-between px-8 shadow-2xs">
+    <header className="h-16 bg-white/90 border-b border-slate-200/90 backdrop-blur-md sticky top-[41px] z-40 flex items-center justify-between px-8 shadow-2xs">
       <div className="flex items-center gap-3">
         <h2 className="text-xl font-bold text-slate-900 tracking-tight">{pageTitle}</h2>
         <span
@@ -57,14 +72,22 @@ export const Topbar: React.FC<TopbarProps> = ({
             <p className="text-[10px] text-slate-500 font-medium">{roleBadgeText}</p>
           </div>
           <button
-            onClick={handleLogout}
-            title="Logout of session"
-            className="p-1.5 rounded-lg bg-slate-100 text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition-colors border border-slate-200 cursor-pointer ml-1"
+            id="topbar-logout-button"
+            onClick={onLogoutClick}
+            disabled={isLoggingOut}
+            title={isLoggingOut ? 'Logging out...' : 'Logout of session'}
+            aria-label="Logout"
+            className="p-1.5 rounded-lg bg-slate-100 text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition-colors border border-slate-200 cursor-pointer ml-1 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
           >
-            <LogOut className="w-4 h-4" />
+            {isLoggingOut ? (
+              <Loader2 className="w-4 h-4 animate-spin text-rose-600 pointer-events-none" />
+            ) : (
+              <LogOut className="w-4 h-4 pointer-events-none" />
+            )}
           </button>
         </div>
       </div>
     </header>
   );
 };
+

@@ -6,15 +6,21 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\TeachingAssignment\StoreTeachingAssignmentRequest;
 use App\Http\Requests\TeachingAssignment\UpdateTeachingAssignmentRequest;
 use App\Http\Resources\TeachingAssignmentResource;
+use App\Models\Batch;
 use App\Models\Division;
 use App\Models\Section;
+use App\Models\Subject;
 use App\Models\TeachingAssignment;
+use App\Traits\AuthorizesDepartmentScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 class TeachingAssignmentController extends Controller
 {
+    use AuthorizesDepartmentScope;
+
     public function index(Request $request): JsonResponse
     {
         $query = TeachingAssignment::with([
@@ -27,7 +33,12 @@ class TeachingAssignmentController extends Controller
             'semester',
         ]);
 
-        if ($request->has('department_id')) {
+        $hodDeptId = $this->getAuthorizedDepartmentId($request);
+        if ($hodDeptId !== null) {
+            $query->whereHas('batch', function ($q) use ($hodDeptId) {
+                $q->where('department_id', $hodDeptId);
+            });
+        } elseif ($request->has('department_id')) {
             $deptId = $request->get('department_id');
             $query->whereHas('batch', function ($q) use ($deptId) {
                 $q->where('department_id', $deptId);
@@ -112,6 +123,9 @@ class TeachingAssignmentController extends Controller
             ], Response::HTTP_CONFLICT);
         }
 
+        $subject = Subject::findOrFail($validated['subject_id']);
+        $this->validateDepartmentAccess($request, $subject->department_id);
+
         $assignment = TeachingAssignment::create($validated);
 
         return response()->json([
@@ -128,8 +142,13 @@ class TeachingAssignmentController extends Controller
         ], Response::HTTP_CREATED);
     }
 
-    public function show(TeachingAssignment $teachingAssignment): JsonResponse
+    public function show(Request $request, TeachingAssignment $teachingAssignment): JsonResponse
     {
+        $teachingAssignment->loadMissing('subject');
+        if ($teachingAssignment->subject) {
+            $this->validateDepartmentAccess($request, $teachingAssignment->subject->department_id);
+        }
+
         return response()->json([
             'data' => new TeachingAssignmentResource($teachingAssignment->load([
                 'subject',
@@ -145,6 +164,11 @@ class TeachingAssignmentController extends Controller
 
     public function update(Request $request, TeachingAssignment $teachingAssignment): JsonResponse
     {
+        $teachingAssignment->loadMissing('subject');
+        if ($teachingAssignment->subject) {
+            $this->validateDepartmentAccess($request, $teachingAssignment->subject->department_id);
+        }
+
         $validated = $request->validate([
             'subject_id' => ['sometimes', 'required', 'integer', 'exists:subject,id'],
             'faculty_id' => ['sometimes', 'required', 'integer', 'exists:faculty,id'],
@@ -155,6 +179,11 @@ class TeachingAssignmentController extends Controller
             'semester_id' => ['sometimes', 'required', 'integer', 'exists:semester,id'],
             'status' => ['sometimes', 'in:ACTIVE,INACTIVE'],
         ]);
+
+        if (isset($validated['subject_id'])) {
+            $subject = Subject::findOrFail($validated['subject_id']);
+            $this->validateDepartmentAccess($request, $subject->department_id);
+        }
 
         $teachingAssignment->update($validated);
 
@@ -172,15 +201,38 @@ class TeachingAssignmentController extends Controller
         ], Response::HTTP_OK);
     }
 
-    public function destroy(TeachingAssignment $teachingAssignment): JsonResponse
+    public function destroy(Request $request, TeachingAssignment $teachingAssignment): JsonResponse
     {
-        if ($teachingAssignment->feedbackForms()->exists()) {
-            return response()->json([
-                'message' => 'Cannot delete teaching assignment with associated feedback forms.'
-            ], Response::HTTP_CONFLICT);
+        $teachingAssignment->loadMissing('subject');
+        if ($teachingAssignment->subject) {
+            $this->validateDepartmentAccess($request, $teachingAssignment->subject->department_id);
         }
 
-        $teachingAssignment->delete();
+        if ($teachingAssignment->feedbackForms()->exists()) {
+            if (!$request->boolean('cascade')) {
+                return response()->json([
+                    'message' => 'Cannot delete teaching assignment with associated feedback forms.',
+                    'has_dependencies' => true
+                ], Response::HTTP_CONFLICT);
+            }
+        }
+
+        DB::transaction(function () use ($teachingAssignment) {
+            foreach ($teachingAssignment->feedbackForms as $form) {
+                foreach ($form->feedbackResponses as $r) {
+                    $r->feedbackAnswers()->delete();
+                    $r->delete();
+                }
+                foreach ($form->questions as $q) {
+                    $q->options()->delete();
+                    $q->delete();
+                }
+                $form->delete();
+            }
+
+            \App\Models\Timetable::where('teaching_assignment_id', $teachingAssignment->id)->delete();
+            $teachingAssignment->delete();
+        });
 
         return response()->json([
             'message' => 'Teaching assignment deleted successfully'

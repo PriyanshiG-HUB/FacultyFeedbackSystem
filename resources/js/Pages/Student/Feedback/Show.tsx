@@ -6,11 +6,6 @@ import { Button } from '../../../Components/ui/Button';
 import { Modal } from '../../../Components/ui/Modal';
 import { StatusBadge } from '../../../Components/ui/StatusBadge';
 import {
-  getPublishedForms,
-  subscribeToPublishedForms,
-} from '../../../utils/publishedFormsStore';
-import { saveSubmissionToStore, SYSTEM_QUESTIONS } from '../../../utils/feedbackExclusionStore';
-import {
   CheckCircle2,
   User,
   Send,
@@ -41,39 +36,19 @@ const LIKERT_OPTIONS = [
   { value: 1, label: 'Strongly Disagree' },
 ];
 
-const DEFAULT_PARAMETERS: FeedbackParameter[] = SYSTEM_QUESTIONS.map((q) => ({
+const DEFAULT_QUESTIONS = [
+  { id: 1, statement: 'The faculty explains concepts clearly.' },
+  { id: 2, statement: 'The faculty demonstrates good subject knowledge.' },
+  { id: 3, statement: 'The faculty completes the syllabus effectively.' },
+  { id: 4, statement: 'The faculty provides useful study material.' },
+  { id: 5, statement: 'The faculty maintains punctuality and classroom engagement.' },
+];
+
+const DEFAULT_PARAMETERS: FeedbackParameter[] = DEFAULT_QUESTIONS.map((q) => ({
   id: `p${q.id}`,
-  statement: `${q.id}. ${q.text}`,
+  statement: `${q.id}. ${q.statement}`,
   description: 'Parameter evaluation scale 1 to 5',
 }));
-
-// Read completed form submission keys from localStorage
-const getSubmittedFormKeys = (): string[] => {
-  try {
-    const raw = localStorage.getItem('student_submitted_form_keys');
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed.map(String);
-    }
-  } catch (e) {
-    console.error('Error reading submitted form keys:', e);
-  }
-  return [];
-};
-
-// Save completed submission key to localStorage
-const saveSubmittedFormKey = (key: string) => {
-  try {
-    const current = getSubmittedFormKeys();
-    if (!current.includes(key)) {
-      const updated = [...current, key];
-      localStorage.setItem('student_submitted_form_keys', JSON.stringify(updated));
-      window.dispatchEvent(new Event('storage'));
-    }
-  } catch (e) {
-    console.error('Error saving submitted form key:', e);
-  }
-};
 
 // Helper to parse query parameters from hash
 const getQueryParamsFromHash = () => {
@@ -96,9 +71,8 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
   const studentBatch = student?.batch || '2022-26';
   const studentSem = student?.semester || 7;
 
-  // Published Forms & Realtime Sync State
-  const [publishedForms, setPublishedForms] = useState<PublishedFormItem[]>(getPublishedForms());
-  const [submittedFormKeys, setSubmittedFormKeys] = useState<string[]>(getSubmittedFormKeys());
+  // Published Forms state from MySQL API
+  const [publishedForms, setPublishedForms] = useState<PublishedFormItem[]>([]);
 
   // Active form questionnaire state when opening a specific form
   const [activeFormId, setActiveFormId] = useState<string | null>(
@@ -114,70 +88,61 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState<boolean>(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
-  // Sync state with backend API and store updates
-  useEffect(() => {
-    const loadFromApi = async () => {
-      try {
-        const { api } = await import('../../../lib/api');
-        const res = await api.get('/feedback-forms');
-        if (Array.isArray(res.data)) {
-          const apiForms: PublishedFormItem[] = res.data.map((f: any) => {
-            const ta = f.teaching_assignment || {};
-            return {
-              id: String(f.id),
-              numericId: f.id,
-              assignmentId: f.teaching_assignment_id,
-              title: f.title,
-              academicYear: ta.academic_year?.year_code || '2025-26',
-              semester: ta.semester?.semester_no || ta.semester_id || 5,
-              departmentCode: ta.batch?.department?.department_code || ta.subject?.department?.department_code || 'IT',
-              departmentName: ta.batch?.department?.department_name || ta.subject?.department?.department_name || 'Information Technology',
-              division: ta.division?.division_code || 'All Divisions',
-              section: ta.section?.section_code || 'All',
-              batch: ta.batch?.batch_title || '2022-26',
-              facultyId: String(ta.faculty_id || 'FAC'),
-              facultyName: ta.faculty?.full_name || 'Faculty Member',
-              facultyDesignation: ta.faculty?.designation?.designation_name || 'Faculty',
-              subjectCode: ta.subject?.subject_code || 'SUB101',
-              subjectName: ta.subject?.subject_name || 'Subject',
-              questions: Array.isArray(f.questions)
-                ? f.questions.map((q: any) => ({ id: q.id, statement: q.question_text }))
-                : SYSTEM_QUESTIONS.map((q) => ({ id: q.id, statement: q.text })),
-              status: f.is_published ? 'Published' : 'Draft',
-              createdBy: f.creator?.full_name || 'Administrator',
-              createdAt: f.created_at ? new Date(f.created_at).toLocaleDateString() : 'Recent',
-              publishedAt: f.published_at ? new Date(f.published_at).toLocaleDateString() : undefined,
-            };
-          });
-          setPublishedForms(apiForms);
-        }
-      } catch {
-        // Use local store as fallback
-        setPublishedForms(getPublishedForms());
-      }
-    };
+  const loadFromApi = async () => {
+    try {
+      const { api } = await import('../../../lib/api');
+      const res = await api.get('/student/feedback-forms');
+      const rawForms = Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : []);
+      const apiForms: PublishedFormItem[] = rawForms.map((f: any) => {
+        const ta = f.teaching_assignment || {};
+        return {
+          id: String(f.id),
+          numericId: f.id,
+          assignmentId: f.teaching_assignment_id,
+          title: f.title,
+          academicYear: ta.academic_year?.year_code || '2025-26',
+          semester: ta.semester?.semester_no || ta.semester_id || 5,
+          departmentCode: ta.batch?.department?.department_code || ta.subject?.department?.department_code || 'IT',
+          departmentName: ta.batch?.department?.department_name || ta.subject?.department?.department_name || 'Information Technology',
+          division: ta.division?.division_code || 'All Divisions',
+          section: ta.section?.section_code || 'All',
+          batch: ta.batch?.batch_title || '2022-26',
+          facultyId: String(ta.faculty_id || 'FAC'),
+          facultyName: ta.faculty?.full_name || 'Faculty Member',
+          facultyDesignation: ta.faculty?.designation?.designation_name || 'Faculty',
+          subjectCode: ta.subject?.subject_code || 'SUB101',
+          subjectName: ta.subject?.subject_name || 'Subject',
+          questions: Array.isArray(f.questions) && f.questions.length > 0
+            ? f.questions.map((q: any) => ({ id: q.id, statement: q.question_text || q.statement }))
+            : DEFAULT_QUESTIONS,
+          status: f.is_published ? 'Published' : 'Draft',
+          createdBy: f.creator?.full_name || 'Administrator',
+          createdAt: f.created_at ? new Date(f.created_at).toLocaleDateString() : 'Recent',
+          publishedAt: f.published_at ? new Date(f.published_at).toLocaleDateString() : undefined,
+          has_submitted: Boolean(f.has_submitted),
+        };
+      });
+      setPublishedForms(apiForms);
+    } catch (err) {
+      console.error('Failed to load eligible feedback forms:', err);
+      setPublishedForms([]);
+    }
+  };
 
+  useEffect(() => {
     loadFromApi();
 
     const handleSync = () => {
-      setSubmittedFormKeys(getSubmittedFormKeys());
       const queryParams = getQueryParamsFromHash();
       const fId = queryParams.get('formId');
       setActiveFormId(fId);
     };
 
     handleSync();
-    const unsubStore = subscribeToPublishedForms(() => {
-      loadFromApi();
-      handleSync();
-    });
     window.addEventListener('hashchange', handleSync);
-    window.addEventListener('storage', handleSync);
 
     return () => {
-      unsubStore();
       window.removeEventListener('hashchange', handleSync);
-      window.removeEventListener('storage', handleSync);
     };
   }, []);
 
@@ -239,7 +204,7 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
 
   // Find active form object if in Questionnaire view mode
   const activeForm = activeFormId ? publishedForms.find((f) => f.id === activeFormId) : null;
-  const isCurrentFormSubmitted = activeForm ? submittedFormKeys.includes(`${studentRoll}_${activeForm.id}`) : false;
+  const isCurrentFormSubmitted = Boolean(activeForm?.has_submitted);
 
   // Open feedback questionnaire for a published form
   const handleOpenFormQuestionnaire = (formId: string) => {
@@ -282,7 +247,7 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
     const errors: string[] = [];
     const questions = activeForm.questions && activeForm.questions.length > 0
       ? activeForm.questions
-      : SYSTEM_QUESTIONS.map((q) => ({ id: q.id, statement: q.text }));
+      : DEFAULT_QUESTIONS;
 
     questions.forEach((q, idx) => {
       const qKey = String(q.id);
@@ -306,69 +271,46 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
     setIsConfirmModalOpen(true);
   };
 
-  // Confirm submission & record
+  // Confirm submission & record to MySQL database
   const handleConfirmSubmission = async () => {
     if (!activeForm) return;
 
-    const submissionKey = `${studentRoll}_${activeForm.id}`;
     const numericFormId = activeForm.numericId || (activeForm.id.match(/\d+/) ? parseInt(activeForm.id.match(/\d+/)![0], 10) : null);
+    if (!numericFormId) {
+      setValidationErrors(['Invalid feedback form identifier.']);
+      setIsConfirmModalOpen(false);
+      return;
+    }
 
     const questions = activeForm.questions && activeForm.questions.length > 0
       ? activeForm.questions
-      : SYSTEM_QUESTIONS.map((q) => ({ id: q.id, statement: q.text }));
+      : DEFAULT_QUESTIONS;
 
-    const answers = questions.map((q) => {
-      const qKey = String(q.id);
-      const r = ratings[qKey] || 3;
-      return {
-        questionId: Number(q.id),
-        questionText: q.statement,
-        rating: r,
-        ratingLabel: r === 5 ? 'Strongly Agree' : r === 4 ? 'Agree' : r === 3 ? 'Neutral' : r === 2 ? 'Disagree' : 'Strongly Disagree',
-        comment: questionComments[qKey] || undefined,
-      };
-    });
+    try {
+      const { api } = await import('../../../lib/api');
+      await api.post(`/student/feedback-forms/${numericFormId}/submit`, {
+        overall_remark: Object.values(questionComments).filter(Boolean).join('; ') || 'Submitted via portal',
+        answers: questions.map((q) => ({
+          question_id: Number(q.id),
+          rating_value: ratings[String(q.id)] || 5,
+        })),
+      });
 
-    if (numericFormId) {
-      try {
-        const { api } = await import('../../../lib/api');
-        await api.post(`/student/feedback-forms/${numericFormId}/submit`, {
-          overall_remark: Object.values(questionComments).join('; ') || 'Submitted via portal',
-          answers: questions.map((q) => ({
-            question_id: Number(q.id),
-            rating_value: ratings[String(q.id)] || 5,
-          })),
-        });
-      } catch (err: any) {
-        if (err.status === 422) {
-          setValidationErrors([err.message || 'You have already submitted feedback for this form or are ineligible.']);
-          setIsConfirmModalOpen(false);
-          return;
-        }
-      }
+      setIsConfirmModalOpen(false);
+      setSuccessToast(`Feedback for ${activeForm.facultyName} (${activeForm.subjectName}) submitted successfully!`);
+
+      await loadFromApi();
+
+      setTimeout(() => {
+        setSuccessToast(null);
+        handleBackToList();
+      }, 1500);
+    } catch (err: any) {
+      setIsConfirmModalOpen(false);
+      const msg = err.message || (err.data && err.data.message) || 'Failed to submit feedback to server.';
+      setValidationErrors([msg]);
+      return;
     }
-
-    saveSubmittedFormKey(submissionKey);
-    saveSubmissionToStore({
-      studentRoll,
-      facultyId: String(activeForm.facultyId),
-      facultyName: activeForm.facultyName,
-      subjectCode: activeForm.subjectCode,
-      subjectName: activeForm.subjectName,
-      academicYear: activeForm.academicYear,
-      semester: activeForm.semester,
-      division: studentDivision,
-      departmentCode: studentDept,
-      answers,
-    });
-
-    setIsConfirmModalOpen(false);
-    setSuccessToast(`Feedback for ${activeForm.facultyName} (${activeForm.subjectName}) submitted successfully!`);
-
-    setTimeout(() => {
-      setSuccessToast(null);
-      handleBackToList();
-    }, 1500);
   };
 
   // =========================================================================
@@ -449,7 +391,7 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
 
               <div className="grid grid-cols-1 gap-4">
                 {eligiblePublishedForms.map((form) => {
-                  const isSubmitted = submittedFormKeys.includes(`${studentRoll}_${form.id}`);
+                  const isSubmitted = Boolean(form.has_submitted);
 
                   return (
                     <div
@@ -596,7 +538,7 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
 
   const questionsToRender = activeForm.questions && activeForm.questions.length > 0
     ? activeForm.questions
-    : SYSTEM_QUESTIONS.map((q) => ({ id: q.id, statement: q.text }));
+    : DEFAULT_QUESTIONS;
 
   const totalQuestions = questionsToRender.length;
   const answeredCount = questionsToRender.filter((q) => !!ratings[String(q.id)]).length;

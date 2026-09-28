@@ -8,6 +8,7 @@ use App\Http\Requests\Student\UpdateStudentRequest;
 use App\Http\Resources\StudentResource;
 use App\Models\Student;
 use App\Models\UserAccount;
+use App\Traits\AuthorizesDepartmentScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -16,13 +17,19 @@ use Symfony\Component\HttpFoundation\Response;
 
 class StudentController extends Controller
 {
+    use AuthorizesDepartmentScope;
+
     public function index(Request $request): JsonResponse
     {
         $query = Student::with(['department', 'batch', 'division', 'section', 'userAccount']);
 
-        if ($request->has('department_id')) {
+        $hodDeptId = $this->getAuthorizedDepartmentId($request);
+        if ($hodDeptId !== null) {
+            $query->where('department_id', $hodDeptId);
+        } elseif ($request->has('department_id')) {
             $query->where('department_id', $request->get('department_id'));
         }
+
         if ($request->has('batch_id')) {
             $query->where('batch_id', $request->get('batch_id'));
         }
@@ -54,8 +61,19 @@ class StudentController extends Controller
     {
         $data = $request->validated();
 
+        $hodDeptId = $this->getAuthorizedDepartmentId($request);
+        if ($hodDeptId !== null) {
+            if (isset($data['department_id']) && (int)$data['department_id'] !== $hodDeptId) {
+                abort(Response::HTTP_FORBIDDEN, 'Forbidden: You cannot create a student for another department.');
+            }
+            $data['department_id'] = $hodDeptId;
+        }
+
         $student = DB::transaction(function () use ($data) {
-            $password = $data['password'] ?? 'password123';
+            // Student credentials: password defaults to student ID / roll number (e.g. 24IT019)
+            $defaultPassword = $data['roll_no'] ?? $data['enrollment_no'] ?? 'password123';
+            $password = $data['password'] ?? $defaultPassword;
+
             $userAccount = UserAccount::create([
                 'email' => $data['email'],
                 'password_hash' => Hash::make($password),
@@ -76,8 +94,10 @@ class StudentController extends Controller
         ], Response::HTTP_CREATED);
     }
 
-    public function show(Student $student): JsonResponse
+    public function show(Request $request, Student $student): JsonResponse
     {
+        $this->validateDepartmentAccess($request, $student->department_id);
+
         return response()->json([
             'data' => new StudentResource($student->load(['department', 'batch', 'division', 'section', 'userAccount']))
         ], Response::HTTP_OK);
@@ -85,6 +105,8 @@ class StudentController extends Controller
 
     public function update(UpdateStudentRequest $request, Student $student): JsonResponse
     {
+        $this->validateDepartmentAccess($request, $student->department_id);
+
         $data = $request->validated();
 
         DB::transaction(function () use ($student, $data) {
@@ -100,15 +122,40 @@ class StudentController extends Controller
         ], Response::HTTP_OK);
     }
 
-    public function destroy(Student $student): JsonResponse
+    public function destroy(Request $request, Student $student): JsonResponse
     {
+        $this->validateDepartmentAccess($request, $student->department_id);
+
         if ($student->feedbackResponses()->exists()) {
+            if (!$request->boolean('cascade')) {
+                return response()->json([
+                    'message' => 'Cannot delete student with submitted feedback responses.',
+                    'has_dependencies' => true
+                ], Response::HTTP_CONFLICT);
+            }
+
+            DB::transaction(function () use ($student) {
+                // Delete answers and responses
+                foreach ($student->feedbackResponses as $response) {
+                    $response->feedbackAnswers()->delete();
+                    $response->delete();
+                }
+                $student->electiveEnrollments()->delete();
+
+                $userAccount = $student->userAccount;
+                $student->delete();
+                if ($userAccount) {
+                    $userAccount->delete();
+                }
+            });
+
             return response()->json([
-                'message' => 'Cannot delete student with submitted feedback responses.'
-            ], Response::HTTP_CONFLICT);
+                'message' => 'Student and all associated records deleted successfully'
+            ], Response::HTTP_OK);
         }
 
         DB::transaction(function () use ($student) {
+            $student->electiveEnrollments()->delete();
             $userAccount = $student->userAccount;
             $student->delete();
             if ($userAccount) {

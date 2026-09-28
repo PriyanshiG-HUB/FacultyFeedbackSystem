@@ -7,7 +7,7 @@ import { Button } from '../../../Components/ui/Button';
 import { Card } from '../../../Components/ui/Card';
 import { Modal } from '../../../Components/ui/Modal';
 import { Input, Select } from '../../../Components/ui/Input';
-import { Plus, Mail, Filter, Star, CheckCircle2, BarChart3, PieChart, BookOpen, UserCheck, RefreshCw, AlertCircle } from 'lucide-react';
+import { Plus, Mail, Filter, Star, CheckCircle2, BarChart3, PieChart, BookOpen, UserCheck, RefreshCw, AlertCircle, Trash2 } from 'lucide-react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -177,6 +177,29 @@ export default function Index({
     }
   };
 
+  const handleDeleteFaculty = async (facultyId: number, facultyName: string) => {
+    if (!confirm(`Are you sure you want to delete faculty member "${facultyName}"?`)) return;
+    try {
+      await api.delete(`/faculty/${facultyId}`);
+      if (selectedFacultyId === facultyId) setSelectedFacultyId(null);
+      await fetchFacultyAndMetadata();
+    } catch (err: any) {
+      if (err.status === 409) {
+        if (confirm(`Faculty member "${facultyName}" has active teaching assignments or dependencies.\n\nDo you want to permanently delete this faculty member AND all associated assignments?`)) {
+          try {
+            await api.delete(`/faculty/${facultyId}?cascade=true`);
+            if (selectedFacultyId === facultyId) setSelectedFacultyId(null);
+            await fetchFacultyAndMetadata();
+          } catch (cascadeErr: any) {
+            alert(cascadeErr.message || 'Failed to delete faculty member.');
+          }
+        }
+      } else {
+        alert(err.message || 'Cannot delete faculty member.');
+      }
+    }
+  };
+
   const filteredFaculty = facultyList.filter((f) => {
     if (!isAdministrator && assignedDepartmentCode) {
       const targetDeptName = getDepartmentName(assignedDepartmentCode).toLowerCase();
@@ -229,16 +252,32 @@ export default function Index({
       accessor: (row) => {
         const isSelected = row.id === selectedFacultyId;
         return (
-          <Button
-            size="sm"
-            variant={isSelected ? 'primary' : 'outline'}
-            onClick={(e) => {
-              e.stopPropagation();
-              setSelectedFacultyId(isSelected ? null : row.id);
-            }}
-          >
-            {isSelected ? 'Selected' : 'Select'}
-          </Button>
+          <div className="flex items-center gap-1.5">
+            <Button
+              size="sm"
+              variant={isSelected ? 'primary' : 'outline'}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedFacultyId(isSelected ? null : row.id);
+              }}
+            >
+              {isSelected ? 'Selected' : 'Select'}
+            </Button>
+            {isAdministrator && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteFaculty(row.id, row.name);
+                }}
+                className="text-rose-600 hover:bg-rose-50 border-rose-200 p-1.5"
+                title="Delete Faculty"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            )}
+          </div>
         );
       },
     },

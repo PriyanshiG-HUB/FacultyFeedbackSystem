@@ -6,17 +6,24 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\BatchResource;
 use App\Http\Resources\DivisionResource;
 use App\Models\Batch;
+use App\Traits\AuthorizesDepartmentScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 class BatchController extends Controller
 {
+    use AuthorizesDepartmentScope;
+
     public function index(Request $request): JsonResponse
     {
         $query = Batch::with(['department', 'currentSemester']);
 
-        if ($request->has('department_id')) {
+        $hodDeptId = $this->getAuthorizedDepartmentId($request);
+        if ($hodDeptId !== null) {
+            $query->where('department_id', $hodDeptId);
+        } elseif ($request->has('department_id')) {
             $query->where('department_id', $request->get('department_id'));
         }
 
@@ -39,6 +46,13 @@ class BatchController extends Controller
             'status' => ['nullable', 'in:ACTIVE,GRADUATED,DISCONTINUED'],
         ]);
 
+        $hodDeptId = $this->getAuthorizedDepartmentId($request);
+        if ($hodDeptId !== null) {
+            if ((int)$validated['department_id'] !== $hodDeptId) {
+                abort(Response::HTTP_FORBIDDEN, 'Forbidden: You cannot create a batch for another department.');
+            }
+        }
+
         $batch = Batch::create($validated);
 
         return response()->json([
@@ -47,8 +61,10 @@ class BatchController extends Controller
         ], Response::HTTP_CREATED);
     }
 
-    public function show(Batch $batch): JsonResponse
+    public function show(Request $request, Batch $batch): JsonResponse
     {
+        $this->validateDepartmentAccess($request, $batch->department_id);
+
         return response()->json([
             'data' => new BatchResource($batch->load(['department', 'currentSemester']))
         ], Response::HTTP_OK);
@@ -56,6 +72,8 @@ class BatchController extends Controller
 
     public function update(Request $request, Batch $batch): JsonResponse
     {
+        $this->validateDepartmentAccess($request, $batch->department_id);
+
         $validated = $request->validate([
             'department_id' => ['sometimes', 'required', 'integer', 'exists:department,id'],
             'program_name' => ['sometimes', 'required', 'string', 'max:100'],
@@ -66,6 +84,10 @@ class BatchController extends Controller
             'status' => ['sometimes', 'in:ACTIVE,GRADUATED,DISCONTINUED'],
         ]);
 
+        if (isset($validated['department_id'])) {
+            $this->validateDepartmentAccess($request, (int)$validated['department_id']);
+        }
+
         $batch->update($validated);
 
         return response()->json([
@@ -74,12 +96,49 @@ class BatchController extends Controller
         ], Response::HTTP_OK);
     }
 
-    public function destroy(Batch $batch): JsonResponse
+    public function destroy(Request $request, Batch $batch): JsonResponse
     {
-        if ($batch->divisions()->exists() || $batch->students()->exists()) {
+        $this->validateDepartmentAccess($request, $batch->department_id);
+
+        $hasDependencies = $batch->divisions()->exists() || $batch->students()->exists() || $batch->teachingAssignments()->exists();
+
+        if ($hasDependencies) {
+            if (!$request->boolean('cascade')) {
+                return response()->json([
+                    'message' => 'Cannot delete batch with active divisions, students, or teaching assignments.',
+                    'has_dependencies' => true
+                ], Response::HTTP_CONFLICT);
+            }
+
+            DB::transaction(function () use ($batch) {
+                // Delete teaching assignments
+                foreach ($batch->teachingAssignments as $assignment) {
+                    \App\Models\FeedbackForm::where('teaching_assignment_id', $assignment->id)->delete();
+                    \App\Models\Timetable::where('teaching_assignment_id', $assignment->id)->delete();
+                    $assignment->delete();
+                }
+
+                // Delete divisions & sections
+                foreach ($batch->divisions as $division) {
+                    $division->sections()->delete();
+                    $division->delete();
+                }
+
+                // Delete students
+                foreach ($batch->students as $student) {
+                    $userAccount = $student->userAccount;
+                    $student->delete();
+                    if ($userAccount) {
+                        $userAccount->delete();
+                    }
+                }
+
+                $batch->delete();
+            });
+
             return response()->json([
-                'message' => 'Cannot delete batch with active divisions or students.'
-            ], Response::HTTP_CONFLICT);
+                'message' => 'Batch and all associated records deleted successfully'
+            ], Response::HTTP_OK);
         }
 
         $batch->delete();
@@ -89,8 +148,10 @@ class BatchController extends Controller
         ], Response::HTTP_OK);
     }
 
-    public function divisions(Batch $batch): JsonResponse
+    public function divisions(Request $request, Batch $batch): JsonResponse
     {
+        $this->validateDepartmentAccess($request, $batch->department_id);
+
         $divisions = $batch->divisions()->with(['department', 'semester', 'sections'])->get();
 
         return response()->json([

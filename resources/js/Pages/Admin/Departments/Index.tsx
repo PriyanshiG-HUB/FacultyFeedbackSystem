@@ -110,13 +110,25 @@ export default function Index({
     }
   };
 
-  const handleDeleteDept = async (deptId: number) => {
-    if (!confirm('Are you sure you want to delete this department?')) return;
+  const handleDeleteDept = async (deptId: number, deptName?: string) => {
+    const displayName = deptName || 'this department';
+    if (!confirm(`Are you sure you want to delete department "${displayName}"?`)) return;
     try {
       await api.delete(`/departments/${deptId}`);
       await fetchDepartments();
     } catch (err: any) {
-      alert(err.message || 'Cannot delete department. Dependent records exist.');
+      if (err.status === 409) {
+        if (confirm(`Department "${deptName}" has active faculty, students, batches, or subjects.\n\nDo you want to permanently delete this department AND all associated records?`)) {
+          try {
+            await api.delete(`/departments/${deptId}?cascade=true`);
+            await fetchDepartments();
+          } catch (cascadeErr: any) {
+            alert(cascadeErr.message || 'Failed to delete department.');
+          }
+        }
+      } else {
+        alert(err.message || 'Cannot delete department.');
+      }
     }
   };
 
@@ -168,6 +180,41 @@ export default function Index({
         </span>
       ),
       sortable: true,
+    },
+    {
+      header: 'Action',
+      accessor: (row) => (
+        <div className="flex items-center gap-1">
+          {isAdministrator && (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleOpenEdit(row);
+                }}
+                className="text-indigo-600 hover:bg-indigo-50 border-indigo-200 p-1.5"
+                title="Edit Department"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteDept(row.id, row.name);
+                }}
+                className="text-rose-600 hover:bg-rose-50 border-rose-200 p-1.5"
+                title="Delete Department"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            </>
+          )}
+        </div>
+      ),
     },
   ];
 
@@ -235,7 +282,7 @@ export default function Index({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => handleDeleteDept(row.id)}
+                onClick={() => handleDeleteDept(row.id, row.name)}
                 className="text-rose-600 hover:bg-rose-50"
               >
                 <Trash2 className="w-3.5 h-3.5" />
