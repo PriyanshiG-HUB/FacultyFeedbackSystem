@@ -27,7 +27,22 @@ import {
   FileCheck,
   RefreshCw,
   Filter,
+  Upload,
+  FileSpreadsheet,
+  Download,
+  FileText,
+  ListPlus,
+  CheckSquare,
+  Square,
+  Info,
 } from 'lucide-react';
+
+interface ParsedCustomQuestion {
+  question: string;
+  category?: string;
+  question_type?: 'RATING' | 'TEXT' | 'BOTH' | 'MCQ';
+  isSelected?: boolean;
+}
 
 export default function PublishForm({
   userRole = 'admin',
@@ -63,6 +78,21 @@ export default function PublishForm({
   const [selectedAcademicYearId, setSelectedAcademicYearId] = useState<number | ''>('');
   const [windowStartDate, setWindowStartDate] = useState('');
   const [windowEndDate, setWindowEndDate] = useState('');
+
+  // Question Source & Response Type Enhancement Fields
+  const [questionSource, setQuestionSource] = useState<'EXISTING' | 'CUSTOM'>('EXISTING');
+  const [responseType, setResponseType] = useState<'RATING' | 'TEXT' | 'BOTH'>('RATING');
+
+  // Custom Question Import State
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [isValidatingFile, setIsValidatingFile] = useState(false);
+  const [importValidationReport, setImportValidationReport] = useState<{
+    success: boolean;
+    message: string;
+    errors?: string[];
+    parsed_questions?: ParsedCustomQuestion[];
+  } | null>(null);
+  const [customQuestionsList, setCustomQuestionsList] = useState<ParsedCustomQuestion[]>([]);
 
   const fetchFormsAndMetadata = useCallback(async () => {
     setIsLoading(true);
@@ -141,6 +171,12 @@ export default function PublishForm({
   const handleOpenAddModal = () => {
     setFormError('');
     setFieldErrors({});
+    setQuestionSource('EXISTING');
+    setResponseType('RATING');
+    setImportFile(null);
+    setImportValidationReport(null);
+    setCustomQuestionsList([]);
+
     const firstAssignment = availableTeachingAssignments[0] || teachingAssignments[0];
     setSelectedAssignmentId(firstAssignment?.id || '');
     setFormTitle(
@@ -164,25 +200,112 @@ export default function PublishForm({
     }
   };
 
+  // Handle custom file upload and validation
+  const handleFileUploadAndValidate = async (file: File) => {
+    setImportFile(file);
+    setIsValidatingFile(true);
+    setImportValidationReport(null);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await api.post('/custom-feedback-questions/validate', formData);
+      setImportValidationReport(res);
+
+      if (res.success && Array.isArray(res.parsed_questions)) {
+        const initialList = res.parsed_questions.map((q: any) => ({
+          question: q.question,
+          category: q.category || 'General',
+          question_type: q.question_type || 'RATING',
+          isSelected: true,
+        }));
+        setCustomQuestionsList(initialList);
+      }
+    } catch (err: any) {
+      setImportValidationReport({
+        success: false,
+        message: err.message || 'File validation failed.',
+        errors: [err.message || 'Invalid file format or network error.'],
+      });
+    } finally {
+      setIsValidatingFile(false);
+    }
+  };
+
+  // Toggle question selection
+  const handleToggleQuestionSelection = (index: number) => {
+    setCustomQuestionsList((prev) =>
+      prev.map((item, idx) => (idx === index ? { ...item, isSelected: !item.isSelected } : item))
+    );
+  };
+
+  // Download Sample Template
+  const handleDownloadTemplate = () => {
+    const csvContent = "question,category,question_type\n\"How clearly does the faculty explain core subject concepts?\",\"Clarity of Teaching\",\"RATING\"\n\"What specific teaching methods helped you understand the topics better?\",\"Teaching Methodology\",\"TEXT\"\n\"Rate the lab guidance and share your suggestions.\",\"Practical Guidance\",\"BOTH\"\n";
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'custom_questions_import_template.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleCreateForm = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
+
+    if (questionSource === 'CUSTOM') {
+      const selectedQs = customQuestionsList.filter((q) => q.isSelected);
+      if (selectedQs.length === 0) {
+        setFormError('Please upload and select at least one custom question.');
+        return;
+      }
+    }
 
     setIsSubmitting(true);
     setFormError('');
     setFieldErrors({});
 
     try {
-      const payload = {
+      const selectedQs = customQuestionsList.filter((q) => q.isSelected);
+
+      const payload: any = {
         title: formTitle.trim(),
         teaching_assignment_id: Number(selectedAssignmentId),
         academic_year_id: Number(selectedAcademicYearId),
         window_start_date: windowStartDate,
         window_end_date: windowEndDate,
+        question_source: questionSource,
+        response_type: responseType,
         is_published: true,
       };
 
+      if (questionSource === 'CUSTOM' && selectedQs.length > 0) {
+        payload.questions = selectedQs.map((q, idx) => ({
+          question_text: q.question,
+          category: q.category || 'General',
+          question_type: q.question_type || (responseType === 'TEXT' ? 'TEXT' : responseType === 'BOTH' ? 'BOTH' : 'RATING'),
+          display_order: idx + 1,
+          is_required: true,
+        }));
+      }
+
       await api.post('/feedback-forms', payload);
+
+      // Optionally persist custom questions to bank if needed
+      if (questionSource === 'CUSTOM' && selectedQs.length > 0) {
+        api.post('/custom-feedback-questions/import', {
+          questions: selectedQs.map((q) => ({
+            question: q.question,
+            category: q.category || 'General',
+            question_type: q.question_type || 'RATING',
+          })),
+        }).catch(() => {});
+      }
+
       await fetchFormsAndMetadata();
       setIsModalOpen(false);
     } catch (err: any) {
@@ -260,7 +383,7 @@ export default function PublishForm({
         <div>
           <h2 className="text-xl font-bold text-slate-900">Feedback Form Lifecycle</h2>
           <p className="text-xs text-slate-500">
-            Create, publish, and schedule student evaluation questionnaires linked to teaching assignments
+            Create, publish, and schedule student evaluation questionnaires with master or custom imported questions
           </p>
         </div>
 
@@ -294,7 +417,7 @@ export default function PublishForm({
 
           <Button variant="primary" onClick={handleOpenAddModal}>
             <Plus className="w-4 h-4 mr-1.5" />
-            Create & Publish Form
+            Create &amp; Publish Form
           </Button>
         </div>
       </div>
@@ -491,17 +614,236 @@ export default function PublishForm({
             />
           </div>
 
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-900 text-xs flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
-            <span>Standard evaluation criteria questions (Subject Knowledge, Clarity, Punctuality, etc.) will be attached automatically.</span>
+          {/* ========================================================================= */}
+          {/* ENHANCEMENT 1: QUESTION SOURCE SELECTION */}
+          {/* ========================================================================= */}
+          <div className="space-y-2 pt-2 border-t border-slate-200">
+            <label className="block text-xs font-bold text-slate-800">
+              Question Source *
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setQuestionSource('EXISTING')}
+                className={`p-3 rounded-xl border text-left flex items-start gap-3 transition-all ${
+                  questionSource === 'EXISTING'
+                    ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500/20 text-blue-900 font-semibold'
+                    : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                <BookOpen className={`w-5 h-5 shrink-0 mt-0.5 ${questionSource === 'EXISTING' ? 'text-blue-600' : 'text-slate-400'}`} />
+                <div>
+                  <div className="text-xs font-extrabold">Option A &ndash; Use Existing Questions</div>
+                  <div className="text-[11px] opacity-80 leading-tight mt-0.5">
+                    Use master database criteria (Subject Knowledge, Clarity, Punctuality, Material).
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setQuestionSource('CUSTOM')}
+                className={`p-3 rounded-xl border text-left flex items-start gap-3 transition-all ${
+                  questionSource === 'CUSTOM'
+                    ? 'bg-indigo-50 border-indigo-500 ring-2 ring-indigo-500/20 text-indigo-900 font-semibold'
+                    : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                <FileSpreadsheet className={`w-5 h-5 shrink-0 mt-0.5 ${questionSource === 'CUSTOM' ? 'text-indigo-600' : 'text-slate-400'}`} />
+                <div>
+                  <div className="text-xs font-extrabold">Option B &ndash; Import Custom Questions</div>
+                  <div className="text-[11px] opacity-80 leading-tight mt-0.5">
+                    Upload questions from CSV or Excel (.xlsx) file into isolated table.
+                  </div>
+                </div>
+              </button>
+            </div>
           </div>
+
+          {/* ========================================================================= */}
+          {/* ENHANCEMENT 2: CUSTOM QUESTION IMPORT SECTION (When Option B is selected) */}
+          {/* ========================================================================= */}
+          {questionSource === 'CUSTOM' && (
+            <div className="p-4 bg-indigo-50/60 border border-indigo-200 rounded-xl space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-extrabold text-indigo-950 flex items-center gap-1.5">
+                  <Upload className="w-4 h-4 text-indigo-600" />
+                  Upload Custom Questions File (CSV / .xlsx)
+                </span>
+                <button
+                  type="button"
+                  onClick={handleDownloadTemplate}
+                  className="text-[11px] text-indigo-700 hover:underline font-bold flex items-center gap-1"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download Sample Template
+                </button>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <input
+                  type="file"
+                  accept=".csv,.xlsx,.xls,.txt"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleFileUploadAndValidate(f);
+                  }}
+                  className="block w-full text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer"
+                />
+              </div>
+
+              {isValidatingFile && (
+                <p className="text-xs text-indigo-700 font-semibold flex items-center gap-1.5 animate-pulse">
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  Validating file format and parsing question rows...
+                </p>
+              )}
+
+              {/* Validation Feedback & Error Messages */}
+              {importValidationReport && (
+                <div
+                  className={`p-3 rounded-lg text-xs space-y-1 font-medium ${
+                    importValidationReport.success
+                      ? 'bg-emerald-50 text-emerald-900 border border-emerald-200'
+                      : 'bg-rose-50 text-rose-900 border border-rose-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 font-bold">
+                    {importValidationReport.success ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                    )}
+                    <span>{importValidationReport.message}</span>
+                  </div>
+
+                  {importValidationReport.errors && importValidationReport.errors.length > 0 && (
+                    <ul className="list-disc list-inside space-y-0.5 text-[11px] text-rose-700 pl-4 font-normal">
+                      {importValidationReport.errors.map((err, idx) => (
+                        <li key={idx}>{err}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+
+              {/* Parsed Custom Questions List Preview */}
+              {customQuestionsList.length > 0 && (
+                <div className="space-y-2 pt-2 border-t border-indigo-100">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+                    <span>Parsed Custom Questions ({customQuestionsList.length})</span>
+                    <span className="text-[11px] text-indigo-700 font-semibold">
+                      {customQuestionsList.filter((q) => q.isSelected).length} Selected for Form
+                    </span>
+                  </div>
+
+                  <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+                    {customQuestionsList.map((q, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => handleToggleQuestionSelection(idx)}
+                        className={`p-2.5 rounded-lg border text-xs cursor-pointer flex items-start gap-2.5 transition-all ${
+                          q.isSelected
+                            ? 'bg-white border-indigo-300 shadow-2xs'
+                            : 'bg-slate-50/80 border-slate-200 opacity-60'
+                        }`}
+                      >
+                        <button type="button" className="mt-0.5 shrink-0 text-indigo-600">
+                          {q.isSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4 text-slate-400" />}
+                        </button>
+                        <div className="flex-1 space-y-0.5">
+                          <p className="font-semibold text-slate-900 leading-tight">{q.question}</p>
+                          <div className="flex items-center gap-2 text-[10px] text-slate-500">
+                            <span className="bg-slate-100 px-1.5 py-0.5 rounded font-mono">{q.category || 'General'}</span>
+                            <span>&bull;</span>
+                            <span className="font-bold text-indigo-700">{q.question_type || 'RATING'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* ENHANCEMENT 3: RESPONSE TYPE SELECTION */}
+          {/* ========================================================================= */}
+          <div className="space-y-2 pt-2 border-t border-slate-200">
+            <label className="block text-xs font-bold text-slate-800">
+              Feedback Response Type *
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <button
+                type="button"
+                onClick={() => setResponseType('RATING')}
+                className={`p-3 rounded-xl border text-left flex flex-col justify-between gap-1 transition-all ${
+                  responseType === 'RATING'
+                    ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500/20 text-blue-900 font-semibold'
+                    : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 text-xs font-extrabold">
+                  <CheckCircle2 className={`w-4 h-4 ${responseType === 'RATING' ? 'text-blue-600' : 'text-slate-400'}`} />
+                  Rating Based
+                </div>
+                <div className="text-[10px] opacity-80 leading-tight">
+                  Strongly Disagree &rarr; Strongly Agree (1 to 5 scale)
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setResponseType('TEXT')}
+                className={`p-3 rounded-xl border text-left flex flex-col justify-between gap-1 transition-all ${
+                  responseType === 'TEXT'
+                    ? 'bg-indigo-50 border-indigo-500 ring-2 ring-indigo-500/20 text-indigo-900 font-semibold'
+                    : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 text-xs font-extrabold">
+                  <FileText className={`w-4 h-4 ${responseType === 'TEXT' ? 'text-indigo-600' : 'text-slate-400'}`} />
+                  Text Based
+                </div>
+                <div className="text-[10px] opacity-80 leading-tight">
+                  Open-ended textarea response boxes for qualitative feedback
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setResponseType('BOTH')}
+                className={`p-3 rounded-xl border text-left flex flex-col justify-between gap-1 transition-all ${
+                  responseType === 'BOTH'
+                    ? 'bg-purple-50 border-purple-500 ring-2 ring-purple-500/20 text-purple-900 font-semibold'
+                    : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 text-xs font-extrabold">
+                  <ListPlus className={`w-4 h-4 ${responseType === 'BOTH' ? 'text-purple-600' : 'text-slate-400'}`} />
+                  Both
+                </div>
+                <div className="text-[10px] opacity-80 leading-tight">
+                  Contains both Rating questions + Text questions
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {questionSource === 'EXISTING' && (
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-900 text-xs flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
+              <span>Standard evaluation criteria questions (Subject Knowledge, Clarity, Punctuality, etc.) will be attached automatically with {responseType.toLowerCase()} response format.</span>
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
             <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
               Cancel
             </Button>
             <Button type="submit" variant="primary" disabled={isSubmitting}>
-              {isSubmitting ? 'Creating...' : 'Save & Publish Form'}
+              {isSubmitting ? 'Creating...' : 'Save &amp; Publish Form'}
             </Button>
           </div>
         </form>

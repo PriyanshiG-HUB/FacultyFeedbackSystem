@@ -38,6 +38,8 @@ class FeedbackForm extends Model
         'published_at',
         'status',
         'created_by_user_account_id',
+        'question_source',
+        'response_type',
     ];
 
     /**

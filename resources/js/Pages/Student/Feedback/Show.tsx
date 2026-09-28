@@ -88,6 +88,7 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState<boolean>(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
+<<<<<<< HEAD
   const loadFromApi = async () => {
     try {
       const { api } = await import('../../../lib/api');
@@ -128,6 +129,50 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
       setPublishedForms([]);
     }
   };
+=======
+  // Sync state with backend API and store updates
+  useEffect(() => {
+    const loadFromApi = async () => {
+      try {
+        const { api } = await import('../../../lib/api');
+        const res = await api.get('/feedback-forms');
+        if (Array.isArray(res.data)) {
+          const apiForms: PublishedFormItem[] = res.data.map((f: any) => {
+            const ta = f.teaching_assignment || {};
+            return {
+              id: String(f.id),
+              numericId: f.id,
+              assignmentId: f.teaching_assignment_id,
+              title: f.title,
+              academicYear: ta.academic_year?.year_code || '2025-26',
+              semester: ta.semester?.semester_no || ta.semester_id || 5,
+              departmentCode: ta.batch?.department?.department_code || ta.subject?.department?.department_code || 'IT',
+              departmentName: ta.batch?.department?.department_name || ta.subject?.department?.department_name || 'Information Technology',
+              division: ta.division?.division_code || 'All Divisions',
+              section: ta.section?.section_code || 'All',
+              batch: ta.batch?.batch_title || '2022-26',
+              facultyId: String(ta.faculty_id || 'FAC'),
+              facultyName: ta.faculty?.full_name || 'Faculty Member',
+              facultyDesignation: ta.faculty?.designation?.designation_name || 'Faculty',
+              subjectCode: ta.subject?.subject_code || 'SUB101',
+              subjectName: ta.subject?.subject_name || 'Subject',
+              questions: Array.isArray(f.questions)
+                ? f.questions.map((q: any) => ({ id: q.id, statement: q.question_text, question_type: q.question_type || 'RATING' }))
+                : SYSTEM_QUESTIONS.map((q) => ({ id: q.id, statement: q.text, question_type: 'RATING' })),
+              status: f.is_published ? 'Published' : 'Draft',
+              createdBy: f.creator?.full_name || 'Administrator',
+              createdAt: f.created_at ? new Date(f.created_at).toLocaleDateString() : 'Recent',
+              publishedAt: f.published_at ? new Date(f.published_at).toLocaleDateString() : undefined,
+            };
+          });
+          setPublishedForms(apiForms);
+        }
+      } catch {
+        // Use local store as fallback
+        setPublishedForms(getPublishedForms());
+      }
+    };
+>>>>>>> cd0ac4df0c41796ebb18a32bcba060470e2d50df
 
   useEffect(() => {
     loadFromApi();
@@ -249,14 +294,20 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
       ? activeForm.questions
       : DEFAULT_QUESTIONS;
 
-    questions.forEach((q, idx) => {
+    questions.forEach((q: any, idx) => {
       const qKey = String(q.id);
+      const qType = (q.question_type || 'RATING').toUpperCase();
       const rating = ratings[qKey];
-      if (!rating) {
-        errors.push(`Question ${idx + 1}: Please select a rating.`);
-      } else if (rating === 1) {
-        const comment = (questionComments[qKey] || '').trim();
+      const comment = (questionComments[qKey] || '').trim();
+
+      if (qType === 'TEXT') {
         if (!comment) {
+          errors.push(`Question ${idx + 1}: Please type your response text.`);
+        }
+      } else {
+        if (!rating) {
+          errors.push(`Question ${idx + 1}: Please select a rating.`);
+        } else if (rating === 1 && !comment) {
           errors.push(`Question ${idx + 1}: Please provide a constructive comment explaining why you selected 'Strongly Disagree'.`);
         }
       }
@@ -284,6 +335,7 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
 
     const questions = activeForm.questions && activeForm.questions.length > 0
       ? activeForm.questions
+<<<<<<< HEAD
       : DEFAULT_QUESTIONS;
 
     try {
@@ -310,6 +362,41 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
       const msg = err.message || (err.data && err.data.message) || 'Failed to submit feedback to server.';
       setValidationErrors([msg]);
       return;
+=======
+      : SYSTEM_QUESTIONS.map((q) => ({ id: q.id, statement: q.text, question_type: 'RATING' }));
+
+    const answers = questions.map((q: any) => {
+      const qKey = String(q.id);
+      const qType = (q.question_type || 'RATING').toUpperCase();
+      const r = ratings[qKey] || (qType === 'TEXT' ? undefined : 3);
+      return {
+        questionId: Number(q.id),
+        questionText: q.statement,
+        rating: r,
+        ratingLabel: r === 5 ? 'Strongly Agree' : r === 4 ? 'Agree' : r === 3 ? 'Neutral' : r === 2 ? 'Disagree' : r === 1 ? 'Strongly Disagree' : undefined,
+        comment: questionComments[qKey] || undefined,
+      };
+    });
+
+    if (numericFormId) {
+      try {
+        const { api } = await import('../../../lib/api');
+        await api.post(`/student/feedback-forms/${numericFormId}/submit`, {
+          overall_remark: Object.values(questionComments).join('; ') || 'Submitted via portal',
+          answers: questions.map((q: any) => ({
+            question_id: Number(q.id),
+            rating_value: ratings[String(q.id)] || null,
+            text_value: questionComments[String(q.id)] || null,
+          })),
+        });
+      } catch (err: any) {
+        if (err.status === 422) {
+          setValidationErrors([err.message || 'You have already submitted feedback for this form or are ineligible.']);
+          setIsConfirmModalOpen(false);
+          return;
+        }
+      }
+>>>>>>> cd0ac4df0c41796ebb18a32bcba060470e2d50df
     }
   };
 
@@ -608,57 +695,78 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
 
         {/* Questionnaire Form */}
         <form onSubmit={handlePreSubmitValidation} className="space-y-6">
-          {questionsToRender.map((param, index) => {
+          {questionsToRender.map((param: any, index) => {
             const qKey = String(param.id);
+            const qType = (param.question_type || 'RATING').toUpperCase();
             const currentRating = ratings[qKey];
             const isStronglyDisagree = currentRating === 1;
+
+            const isRatingVisible = qType === 'RATING' || qType === 'BOTH';
+            const isTextVisible = qType === 'TEXT' || qType === 'BOTH' || isStronglyDisagree;
 
             return (
               <Card key={param.id} className="p-5 sm:p-6 space-y-4 border-slate-200 shadow-2xs hover:border-slate-300 transition-all">
                 {/* Question Title */}
                 <div className="space-y-1">
-                  <span className="text-[11px] font-extrabold text-indigo-600 uppercase tracking-wider">
-                    Question {index + 1} of {totalQuestions}
-                  </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-extrabold text-indigo-600 uppercase tracking-wider">
+                      Question {index + 1} of {totalQuestions}
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                      {qType === 'BOTH' ? 'Rating + Text' : qType === 'TEXT' ? 'Text Response' : 'Rating (1-5)'}
+                    </span>
+                  </div>
                   <h3 className="text-sm font-extrabold text-slate-900 leading-snug">
                     {param.statement}
                   </h3>
                 </div>
 
-                {/* Likert Scale Radio Options */}
-                <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 pt-2">
-                  {LIKERT_OPTIONS.map((option) => {
-                    const isSelected = currentRating === option.value;
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => handleRatingSelect(qKey, option.value)}
-                        className={`p-3 rounded-xl border text-center flex flex-col items-center justify-center gap-1 transition-all ${
-                          isSelected
-                            ? 'bg-indigo-600 text-white font-extrabold border-indigo-600 shadow-md shadow-indigo-600/30 ring-2 ring-indigo-600/20'
-                            : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 font-semibold'
-                        }`}
-                      >
-                        <span className="text-sm font-bold">{option.value}</span>
-                        <span className="text-[10px] leading-tight opacity-90">{option.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+                {/* Likert Scale Radio Options (For RATING and BOTH) */}
+                {isRatingVisible && (
+                  <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 pt-2">
+                    {LIKERT_OPTIONS.map((option) => {
+                      const isSelected = currentRating === option.value;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => handleRatingSelect(qKey, option.value)}
+                          className={`p-3 rounded-xl border text-center flex flex-col items-center justify-center gap-1 transition-all ${
+                            isSelected
+                              ? 'bg-indigo-600 text-white font-extrabold border-indigo-600 shadow-md shadow-indigo-600/30 ring-2 ring-indigo-600/20'
+                              : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 font-semibold'
+                          }`}
+                        >
+                          <span className="text-sm font-bold">{option.value}</span>
+                          <span className="text-[10px] leading-tight opacity-90">{option.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
 
-                {/* Conditional Feedback Comment box */}
-                {isStronglyDisagree && (
+                {/* Text Response Box (For TEXT, BOTH, or Strongly Disagree) */}
+                {isTextVisible && (
                   <div className="pt-3 border-t border-slate-100 space-y-2">
-                    <label className="block text-xs font-bold text-rose-700">
-                      Constructive Feedback Comment Required *
+                    <label className="block text-xs font-bold text-slate-800">
+                      {qType === 'TEXT'
+                        ? 'Your Response / Answer *'
+                        : qType === 'BOTH'
+                        ? 'Additional Comments / Explanation (Optional)'
+                        : 'Constructive Feedback Comment Required *'}
                     </label>
                     <textarea
                       rows={2}
-                      placeholder="Please explain the specific area needing improvement for this rating..."
+                      placeholder={
+                        qType === 'TEXT'
+                          ? 'Type your detailed answer or feedback comments here...'
+                          : qType === 'BOTH'
+                          ? 'Share any additional details or explanations regarding your evaluation...'
+                          : 'Please explain the specific area needing improvement for this rating...'
+                      }
                       value={questionComments[qKey] || ''}
                       onChange={(e) => handleCommentChange(qKey, e.target.value)}
-                      className="w-full p-3 bg-rose-50/50 border border-rose-200 rounded-xl text-xs text-slate-800 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500"
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>
                 )}
