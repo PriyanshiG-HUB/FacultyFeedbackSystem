@@ -254,6 +254,9 @@ export const DevPageRenderer: React.FC = () => {
     assignedDepartmentCode,
     hodInfo,
     departmentName: hodInfo.department,
+    ...(authUser && activePage.startsWith('Faculty/') ? {
+      facultyName: authUser.faculty?.full_name || authUser.faculty?.name || authUser.name || authUser.email
+    } : {}),
   };
 
   return (

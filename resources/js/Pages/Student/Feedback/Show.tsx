@@ -88,7 +88,6 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState<boolean>(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
-<<<<<<< HEAD
   const loadFromApi = async () => {
     try {
       const { api } = await import('../../../lib/api');
@@ -129,50 +128,6 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
       setPublishedForms([]);
     }
   };
-=======
-  // Sync state with backend API and store updates
-  useEffect(() => {
-    const loadFromApi = async () => {
-      try {
-        const { api } = await import('../../../lib/api');
-        const res = await api.get('/feedback-forms');
-        if (Array.isArray(res.data)) {
-          const apiForms: PublishedFormItem[] = res.data.map((f: any) => {
-            const ta = f.teaching_assignment || {};
-            return {
-              id: String(f.id),
-              numericId: f.id,
-              assignmentId: f.teaching_assignment_id,
-              title: f.title,
-              academicYear: ta.academic_year?.year_code || '2025-26',
-              semester: ta.semester?.semester_no || ta.semester_id || 5,
-              departmentCode: ta.batch?.department?.department_code || ta.subject?.department?.department_code || 'IT',
-              departmentName: ta.batch?.department?.department_name || ta.subject?.department?.department_name || 'Information Technology',
-              division: ta.division?.division_code || 'All Divisions',
-              section: ta.section?.section_code || 'All',
-              batch: ta.batch?.batch_title || '2022-26',
-              facultyId: String(ta.faculty_id || 'FAC'),
-              facultyName: ta.faculty?.full_name || 'Faculty Member',
-              facultyDesignation: ta.faculty?.designation?.designation_name || 'Faculty',
-              subjectCode: ta.subject?.subject_code || 'SUB101',
-              subjectName: ta.subject?.subject_name || 'Subject',
-              questions: Array.isArray(f.questions)
-                ? f.questions.map((q: any) => ({ id: q.id, statement: q.question_text, question_type: q.question_type || 'RATING' }))
-                : SYSTEM_QUESTIONS.map((q) => ({ id: q.id, statement: q.text, question_type: 'RATING' })),
-              status: f.is_published ? 'Published' : 'Draft',
-              createdBy: f.creator?.full_name || 'Administrator',
-              createdAt: f.created_at ? new Date(f.created_at).toLocaleDateString() : 'Recent',
-              publishedAt: f.published_at ? new Date(f.published_at).toLocaleDateString() : undefined,
-            };
-          });
-          setPublishedForms(apiForms);
-        }
-      } catch {
-        // Use local store as fallback
-        setPublishedForms(getPublishedForms());
-      }
-    };
->>>>>>> cd0ac4df0c41796ebb18a32bcba060470e2d50df
 
   useEffect(() => {
     loadFromApi();
@@ -335,7 +290,6 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
 
     const questions = activeForm.questions && activeForm.questions.length > 0
       ? activeForm.questions
-<<<<<<< HEAD
       : DEFAULT_QUESTIONS;
 
     try {
@@ -362,41 +316,6 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
       const msg = err.message || (err.data && err.data.message) || 'Failed to submit feedback to server.';
       setValidationErrors([msg]);
       return;
-=======
-      : SYSTEM_QUESTIONS.map((q) => ({ id: q.id, statement: q.text, question_type: 'RATING' }));
-
-    const answers = questions.map((q: any) => {
-      const qKey = String(q.id);
-      const qType = (q.question_type || 'RATING').toUpperCase();
-      const r = ratings[qKey] || (qType === 'TEXT' ? undefined : 3);
-      return {
-        questionId: Number(q.id),
-        questionText: q.statement,
-        rating: r,
-        ratingLabel: r === 5 ? 'Strongly Agree' : r === 4 ? 'Agree' : r === 3 ? 'Neutral' : r === 2 ? 'Disagree' : r === 1 ? 'Strongly Disagree' : undefined,
-        comment: questionComments[qKey] || undefined,
-      };
-    });
-
-    if (numericFormId) {
-      try {
-        const { api } = await import('../../../lib/api');
-        await api.post(`/student/feedback-forms/${numericFormId}/submit`, {
-          overall_remark: Object.values(questionComments).join('; ') || 'Submitted via portal',
-          answers: questions.map((q: any) => ({
-            question_id: Number(q.id),
-            rating_value: ratings[String(q.id)] || null,
-            text_value: questionComments[String(q.id)] || null,
-          })),
-        });
-      } catch (err: any) {
-        if (err.status === 422) {
-          setValidationErrors([err.message || 'You have already submitted feedback for this form or are ineligible.']);
-          setIsConfirmModalOpen(false);
-          return;
-        }
-      }
->>>>>>> cd0ac4df0c41796ebb18a32bcba060470e2d50df
     }
   };
 

@@ -44,9 +44,9 @@ class StudentController extends Controller
             $search = $request->get('search');
             $query->where(function ($q) use ($search) {
                 $q->where('full_name', 'like', "%{$search}%")
-                  ->orWhere('roll_no', 'like', "%{$search}%")
-                  ->orWhere('enrollment_no', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('roll_no', 'like', "%{$search}%")
+                    ->orWhere('enrollment_no', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
@@ -63,7 +63,7 @@ class StudentController extends Controller
 
         $hodDeptId = $this->getAuthorizedDepartmentId($request);
         if ($hodDeptId !== null) {
-            if (isset($data['department_id']) && (int)$data['department_id'] !== $hodDeptId) {
+            if (isset($data['department_id']) && (int) $data['department_id'] !== $hodDeptId) {
                 abort(Response::HTTP_FORBIDDEN, 'Forbidden: You cannot create a student for another department.');
             }
             $data['department_id'] = $hodDeptId;

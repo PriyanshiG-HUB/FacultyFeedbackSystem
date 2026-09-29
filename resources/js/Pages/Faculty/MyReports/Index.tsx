@@ -35,7 +35,7 @@ export default function Index({ facultyName = 'Dr. Sarah Jenkins', reports = [] 
   // Compute aggregate stats across all faculty submissions
   const overallStats = useMemo(() => {
     const facultySubmissions = submissions.filter(
-      (s) => s.facultyName.toLowerCase().includes(facultyName.toLowerCase()) || s.facultyId === 'FAC_JENKINS'
+      (s) => s.facultyName.toLowerCase().includes(facultyName.toLowerCase())
     );
     const targetSubmissions = facultySubmissions.length > 0 ? facultySubmissions : submissions;
     return calculateFacultyOverallScore(targetSubmissions);
