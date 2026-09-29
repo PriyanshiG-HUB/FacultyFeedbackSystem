@@ -303,8 +303,9 @@ class EndToEndFacultyFeedbackWorkflowTest extends TestCase
         $afterSubmitEligible = $this->withHeader('Accept', 'application/json')
             ->getJson('/api/student/feedback-forms');
         $afterSubmitEligible->assertStatus(200);
-        $remainingIds = collect($afterSubmitEligible->json('data'))->pluck('id')->all();
-        $this->assertNotContains($formId, $remainingIds);
+        $remainingForms = collect($afterSubmitEligible->json('data'));
+        $submittedForm = $remainingForms->firstWhere('id', $formId);
+        $this->assertTrue((bool) ($submittedForm['has_submitted'] ?? false));
 
         // -------------------------------------------------------------
         // STEP 16: Create and Verify Evaluation Report (As Admin)

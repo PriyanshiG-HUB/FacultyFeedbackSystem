@@ -69,7 +69,7 @@ class FacultyReportTest extends TestCase
         $userIT = UserAccount::create([
             'email' => 'sagar.patel@college.edu',
             'password_hash' => bcrypt('password123'),
-            'role' => 'ADMIN',
+            'role' => 'FACULTY',
             'status' => 'ACTIVE',
         ]);
 

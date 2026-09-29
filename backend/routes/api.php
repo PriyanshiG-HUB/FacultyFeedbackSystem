@@ -62,6 +62,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
 
+    // Faculty Reports (Accessible to ADMIN, SUPER_ADMIN, FACULTY, HOD)
+    Route::middleware(CheckRole::class . ':ADMIN,SUPER_ADMIN,FACULTY,HOD')->group(function () {
+        Route::get('/faculty-reports/faculty-list', [FacultyReportController::class, 'getFacultyList']);
+        Route::get('/faculty-reports/assignments', [FacultyReportController::class, 'getFacultyAssignments']);
+        Route::get('/faculty-reports/report', [FacultyReportController::class, 'generateReport']);
+    });
+
     // Faculty Scope Routes (placed before apiResource('faculty'))
     Route::middleware(CheckRole::class . ':FACULTY,HOD')->group(function () {
         Route::get('/faculty/dashboard', [FacultyDashboardController::class, 'dashboard']);
@@ -78,7 +85,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Admin & HOD Scope Routes
-    Route::middleware(CheckRole::class . ':ADMIN,SUPER_ADMIN,HOD')->group(function () {
+    Route::middleware(CheckRole::class . ':ADMIN,SUPER_ADMIN')->group(function () {
         // Dashboard
         Route::get('/admin/dashboard', [AdminDashboardController::class, 'dashboard']);
 
@@ -129,11 +136,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Reporting, System Settings & Import Logging
         Route::apiResource('reports', ReportController::class);
-        Route::middleware(CheckRole::class . ':ADMIN,SUPER_ADMIN,FACULTY,HOD')->group(function () {
-            Route::get('/faculty-reports/faculty-list', [FacultyReportController::class, 'getFacultyList']);
-            Route::get('/faculty-reports/assignments', [FacultyReportController::class, 'getFacultyAssignments']);
-            Route::get('/faculty-reports/report', [FacultyReportController::class, 'generateReport']);
-        });
         Route::get('/system-settings', [SystemSettingsController::class, 'show']);
         Route::put('/system-settings/{systemSettings}', [SystemSettingsController::class, 'update']);
         Route::put('/system-settings', [SystemSettingsController::class, 'update']);

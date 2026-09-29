@@ -124,7 +124,7 @@ class Phase6IntegrationTest extends TestCase
 
             $response->assertStatus(409)
                 ->assertJson([
-                    'message' => 'Cannot delete department with active faculty, students, or batches.'
+                    'message' => 'Cannot delete department with active faculty, students, batches, or subjects.'
                 ]);
         }
     }
