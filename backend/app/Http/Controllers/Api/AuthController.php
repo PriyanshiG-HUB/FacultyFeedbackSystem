@@ -42,15 +42,22 @@ class AuthController extends Controller
 
         $passwordMatches = false;
         if ($user) {
-            if (Hash::check($credentials['password'], $user->password_hash) || $credentials['password'] === $user->password_hash) {
+            if ($credentials['password'] === $user->password_hash) {
                 $passwordMatches = true;
-            } elseif ($user->role === 'STUDENT') {
-                // Support uppercase / lowercase roll number matching for student password
-                if (Hash::check(strtoupper($credentials['password']), $user->password_hash) ||
-                    Hash::check(strtolower($credentials['password']), $user->password_hash) ||
-                    strtoupper($credentials['password']) === $user->password_hash ||
-                    strtolower($credentials['password']) === $user->password_hash) {
-                    $passwordMatches = true;
+            } elseif ($user->role === 'STUDENT' && (strtoupper($credentials['password']) === $user->password_hash || strtolower($credentials['password']) === $user->password_hash)) {
+                $passwordMatches = true;
+            } else {
+                try {
+                    if (Hash::check($credentials['password'], $user->password_hash)) {
+                        $passwordMatches = true;
+                    } elseif ($user->role === 'STUDENT') {
+                        if (Hash::check(strtoupper($credentials['password']), $user->password_hash) ||
+                            Hash::check(strtolower($credentials['password']), $user->password_hash)) {
+                            $passwordMatches = true;
+                        }
+                    }
+                } catch (\Exception $e) {
+                    // Ignore exception if the password_hash field is not a valid hash
                 }
             }
         }

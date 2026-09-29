@@ -60,16 +60,20 @@ const getQueryParamsFromHash = () => {
   }
   return new URLSearchParams();
 };
+import { getStoredUserInfo } from '../../../lib/api';
 
 export default function Show({ student, subjects: propSubjects, feedbackItems, parameters: propParameters }: StudentFeedbackShowProps) {
+  const authUser = getStoredUserInfo();
+  const activeStudent = authUser?.student;
+
   // Student Information
-  const studentRoll = student?.rollNumber || '22IT045';
-  const studentName = student?.name || 'Alex Turner';
-  const studentDept = (student?.departmentCode || student?.department || 'IT').toUpperCase();
-  const studentDivision = student?.division || 'Division 1';
-  const studentSection = (student as any)?.section || 'A1';
-  const studentBatch = student?.batch || '2022-26';
-  const studentSem = student?.semester || 7;
+  const studentRoll = activeStudent?.roll_no || student?.rollNumber || '22IT045';
+  const studentName = activeStudent?.full_name || student?.name || 'Alex Turner';
+  const studentDept = (activeStudent?.department?.department_code || student?.departmentCode || student?.department || 'IT').toUpperCase();
+  const studentDivision = activeStudent?.division?.division_code || student?.division || 'Division 1';
+  const studentSection = activeStudent?.section?.section_code || (student as any)?.section || 'A1';
+  const studentBatch = activeStudent?.batch?.batch_title || student?.batch || '2022-26';
+  const studentSem = activeStudent?.semester?.semester_no || activeStudent?.semester_id || student?.semester || 7;
 
   // Published Forms state from MySQL API
   const [publishedForms, setPublishedForms] = useState<PublishedFormItem[]>([]);
@@ -88,70 +92,69 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState<boolean>(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
+  const loadFromApi = async () => {
+    try {
+      const { api } = await import('../../../lib/api');
+      const res = await api.get('/feedback-forms');
+      if (Array.isArray(res.data)) {
+        const apiForms: PublishedFormItem[] = res.data.map((f: any) => {
+          const ta = f.teaching_assignment || {};
+          return {
+            id: String(f.id),
+            numericId: f.id,
+            assignmentId: f.teaching_assignment_id,
+            title: f.title,
+            academicYear: ta.academic_year?.year_code || '2025-26',
+            semester: ta.semester?.semester_no || ta.semester_id || 5,
+            departmentCode: ta.batch?.department?.department_code || ta.subject?.department?.department_code || 'IT',
+            departmentName: ta.batch?.department?.department_name || ta.subject?.department?.department_name || 'Information Technology',
+            division: ta.division?.division_code || 'All Divisions',
+            section: ta.section?.section_code || 'All',
+            batch: ta.batch?.batch_title || '2022-26',
+            facultyId: String(ta.faculty_id || 'FAC'),
+            facultyName: ta.faculty?.full_name || 'Faculty Member',
+            facultyDesignation: ta.faculty?.designation?.designation_name || 'Faculty',
+            subjectCode: ta.subject?.subject_code || 'SUB101',
+            subjectName: ta.subject?.subject_name || 'Subject',
+            questions: Array.isArray(f.questions)
+              ? f.questions.map((q: any) => ({ id: q.id, statement: q.question_text, question_type: q.question_type || 'RATING' }))
+              : DEFAULT_QUESTIONS.map((q: any) => ({ id: q.id, statement: q.statement, question_type: 'RATING' })),
+            status: f.is_published ? 'Published' : 'Draft',
+            createdBy: f.creator?.full_name || 'Administrator',
+            createdAt: f.created_at ? new Date(f.created_at).toLocaleDateString() : 'Recent',
+            publishedAt: f.published_at ? new Date(f.published_at).toLocaleDateString() : undefined,
+          };
+        });
+        setPublishedForms(apiForms as any[]);
+      }
+    } catch {
+      // Use local store as fallback
+      setPublishedForms([]);
+    }
+  };
+
   // Sync state with backend API and store updates
   useEffect(() => {
-    const loadFromApi = async () => {
-      try {
-        const { api } = await import('../../../lib/api');
-        const res = await api.get('/feedback-forms');
-        if (Array.isArray(res.data)) {
-          const apiForms: PublishedFormItem[] = res.data.map((f: any) => {
-            const ta = f.teaching_assignment || {};
-            return {
-              id: String(f.id),
-              numericId: f.id,
-              assignmentId: f.teaching_assignment_id,
-              title: f.title,
-              academicYear: ta.academic_year?.year_code || '2025-26',
-              semester: ta.semester?.semester_no || ta.semester_id || 5,
-              departmentCode: ta.batch?.department?.department_code || ta.subject?.department?.department_code || 'IT',
-              departmentName: ta.batch?.department?.department_name || ta.subject?.department?.department_name || 'Information Technology',
-              division: ta.division?.division_code || 'All Divisions',
-              section: ta.section?.section_code || 'All',
-              batch: ta.batch?.batch_title || '2022-26',
-              facultyId: String(ta.faculty_id || 'FAC'),
-              facultyName: ta.faculty?.full_name || 'Faculty Member',
-              facultyDesignation: ta.faculty?.designation?.designation_name || 'Faculty',
-              subjectCode: ta.subject?.subject_code || 'SUB101',
-              subjectName: ta.subject?.subject_name || 'Subject',
-              questions: Array.isArray(f.questions)
-                ? f.questions.map((q: any) => ({ id: q.id, statement: q.question_text, question_type: q.question_type || 'RATING' }))
-                : SYSTEM_QUESTIONS.map((q) => ({ id: q.id, statement: q.text, question_type: 'RATING' })),
-              status: f.is_published ? 'Published' : 'Draft',
-              createdBy: f.creator?.full_name || 'Administrator',
-              createdAt: f.created_at ? new Date(f.created_at).toLocaleDateString() : 'Recent',
-              publishedAt: f.published_at ? new Date(f.published_at).toLocaleDateString() : undefined,
-            };
-          });
-          setPublishedForms(apiForms);
-        }
-      } catch {
-        // Use local store as fallback
-        setPublishedForms(getPublishedForms());
-      }
+    loadFromApi();
+
+    const handleSync = () => {
+      const queryParams = getQueryParamsFromHash();
+      const fId = queryParams.get('formId');
+      setActiveFormId(fId);
     };
 
-    useEffect(() => {
-      loadFromApi();
+    handleSync();
+    window.addEventListener('hashchange', handleSync);
 
-      const handleSync = () => {
-        const queryParams = getQueryParamsFromHash();
-        const fId = queryParams.get('formId');
-        setActiveFormId(fId);
-      };
-
-      handleSync();
-      window.addEventListener('hashchange', handleSync);
-
-      return () => {
-        window.removeEventListener('hashchange', handleSync);
-      };
-    }, []);
+    return () => {
+      window.removeEventListener('hashchange', handleSync);
+    };
+  }, []);
 
     // Filter forms targeting this student that are currently PUBLISHED and match academic hierarchy
     const eligiblePublishedForms = publishedForms.filter((form) => {
       // MUST BE PUBLISHED (Unpublished forms are completely hidden)
-      if (form.status !== 'Published' && form.status !== 'PUBLISHED') return false;
+      if (String(form.status).toUpperCase() !== 'PUBLISHED') return false;
 
       // 1. Department Match
       const formDept = (form.departmentCode || '').toUpperCase();
@@ -563,7 +566,7 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
     const seenStatements = new Set<string>();
 
     for (const q of rawQuestions) {
-      const stmtKey = (q.statement || q.question_text || '').trim().toLowerCase();
+      const stmtKey = (q.statement || (q as any).question_text || '').trim().toLowerCase();
       if (!stmtKey || !seenStatements.has(stmtKey)) {
         if (stmtKey) seenStatements.add(stmtKey);
         questionsToRender.push(q);

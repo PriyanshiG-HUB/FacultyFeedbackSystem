@@ -10,17 +10,36 @@ import {
   getMergedSubmissions,
   calculateFacultyOverallScore,
 } from '../../../utils/feedbackExclusionStore';
+import { getStoredUserInfo } from '../../../lib/api';
 
-export default function Index({ facultyName = 'Dr. Sarah Jenkins', reports = [] }: FacultyReportsIndexProps) {
+export default function Index({ facultyName = 'Dr. Sarah Jenkins', reports: propReports = [] }: FacultyReportsIndexProps) {
   const [submissions, setSubmissions] = useState(() => getMergedSubmissions());
-
   const [apiDashboardStats, setApiDashboardStats] = useState<any>(null);
+  const [reports, setReports] = useState<any[]>(propReports);
+  
+  const authUser = getStoredUserInfo();
+  const activeFacultyName = authUser?.faculty?.full_name || facultyName;
 
   useEffect(() => {
     import('../../../lib/api').then(({ api }) => {
       api.get('/faculty/dashboard').then((res) => {
-        if (res.data) {
-          setApiDashboardStats(res.data);
+        if (res.data) setApiDashboardStats(res.data);
+      }).catch(() => {});
+      
+      api.get('/faculty/feedback-forms').then((res) => {
+        if (res.data?.data) {
+          const apiReports = res.data.data.map((f: any) => ({
+            id: f.id,
+            subjectName: f.teaching_assignment?.subject?.subject_name || 'Subject',
+            subjectCode: f.teaching_assignment?.subject?.subject_code || 'SUB',
+            batchName: f.teaching_assignment?.batch?.batch_title || 'Batch',
+            academicYear: f.teaching_assignment?.academic_year?.year_code || 'Year',
+            totalStudents: f.teaching_assignment?.total_students || 0,
+            respondedStudents: 0,
+            overallScore: 0,
+            status: f.is_published ? 'Published' : 'Pending Review'
+          }));
+          setReports(apiReports);
         }
       }).catch(() => {});
     });
@@ -35,14 +54,14 @@ export default function Index({ facultyName = 'Dr. Sarah Jenkins', reports = [] 
   // Compute aggregate stats across all faculty submissions
   const overallStats = useMemo(() => {
     const facultySubmissions = submissions.filter(
-      (s) => s.facultyName.toLowerCase().includes(facultyName.toLowerCase())
+      (s) => s.facultyName.toLowerCase().includes(activeFacultyName.toLowerCase())
     );
     const targetSubmissions = facultySubmissions.length > 0 ? facultySubmissions : submissions;
     return calculateFacultyOverallScore(targetSubmissions);
-  }, [submissions, facultyName]);
+  }, [submissions, activeFacultyName]);
 
   return (
-    <FacultyLayout facultyName={facultyName}>
+    <FacultyLayout facultyName={activeFacultyName}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-extrabold text-slate-900">Feedback Evaluation Reports</h2>
