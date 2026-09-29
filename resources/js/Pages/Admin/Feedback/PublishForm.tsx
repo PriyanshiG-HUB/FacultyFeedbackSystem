@@ -8,7 +8,7 @@ import { Modal } from '../../../Components/ui/Modal';
 import { StatusBadge } from '../../../Components/ui/StatusBadge';
 import { StatCard } from '../../../Components/ui/StatCard';
 import { getDepartmentName } from '../../../utils/departmentScope';
-import { api } from '../../../lib/api';
+import { api, API_BASE_URL, getAuthToken } from '../../../lib/api';
 import {
   Send,
   EyeOff,
@@ -131,7 +131,15 @@ export default function PublishForm({
             facultyDesignation: ta.faculty?.designation?.designation_name || 'Faculty',
             subjectCode: ta.subject?.subject_code || 'SUB101',
             subjectName: ta.subject?.subject_name || 'Subject',
-            questions: Array.isArray(f.questions) ? f.questions.map((q: any) => ({ id: q.id, statement: q.question_text })) : [],
+            responseType: (f.response_type || 'RATING').toUpperCase() as 'RATING' | 'TEXT' | 'BOTH',
+            questionSource: f.question_source || 'EXISTING',
+            questions: Array.isArray(f.questions)
+              ? f.questions.map((q: any) => ({
+                  id: q.id,
+                  statement: q.question_text,
+                  question_type: f.response_type === 'BOTH' ? 'BOTH' : (q.question_type || f.response_type || 'RATING'),
+                }))
+              : [],
             status: f.is_published ? 'Published' : 'Draft',
             createdBy: f.creator?.full_name || 'Administrator',
             createdAt: f.created_at ? new Date(f.created_at).toLocaleDateString() : 'Recent',
@@ -210,7 +218,7 @@ export default function PublishForm({
     formData.append('file', file);
 
     try {
-      const res = await api.post('/custom-feedback-questions/validate', formData);
+      const res = await api.postForm('/custom-feedback-questions/validate', formData);
       setImportValidationReport(res);
 
       if (res.success && Array.isArray(res.parsed_questions)) {
@@ -226,7 +234,7 @@ export default function PublishForm({
       setImportValidationReport({
         success: false,
         message: err.message || 'File validation failed.',
-        errors: [err.message || 'Invalid file format or network error.'],
+        errors: err.errors && Array.isArray(err.errors) ? err.errors : [err.message || 'Invalid file format or network error.'],
       });
     } finally {
       setIsValidatingFile(false);
@@ -240,9 +248,32 @@ export default function PublishForm({
     );
   };
 
-  // Download Sample Template
-  const handleDownloadTemplate = () => {
-    const csvContent = "question,category,question_type\n\"How clearly does the faculty explain core subject concepts?\",\"Clarity of Teaching\",\"RATING\"\n\"What specific teaching methods helped you understand the topics better?\",\"Teaching Methodology\",\"TEXT\"\n\"Rate the lab guidance and share your suggestions.\",\"Practical Guidance\",\"BOTH\"\n";
+  // Download Sample Template for Custom Feedback Questions
+  const handleDownloadTemplate = async () => {
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${API_BASE_URL}/custom-feedback-questions/template`, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+      });
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'custom_questions_import_template.csv');
+        document.body.appendChild(link);
+        link.click();
+        URL.revokeObjectURL(url);
+        document.body.removeChild(link);
+        return;
+      }
+    } catch {
+      // Fallback
+    }
+
+    const csvContent = "question,category,options,is_required\n\"Explains concepts clearly\",\"Teaching\",\"\",1\n\"Provides useful examples\",\"Teaching\",\"\",1\n\"Overall feedback and suggestions\",\"General\",\"\",0\n";
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -250,6 +281,7 @@ export default function PublishForm({
     link.setAttribute('download', 'custom_questions_import_template.csv');
     document.body.appendChild(link);
     link.click();
+    URL.revokeObjectURL(url);
     document.body.removeChild(link);
   };
 
@@ -287,13 +319,17 @@ export default function PublishForm({
         payload.questions = selectedQs.map((q, idx) => ({
           question_text: q.question,
           category: q.category || 'General',
-          question_type: q.question_type || (responseType === 'TEXT' ? 'TEXT' : responseType === 'BOTH' ? 'BOTH' : 'RATING'),
+          question_type: responseType,
           display_order: idx + 1,
           is_required: true,
         }));
       }
 
-      await api.post('/feedback-forms', payload);
+      const createdRes = await api.post('/feedback-forms', payload);
+      const createdForm = createdRes?.data;
+      if (createdForm?.id) {
+        await api.post(`/feedback-forms/${createdForm.id}/publish`).catch(() => {});
+      }
 
       // Optionally persist custom questions to bank if needed
       if (questionSource === 'CUSTOM' && selectedQs.length > 0) {

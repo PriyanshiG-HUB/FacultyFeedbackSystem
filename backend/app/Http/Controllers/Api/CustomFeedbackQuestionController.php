@@ -47,22 +47,29 @@ class CustomFeedbackQuestionController extends Controller
      */
     public function validateImport(Request $request): JsonResponse
     {
-        $request->validate([
-            'file' => ['nullable', 'file', 'mimes:csv,txt,xlsx,xls', 'max:10240'],
-            'rows' => ['nullable', 'array'],
-        ]);
+        if (!$request->hasFile('file') && !$request->has('rows')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No custom question file was uploaded.',
+                'errors' => ['No custom question file was uploaded.'],
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
 
         $rows = [];
         if ($request->hasFile('file')) {
             $file = $request->file('file');
+            $extension = strtolower($file->getClientOriginalExtension());
+            if (!in_array($extension, ['csv', 'txt', 'xlsx', 'xls'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only CSV and XLSX files are supported.',
+                    'errors' => ['Only CSV and XLSX files are supported.'],
+                ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
             $rows = $this->importService->parseFile($file->getRealPath(), $file->getClientOriginalName());
-        } elseif ($request->has('rows')) {
+        } elseif ($request->has('rows') && is_array($request->input('rows'))) {
             $rows = $request->input('rows');
-        } else {
-            return response()->json([
-                'success' => false,
-                'message' => 'Either an uploaded CSV/Excel file or array of rows is required.',
-            ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $report = $this->importService->validateQuestions($rows);
@@ -160,10 +167,10 @@ class CustomFeedbackQuestionController extends Controller
      */
     public function template()
     {
-        $csvContent = "question,category,question_type,options\n";
-        $csvContent .= "\"How clearly does the faculty explain core subject concepts?\",\"Clarity of Teaching\",\"RATING\",\"\"\n";
-        $csvContent .= "\"What specific teaching methods helped you understand the topics better?\",\"Teaching Methodology\",\"TEXT\",\"\"\n";
-        $csvContent .= "\"Rate the practical lab guidance and share your suggestions.\",\"Practical Guidance\",\"BOTH\",\"\"\n";
+        $csvContent = "question,category,options,is_required\n";
+        $csvContent .= "\"Explains concepts clearly\",\"Teaching\",\"\",1\n";
+        $csvContent .= "\"Provides useful examples\",\"Teaching\",\"\",1\n";
+        $csvContent .= "\"Overall feedback and suggestions\",\"General\",\"\",0\n";
 
         return response($csvContent, Response::HTTP_OK, [
             'Content-Type' => 'text/csv',

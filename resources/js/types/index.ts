@@ -591,6 +591,7 @@ export interface PublishedFormQuestionItem {
   id: number;
   statement: string;
   description?: string;
+  question_type?: 'RATING' | 'TEXT' | 'BOTH' | 'MCQ';
 }
 
 export interface PublishedFormFacultyItem {
@@ -618,6 +619,8 @@ export interface PublishedFormItem {
   subjectCode: string;
   subjectName: string;
   questions: PublishedFormQuestionItem[];
+  responseType?: 'RATING' | 'TEXT' | 'BOTH';
+  questionSource?: 'EXISTING' | 'CUSTOM';
   status: 'Published' | 'Unpublished' | 'Draft';
   createdBy: string;
   createdAt: string;

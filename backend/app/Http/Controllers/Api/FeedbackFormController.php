@@ -23,11 +23,13 @@ class FeedbackFormController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = FeedbackForm::with([
-            'teachingAssignment.subject',
+            'teachingAssignment.subject.department',
             'teachingAssignment.faculty',
-            'teachingAssignment.batch',
+            'teachingAssignment.batch.department',
             'teachingAssignment.division',
             'teachingAssignment.section',
+            'teachingAssignment.academicYear',
+            'teachingAssignment.semester',
             'questions.options',
             'questions.category',
         ]);

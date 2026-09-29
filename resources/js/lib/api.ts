@@ -185,8 +185,23 @@ export async function apiRequest<T = any>(
     ...(options.headers as Record<string, string> || {}),
   };
 
-  if (options.body && typeof options.body === 'string' && !headers['Content-Type']) {
-    headers['Content-Type'] = 'application/json';
+  let requestBody = options.body;
+
+  if (requestBody instanceof FormData) {
+    // For FormData, remove any Content-Type header so fetch/browser sets boundary automatically
+    Object.keys(headers).forEach((h) => {
+      if (h.toLowerCase() === 'content-type') {
+        delete headers[h];
+      }
+    });
+  } else if (requestBody !== undefined && requestBody !== null) {
+    if (typeof requestBody !== 'string') {
+      requestBody = JSON.stringify(requestBody);
+    }
+    const hasContentType = Object.keys(headers).some((h) => h.toLowerCase() === 'content-type');
+    if (!hasContentType) {
+      headers['Content-Type'] = 'application/json';
+    }
   }
 
   if (token && !isExternal) {
@@ -201,6 +216,7 @@ export async function apiRequest<T = any>(
   try {
     response = await fetch(url, {
       ...options,
+      body: requestBody,
       headers,
       signal: controller.signal,
     });
@@ -277,11 +293,13 @@ export const api = {
   get: <T = any>(endpoint: string, options?: RequestInit & { timeoutMs?: number; params?: Record<string, any> }) =>
     apiRequest<T>(endpoint, { method: 'GET', ...options }),
   post: <T = any>(endpoint: string, body?: any, options?: RequestInit) =>
-    apiRequest<T>(endpoint, { method: 'POST', body: body ? JSON.stringify(body) : undefined, ...options }),
+    apiRequest<T>(endpoint, { method: 'POST', body, ...options }),
+  postForm: <T = any>(endpoint: string, formData: FormData, options?: RequestInit) =>
+    apiRequest<T>(endpoint, { method: 'POST', body: formData, ...options }),
   put: <T = any>(endpoint: string, body?: any, options?: RequestInit) =>
-    apiRequest<T>(endpoint, { method: 'PUT', body: body ? JSON.stringify(body) : undefined, ...options }),
+    apiRequest<T>(endpoint, { method: 'PUT', body, ...options }),
   patch: <T = any>(endpoint: string, body?: any, options?: RequestInit) =>
-    apiRequest<T>(endpoint, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined, ...options }),
+    apiRequest<T>(endpoint, { method: 'PATCH', body, ...options }),
   delete: <T = any>(endpoint: string, options?: RequestInit) =>
     apiRequest<T>(endpoint, { method: 'DELETE', ...options }),
 };

@@ -107,9 +107,12 @@ export const fetchPublishedFormsFromApi = async (): Promise<PublishedFormItem[]>
           facultyDesignation: ta.faculty?.designation?.designation_name || 'Professor',
           subjectCode: ta.subject?.subject_code || 'SUB101',
           subjectName: ta.subject?.subject_name || 'Subject',
+          responseType: (form.response_type || 'RATING').toUpperCase() as 'RATING' | 'TEXT' | 'BOTH',
+          questionSource: form.question_source || 'EXISTING',
           questions: (form.questions || []).map((q: any) => ({
             id: q.id,
             statement: q.question_text,
+            question_type: form.response_type === 'BOTH' ? 'BOTH' : (q.question_type || form.response_type || 'RATING'),
           })),
           status: form.is_published ? 'Published' : 'Unpublished',
           createdBy: form.created_by_user_account?.email || 'Admin',
@@ -142,9 +145,11 @@ export const savePublishedForm = async (formData: Partial<PublishedFormItem>): P
       window_start_date: '2026-08-01',
       window_end_date: '2026-12-31',
       is_anonymous: true,
+      response_type: formData.responseType || 'RATING',
+      question_source: formData.questionSource || 'EXISTING',
       questions: (formData.questions || []).map((q, idx) => ({
         question_text: q.statement || q.statement,
-        question_type: 'RATING',
+        question_type: formData.responseType === 'BOTH' ? 'BOTH' : (q.question_type || formData.responseType || 'RATING'),
         display_order: idx + 1,
         is_required: true,
         max_rating: 5,
@@ -176,9 +181,11 @@ export const savePublishedForm = async (formData: Partial<PublishedFormItem>): P
     facultyDesignation: formData.facultyDesignation || 'Professor',
     subjectCode: formData.subjectCode || 'IT501',
     subjectName: formData.subjectName || 'Data Structures & Algorithms',
+    responseType: formData.responseType || 'RATING',
+    questionSource: formData.questionSource || 'EXISTING',
     questions: formData.questions && formData.questions.length > 0
       ? formData.questions
-      : SYSTEM_QUESTIONS.map((q) => ({ id: q.id, statement: q.text })),
+      : SYSTEM_QUESTIONS.map((q) => ({ id: q.id, statement: q.text, question_type: formData.responseType === 'BOTH' ? 'BOTH' : (formData.responseType || 'RATING') })),
     status: formData.status || 'Published',
     createdBy: formData.createdBy || 'HOD',
     createdAt: formData.createdAt || nowStr,

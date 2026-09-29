@@ -137,9 +137,9 @@ class CustomQuestionsAndResponseTypesTest extends TestCase
     #[Test]
     public function it_can_validate_custom_question_csv_import_with_errors()
     {
-        $csvContent = "question,category,question_type\n";
-        $csvContent .= ",\"Teaching Quality\",\"RATING\"\n"; // Empty question
-        $csvContent .= "\"How clearly are concepts explained?\",\"Teaching Quality\",\"INVALID_TYPE\"\n"; // Invalid type
+        $csvContent = "question,category\n";
+        $csvContent .= ",\"Teaching Quality\"\n"; // Empty question
+        $csvContent .= "\"How clearly are concepts explained?\",\"Teaching Quality\"\n";
 
         $file = UploadedFile::fake()->createWithContent('invalid_questions.csv', $csvContent);
 
@@ -152,17 +152,17 @@ class CustomQuestionsAndResponseTypesTest extends TestCase
         $response->assertJson([
             'success' => false,
             'total_rows' => 2,
-            'valid_rows_count' => 0,
-            'invalid_rows_count' => 2,
+            'valid_rows_count' => 1,
+            'invalid_rows_count' => 1,
         ]);
     }
 
     #[Test]
     public function it_can_import_valid_custom_questions_csv()
     {
-        $csvContent = "question,category,question_type\n";
-        $csvContent .= "\"What did you like about the teaching methodology?\",\"Teaching Methodology\",\"TEXT\"\n";
-        $csvContent .= "\"Rate the lab guidance and share your remarks.\",\"Lab Guidance\",\"BOTH\"\n";
+        $csvContent = "question,category\n";
+        $csvContent .= "\"What did you like about the teaching methodology?\",\"Teaching Methodology\"\n";
+        $csvContent .= "\"Rate the lab guidance and share your remarks.\",\"Lab Guidance\"\n";
 
         $file = UploadedFile::fake()->createWithContent('valid_questions.csv', $csvContent);
 
@@ -174,11 +174,9 @@ class CustomQuestionsAndResponseTypesTest extends TestCase
         $response->assertStatus(201);
         $this->assertDatabaseHas('custom_feedback_questions', [
             'question' => 'What did you like about the teaching methodology?',
-            'question_type' => 'TEXT',
         ]);
         $this->assertDatabaseHas('custom_feedback_questions', [
             'question' => 'Rate the lab guidance and share your remarks.',
-            'question_type' => 'BOTH',
         ]);
     }
 
@@ -194,12 +192,10 @@ class CustomQuestionsAndResponseTypesTest extends TestCase
             'questions' => [
                 [
                     'question_text' => 'Rate faculty punctuality.',
-                    'question_type' => 'RATING',
                     'is_required' => true,
                 ],
                 [
                     'question_text' => 'What improvements would you suggest?',
-                    'question_type' => 'TEXT',
                     'is_required' => true,
                 ],
             ],
@@ -220,13 +216,11 @@ class CustomQuestionsAndResponseTypesTest extends TestCase
         $this->assertDatabaseHas('feedback_question', [
             'feedback_form_id' => $formId,
             'question_text' => 'Rate faculty punctuality.',
-            'question_type' => 'RATING',
         ]);
 
         $this->assertDatabaseHas('feedback_question', [
             'feedback_form_id' => $formId,
             'question_text' => 'What improvements would you suggest?',
-            'question_type' => 'TEXT',
         ]);
     }
 

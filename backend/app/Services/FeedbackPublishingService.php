@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\CustomFeedbackQuestion;
 use App\Models\FeedbackForm;
 use App\Models\FeedbackQuestion;
 use App\Models\FeedbackQuestionCategory;
@@ -46,32 +47,61 @@ class FeedbackPublishingService
 
             if (!empty($data['questions']) && is_array($data['questions'])) {
                 foreach ($data['questions'] as $index => $qData) {
-                    $qType = strtoupper($qData['question_type'] ?? 'RATING');
-                    if ($responseType === 'TEXT' && $qType === 'RATING') {
+                    // Enforce form-level response_type for all questions (CSV question_type is ignored)
+                    $rawQType = strtoupper($qData['question_type'] ?? '');
+                    if ($rawQType === 'MCQ') {
+                        $qType = 'MCQ';
+                    } elseif ($responseType === 'BOTH' || $rawQType === 'BOTH') {
+                        $qType = 'BOTH';
+                    } elseif ($responseType === 'TEXT' || $rawQType === 'TEXT') {
                         $qType = 'TEXT';
+                    } else {
+                        $qType = 'RATING';
+                    }
+
+                    $catId = $qData['category_id'] ?? null;
+                    if (!$catId && !empty($qData['category'])) {
+                        $cat = FeedbackQuestionCategory::firstOrCreate(
+                            ['category_name' => trim($qData['category'])],
+                            ['display_order' => $index + 1]
+                        );
+                        $catId = $cat->id;
                     }
 
                     $question = FeedbackQuestion::create([
                         'feedback_form_id' => $form->id,
-                        'category_id' => $qData['category_id'] ?? null,
+                        'category_id' => $catId,
                         'question_text' => $qData['question_text'] ?? $qData['question'] ?? '',
                         'question_type' => $qType,
                         'display_order' => $qData['display_order'] ?? ($index + 1),
-                        'is_required' => $qData['is_required'] ?? true,
+                        'is_required' => isset($qData['is_required']) ? filter_var($qData['is_required'], FILTER_VALIDATE_BOOLEAN) : true,
                         'max_rating' => $qData['max_rating'] ?? 5,
                     ]);
 
-                    if (!empty($qData['options']) && is_array($qData['options'])) {
-                        foreach ($qData['options'] as $optIndex => $oData) {
-                            $optValue = is_array($oData) ? ($oData['option_value'] ?? $oData['value'] ?? '') : (string)$oData;
-                            $optLabel = is_array($oData) ? ($oData['option_label'] ?? $oData['label'] ?? $optValue) : (string)$oData;
-                            FeedbackQuestionOption::create([
-                                'question_id' => $question->id,
-                                'option_value' => $optValue,
-                                'option_label' => $optLabel,
-                                'display_order' => is_array($oData) ? ($oData['display_order'] ?? ($optIndex + 1)) : ($optIndex + 1),
-                            ]);
+                    if (!empty($qData['options'])) {
+                        $optsList = is_array($qData['options']) ? $qData['options'] : array_map('trim', explode(',', $qData['options']));
+                        foreach ($optsList as $optIndex => $oData) {
+                            $optText = is_array($oData) ? ($oData['option_text'] ?? $oData['option_label'] ?? $oData['label'] ?? $oData['value'] ?? '') : (string)$oData;
+                            if (trim($optText) !== '') {
+                                FeedbackQuestionOption::create([
+                                    'question_id' => $question->id,
+                                    'option_text' => trim($optText),
+                                    'display_order' => $optIndex + 1,
+                                ]);
+                            }
                         }
+                    }
+
+                    if ($questionSource === 'CUSTOM') {
+                        CustomFeedbackQuestion::firstOrCreate([
+                            'question' => $question->question_text,
+                        ], [
+                            'category' => $qData['category'] ?? 'General',
+                            'category_id' => $catId,
+                            'question_type' => $qType,
+                            'options' => !empty($qData['options']) ? (is_array($qData['options']) ? $qData['options'] : array_map('trim', explode(',', $qData['options']))) : null,
+                            'created_by_user_account_id' => $userAccount->id,
+                        ]);
                     }
                 }
             } else {

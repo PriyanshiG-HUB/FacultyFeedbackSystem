@@ -35,11 +35,13 @@ class StudentEligibilityService
 
         // Fetch published forms with teaching assignments matching base context
         $forms = FeedbackForm::with([
-            'teachingAssignment.subject',
+            'teachingAssignment.subject.department',
             'teachingAssignment.faculty',
-            'teachingAssignment.batch',
+            'teachingAssignment.batch.department',
             'teachingAssignment.division',
             'teachingAssignment.section',
+            'teachingAssignment.academicYear',
+            'teachingAssignment.semester',
             'questions.options',
             'questions.category',
         ])

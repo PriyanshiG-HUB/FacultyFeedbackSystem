@@ -217,7 +217,7 @@ return new class extends Migration
             $table->foreignId('feedback_form_id')->constrained('feedback_form')->cascadeOnDelete();
             $table->foreignId('category_id')->nullable()->constrained('feedback_question_category');
             $table->text('question_text');
-            $table->enum('question_type', ['RATING', 'TEXT', 'MCQ'])->default('RATING');
+            $table->string('question_type', 30)->default('RATING');
             $table->boolean('is_required')->default(true);
             $table->unsignedTinyInteger('max_rating')->default(5);
             $table->unsignedTinyInteger('display_order')->default(1);

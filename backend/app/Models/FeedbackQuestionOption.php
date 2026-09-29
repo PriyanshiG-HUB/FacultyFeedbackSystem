@@ -36,6 +36,7 @@ class FeedbackQuestionOption extends Model
      */
     protected $fillable = [
         'question_id',
+        'option_text',
         'option_value',
         'option_label',
         'display_order',

@@ -190,6 +190,28 @@ class CustomQuestionImportService
             ];
         }
 
+        // 0. Verify required column presence
+        $firstRowKeys = array_map('strtolower', array_keys($rows[0]));
+        $hasQuestionCol = false;
+        foreach (['question', 'question_text', 'statement', 'text'] as $candidate) {
+            if (in_array($candidate, $firstRowKeys)) {
+                $hasQuestionCol = true;
+                break;
+            }
+        }
+
+        if (!$hasQuestionCol) {
+            return [
+                'success' => false,
+                'message' => "Missing required column: 'question'",
+                'total_rows' => count($rows),
+                'valid_rows_count' => 0,
+                'invalid_rows_count' => count($rows),
+                'errors' => ["Missing required column: 'question'. File must contain a 'question' header."],
+                'parsed_questions' => [],
+            ];
+        }
+
         $errors = [];
         $parsedQuestions = [];
         $seenQuestions = [];
@@ -217,14 +239,10 @@ class CustomQuestionImportService
             $catObj = $existingCategories->get(strtolower($categoryName));
             $categoryId = $catObj?->id;
 
-            // 3. Validate Question Type
+            // 3. Question Type (Optional from CSV; form-level response_type determines actual type)
             $typeInput = strtoupper(trim($row['question_type'] ?? $row['type'] ?? 'RATING'));
-            if (empty($typeInput)) {
+            if (empty($typeInput) || !in_array($typeInput, self::ALLOWED_TYPES)) {
                 $typeInput = 'RATING';
-            }
-
-            if (!in_array($typeInput, self::ALLOWED_TYPES)) {
-                $rowErrors[] = "Row {$rowNum}: Invalid question_type '{$typeInput}'. Allowed types: " . implode(', ', self::ALLOWED_TYPES) . '.';
             }
 
             // 4. Validate options if MCQ or custom options present

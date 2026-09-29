@@ -21,6 +21,8 @@ class FeedbackFormResource extends JsonResource
             'published_at' => $this->published_at?->toIso8601String(),
             'status' => $this->status,
             'created_by_user_account_id' => $this->created_by_user_account_id,
+            'question_source' => $this->question_source,
+            'response_type' => $this->response_type,
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
             'teaching_assignment' => new TeachingAssignmentResource($this->whenLoaded('teachingAssignment')),

@@ -140,9 +140,11 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
               facultyDesignation: ta.faculty?.designation?.designation_name || 'Faculty',
               subjectCode: ta.subject?.subject_code || 'SUB101',
               subjectName: ta.subject?.subject_name || 'Subject',
+              responseType: (f.response_type || 'RATING').toUpperCase() as 'RATING' | 'TEXT' | 'BOTH',
+              questionSource: f.question_source || 'EXISTING',
               questions: Array.isArray(f.questions)
-                ? f.questions.map((q: any) => ({ id: q.id, statement: q.question_text, question_type: q.question_type || 'RATING' }))
-                : SYSTEM_QUESTIONS.map((q) => ({ id: q.id, statement: q.text, question_type: 'RATING' })),
+                ? f.questions.map((q: any) => ({ id: q.id, statement: q.question_text, question_type: (f.response_type === 'BOTH' ? 'BOTH' : (q.question_type || f.response_type || 'RATING')) }))
+                : SYSTEM_QUESTIONS.map((q) => ({ id: q.id, statement: q.text, question_type: (f.response_type === 'BOTH' ? 'BOTH' : (f.response_type || 'RATING')) })),
               status: f.is_published ? 'Published' : 'Draft',
               createdBy: f.creator?.full_name || 'Administrator',
               createdAt: f.created_at ? new Date(f.created_at).toLocaleDateString() : 'Recent',
@@ -184,11 +186,12 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
   // Filter forms targeting this student that are currently PUBLISHED and match academic hierarchy
   const eligiblePublishedForms = publishedForms.filter((form) => {
     // MUST BE PUBLISHED (Unpublished forms are completely hidden)
-    if (form.status !== 'Published') return false;
+    if (form.status !== 'Published' && form.status !== 'PUBLISHED') return false;
 
     // 1. Department Match
     const formDept = (form.departmentCode || '').toUpperCase();
     const isDeptMatch =
+      !formDept ||
       formDept === 'ALL' ||
       formDept === studentDept ||
       (studentDept === 'IT' && (formDept === 'IT' || form.departmentName?.includes('Information'))) ||
@@ -209,7 +212,7 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
     if (!isBatchMatch) return false;
 
     // 3. Current Semester Match
-    const isSemMatch = !form.semester || form.semester === studentSem;
+    const isSemMatch = !form.semester || String(form.semester) === String(studentSem);
     if (!isSemMatch) return false;
 
     // 4. Division & Section Scope Match
@@ -284,21 +287,32 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
       ? activeForm.questions
       : SYSTEM_QUESTIONS.map((q) => ({ id: q.id, statement: q.text }));
 
-    questions.forEach((q: any, idx) => {
+    const formResponseType = ((activeForm as any).responseType || (activeForm as any).response_type || 'RATING').toUpperCase();
+
+    questionsToRender.forEach((q: any, idx) => {
       const qKey = String(q.id);
-      const qType = (q.question_type || 'RATING').toUpperCase();
+      const formResponseType = ((activeForm as any).responseType || (activeForm as any).response_type || 'RATING').toUpperCase();
+      const qType = formResponseType === 'BOTH' ? 'BOTH' : ((q.question_type || formResponseType).toUpperCase());
       const rating = ratings[qKey];
       const comment = (questionComments[qKey] || '').trim();
 
       if (qType === 'TEXT') {
         if (!comment) {
-          errors.push(`Question ${idx + 1}: Please type your response text.`);
+          errors.push(`Question ${idx + 1}: Text response is required.`);
         }
-      } else {
+      } else if (qType === 'RATING') {
         if (!rating) {
-          errors.push(`Question ${idx + 1}: Please select a rating.`);
-        } else if (rating === 1 && !comment) {
-          errors.push(`Question ${idx + 1}: Please provide a constructive comment explaining why you selected 'Strongly Disagree'.`);
+          errors.push(`Question ${idx + 1}: Rating selection (1 to 5) is required.`);
+        }
+        if (!comment) {
+          errors.push(`Question ${idx + 1}: Feedback comment is required.`);
+        }
+      } else if (qType === 'BOTH') {
+        if (!rating) {
+          errors.push(`Question ${idx + 1}: Rating selection (1 to 5) is required.`);
+        }
+        if (!comment) {
+          errors.push(`Question ${idx + 1}: Feedback comment is required.`);
         }
       }
     });
@@ -602,12 +616,39 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
     );
   }
 
-  const questionsToRender = activeForm.questions && activeForm.questions.length > 0
+  const rawQuestions = activeForm.questions && activeForm.questions.length > 0
     ? activeForm.questions
     : SYSTEM_QUESTIONS.map((q) => ({ id: q.id, statement: q.text }));
 
+  // Deduplicate questions by statement text so each question renders as a single card (Rating first, Text second)
+  const questionsToRender: any[] = [];
+  const seenStatements = new Set<string>();
+
+  for (const q of rawQuestions) {
+    const stmtKey = (q.statement || q.question_text || '').trim().toLowerCase();
+    if (!stmtKey || !seenStatements.has(stmtKey)) {
+      if (stmtKey) seenStatements.add(stmtKey);
+      questionsToRender.push(q);
+    }
+  }
+
   const totalQuestions = questionsToRender.length;
-  const answeredCount = questionsToRender.filter((q) => !!ratings[String(q.id)]).length;
+  const answeredCount = questionsToRender.filter((q) => {
+    const qKey = String(q.id);
+    const formResponseType = ((activeForm as any).responseType || (activeForm as any).response_type || 'RATING').toUpperCase();
+    const qType = formResponseType === 'BOTH' ? 'BOTH' : ((q.question_type || formResponseType).toUpperCase());
+    const rating = ratings[qKey];
+    const comment = (questionComments[qKey] || '').trim();
+
+    if (qType === 'TEXT') {
+      return !!comment;
+    } else if (qType === 'RATING') {
+      return rating === 1 ? (!!rating && !!comment) : !!rating;
+    } else if (qType === 'BOTH') {
+      return !!rating && !!comment;
+    }
+    return !!rating;
+  }).length;
 
   return (
     <StudentLayout studentInfo={{ rollNumber: studentRoll, division: studentDivision }}>
@@ -676,12 +717,13 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
         <form onSubmit={handlePreSubmitValidation} className="space-y-6">
           {questionsToRender.map((param: any, index) => {
             const qKey = String(param.id);
-            const qType = (param.question_type || 'RATING').toUpperCase();
+            const formResponseType = ((activeForm as any).responseType || (activeForm as any).response_type || 'RATING').toUpperCase();
+            const qType = formResponseType === 'BOTH' ? 'BOTH' : ((param.question_type || formResponseType).toUpperCase());
             const currentRating = ratings[qKey];
             const isStronglyDisagree = currentRating === 1;
 
             const isRatingVisible = qType === 'RATING' || qType === 'BOTH';
-            const isTextVisible = qType === 'TEXT' || qType === 'BOTH' || isStronglyDisagree;
+            const isTextVisible = true;
 
             return (
               <Card key={param.id} className="p-5 sm:p-6 space-y-4 border-slate-200 shadow-2xs hover:border-slate-300 transition-all">
@@ -700,39 +742,42 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
                   </h3>
                 </div>
 
-                {/* Likert Scale Radio Options (For RATING and BOTH) */}
+                {/* Rating Scale Options (For RATING and BOTH) */}
                 {isRatingVisible && (
-                  <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 pt-2">
-                    {LIKERT_OPTIONS.map((option) => {
-                      const isSelected = currentRating === option.value;
-                      return (
-                        <button
-                          key={option.value}
-                          type="button"
-                          onClick={() => handleRatingSelect(qKey, option.value)}
-                          className={`p-3 rounded-xl border text-center flex flex-col items-center justify-center gap-1 transition-all ${
-                            isSelected
-                              ? 'bg-indigo-600 text-white font-extrabold border-indigo-600 shadow-md shadow-indigo-600/30 ring-2 ring-indigo-600/20'
-                              : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 font-semibold'
-                          }`}
-                        >
-                          <span className="text-sm font-bold">{option.value}</span>
-                          <span className="text-[10px] leading-tight opacity-90">{option.label}</span>
-                        </button>
-                      );
-                    })}
+                  <div className="space-y-1.5 pt-1">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Rating (1 to 5) *
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
+                      {LIKERT_OPTIONS.map((option) => {
+                        const isSelected = currentRating === option.value;
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => handleRatingSelect(qKey, option.value)}
+                            className={`p-3 rounded-xl border text-center flex flex-col items-center justify-center gap-1 transition-all ${
+                              isSelected
+                                ? 'bg-indigo-600 text-white font-extrabold border-indigo-600 shadow-md shadow-indigo-600/30 ring-2 ring-indigo-600/20'
+                                : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 font-semibold'
+                            }`}
+                          >
+                            <span className="text-sm font-bold">{option.value}</span>
+                            <span className="text-[10px] leading-tight opacity-90">{option.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
 
-                {/* Text Response Box (For TEXT, BOTH, or Strongly Disagree) */}
+                {/* Text Response / Additional Feedback Box */}
                 {isTextVisible && (
-                  <div className="pt-3 border-t border-slate-100 space-y-2">
+                  <div className={`space-y-2 ${isRatingVisible ? 'pt-3 border-t border-slate-100' : 'pt-1'}`}>
                     <label className="block text-xs font-bold text-slate-800">
                       {qType === 'TEXT'
-                        ? 'Your Response / Answer *'
-                        : qType === 'BOTH'
-                        ? 'Additional Comments / Explanation (Optional)'
-                        : 'Constructive Feedback Comment Required *'}
+                        ? 'Your Answer / Response *'
+                        : 'Feedback Comments / Remarks *'}
                     </label>
                     <textarea
                       rows={2}
@@ -740,7 +785,7 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
                         qType === 'TEXT'
                           ? 'Type your detailed answer or feedback comments here...'
                           : qType === 'BOTH'
-                          ? 'Share any additional details or explanations regarding your evaluation...'
+                          ? 'Share any additional details, examples, or explanations regarding your evaluation...'
                           : 'Please explain the specific area needing improvement for this rating...'
                       }
                       value={questionComments[qKey] || ''}
