@@ -118,17 +118,24 @@ class DivisionController extends Controller
                     $assignment->delete();
                 }
 
-                // Delete sections
-                $division->sections()->delete();
-
-                // Delete students
+                // Delete students FIRST to avoid foreign key constraint with sections
                 foreach ($division->students as $student) {
+                    // Delete answers and responses
+                    foreach ($student->feedbackResponses as $response) {
+                        $response->feedbackAnswers()->delete();
+                        $response->delete();
+                    }
+                    $student->electiveEnrollments()->delete();
+
                     $userAccount = $student->userAccount;
                     $student->delete();
                     if ($userAccount) {
                         $userAccount->delete();
                     }
                 }
+
+                // Delete sections AFTER students are deleted
+                $division->sections()->delete();
 
                 $division->delete();
             });

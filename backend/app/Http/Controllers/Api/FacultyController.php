@@ -61,7 +61,7 @@ class FacultyController extends Controller
             $password = $data['password'] ?? 'password123';
             $userAccount = UserAccount::create([
                 'email' => $data['email'],
-                'password_hash' => Hash::make($password),
+                'password_hash' => $password,
                 'role' => 'FACULTY',
                 'status' => 'ACTIVE',
             ]);

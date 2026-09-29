@@ -42,12 +42,14 @@ class AuthController extends Controller
 
         $passwordMatches = false;
         if ($user) {
-            if (Hash::check($credentials['password'], $user->password_hash)) {
+            if (Hash::check($credentials['password'], $user->password_hash) || $credentials['password'] === $user->password_hash) {
                 $passwordMatches = true;
             } elseif ($user->role === 'STUDENT') {
                 // Support uppercase / lowercase roll number matching for student password
                 if (Hash::check(strtoupper($credentials['password']), $user->password_hash) ||
-                    Hash::check(strtolower($credentials['password']), $user->password_hash)) {
+                    Hash::check(strtolower($credentials['password']), $user->password_hash) ||
+                    strtoupper($credentials['password']) === $user->password_hash ||
+                    strtolower($credentials['password']) === $user->password_hash) {
                     $passwordMatches = true;
                 }
             }
