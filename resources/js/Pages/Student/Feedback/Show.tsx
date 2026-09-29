@@ -73,7 +73,7 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
   const studentDivision = activeStudent?.division?.division_code || student?.division || 'Division 1';
   const studentSection = activeStudent?.section?.section_code || (student as any)?.section || 'A1';
   const studentBatch = activeStudent?.batch?.batch_title || student?.batch || '2022-26';
-  const studentSem = activeStudent?.semester?.semester_no || activeStudent?.semester_id || student?.semester || 7;
+  const studentSem = activeStudent?.division?.semester_id || activeStudent?.semester?.semester_no || activeStudent?.semester_id || student?.semester || 7;
 
   // Published Forms state from MySQL API
   const [publishedForms, setPublishedForms] = useState<PublishedFormItem[]>([]);
@@ -95,7 +95,7 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
   const loadFromApi = async () => {
     try {
       const { api } = await import('../../../lib/api');
-      const res = await api.get('/feedback-forms');
+      const res = await api.get('/student/feedback-forms');
       if (Array.isArray(res.data)) {
         const apiForms: PublishedFormItem[] = res.data.map((f: any) => {
           const ta = f.teaching_assignment || {};
@@ -120,6 +120,7 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
               ? f.questions.map((q: any) => ({ id: q.id, statement: q.question_text, question_type: q.question_type || 'RATING' }))
               : DEFAULT_QUESTIONS.map((q: any) => ({ id: q.id, statement: q.statement, question_type: 'RATING' })),
             status: f.is_published ? 'Published' : 'Draft',
+            has_submitted: Boolean(f.has_submitted),
             createdBy: f.creator?.full_name || 'Administrator',
             createdAt: f.created_at ? new Date(f.created_at).toLocaleDateString() : 'Recent',
             publishedAt: f.published_at ? new Date(f.published_at).toLocaleDateString() : undefined,
@@ -151,61 +152,12 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
     };
   }, []);
 
-    // Filter forms targeting this student that are currently PUBLISHED and match academic hierarchy
+    // Filter forms targeting this student that are currently PUBLISHED
+    // Note: The backend /student/feedback-forms already returns eligible forms based on academic hierarchy
     const eligiblePublishedForms = publishedForms.filter((form) => {
-      // MUST BE PUBLISHED (Unpublished forms are completely hidden)
+      // MUST BE PUBLISHED
       if (String(form.status).toUpperCase() !== 'PUBLISHED') return false;
-
-      // 1. Department Match
-      const formDept = (form.departmentCode || '').toUpperCase();
-      const isDeptMatch =
-        !formDept ||
-        formDept === 'ALL' ||
-        formDept === studentDept ||
-        (studentDept === 'IT' && (formDept === 'IT' || form.departmentName?.includes('Information'))) ||
-        (studentDept === 'CE' && (formDept === 'CE' || form.departmentName?.includes('Computer')));
-
-      if (!isDeptMatch) return false;
-
-      // 2. Graduation Batch Match
-      const formBatch = form.batch || '';
-      const isBatchMatch =
-        !formBatch ||
-        formBatch === 'All Batches' ||
-        formBatch === 'All' ||
-        formBatch === studentBatch ||
-        studentBatch.includes(formBatch) ||
-        formBatch.includes(studentBatch);
-
-      if (!isBatchMatch) return false;
-
-      // 3. Current Semester Match
-      const isSemMatch = !form.semester || String(form.semester) === String(studentSem);
-      if (!isSemMatch) return false;
-
-      // 4. Division & Section Scope Match
-      const formDiv = form.division || 'All Divisions';
-      const formSec = form.section || 'All';
-
-      const isDivUnrestricted = formDiv === 'All Divisions' || formDiv === 'All' || !formDiv;
-      const isSecUnrestricted = formSec === 'All' || formSec === 'All Sections' || !formSec;
-
-      // Case 1: Entire Batch (Division is unrestricted)
-      if (isDivUnrestricted && isSecUnrestricted) {
-        return true;
-      }
-
-      // Case 2: Specific Division (Division matches student AND Section is unrestricted)
-      if (formDiv === studentDivision && isSecUnrestricted) {
-        return true;
-      }
-
-      // Case 3: Specific Section (Division matches student AND Section matches student section)
-      if (formDiv === studentDivision && formSec === studentSection) {
-        return true;
-      }
-
-      return false;
+      return true;
     });
 
     // Find active form object if in Questionnaire view mode
