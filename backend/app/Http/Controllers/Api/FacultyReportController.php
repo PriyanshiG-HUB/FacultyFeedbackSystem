@@ -17,32 +17,34 @@ use Symfony\Component\HttpFoundation\Response;
 class FacultyReportController extends Controller
 {
     /**
-     * Helper to get user's scoped department ID if restricted (HOD scope).
+     * Helper to get user's scoped department ID or specific faculty ID.
+     * Returns ['dept_id' => ?int, 'faculty_id' => ?int]
      */
-    private function getUserDepartmentScope(Request $request): ?int
+    private function getUserScope(Request $request): array
     {
         $user = $request->user();
 
         if (!$user) {
-            return null;
+            return ['dept_id' => null, 'faculty_id' => -1]; // Invalid
         }
 
-        // If user is SUPER_ADMIN, they have global scope unless restricted
-        if ($user->role === 'SUPER_ADMIN') {
-            return null;
+        // Admin has full access
+        if ($user->role === 'SUPER_ADMIN' || $user->role === 'ADMIN') {
+            return ['dept_id' => null, 'faculty_id' => null];
         }
 
-        // Check if user account is linked to a Faculty profile (e.g. HOD or Department Administrator)
         $faculty = $user->faculty;
         if ($faculty) {
             $hodDept = Department::where('hod_faculty_id', $faculty->id)->first();
             if ($hodDept) {
-                return $hodDept->id;
+                // HOD can see their whole department
+                return ['dept_id' => $hodDept->id, 'faculty_id' => null];
             }
-            return $faculty->department_id;
+            // Regular faculty can only see themselves
+            return ['dept_id' => null, 'faculty_id' => $faculty->id];
         }
 
-        return null;
+        return ['dept_id' => null, 'faculty_id' => -1]; // Invalid
     }
 
     /**
@@ -50,13 +52,15 @@ class FacultyReportController extends Controller
      */
     public function getFacultyList(Request $request): JsonResponse
     {
-        $scopedDeptId = $this->getUserDepartmentScope($request);
+        $scope = $this->getUserScope($request);
 
         $query = Faculty::with(['department', 'designation', 'userAccount'])
             ->where('status', 'ACTIVE');
 
-        if ($scopedDeptId !== null) {
-            $query->where('department_id', $scopedDeptId);
+        if ($scope['faculty_id'] !== null) {
+            $query->where('id', $scope['faculty_id']);
+        } elseif ($scope['dept_id'] !== null) {
+            $query->where('department_id', $scope['dept_id']);
         } elseif ($request->has('department_id') && !empty($request->get('department_id'))) {
             $query->where('department_id', $request->get('department_id'));
         }
@@ -97,14 +101,18 @@ class FacultyReportController extends Controller
         ]);
 
         $facultyId = (int)$request->input('faculty_id');
-        $scopedDeptId = $this->getUserDepartmentScope($request);
+        $scope = $this->getUserScope($request);
 
         $faculty = Faculty::find($facultyId);
         if (!$faculty) {
             return response()->json(['message' => 'Faculty member not found.'], Response::HTTP_NOT_FOUND);
         }
 
-        if ($scopedDeptId !== null && $faculty->department_id !== $scopedDeptId) {
+        if ($scope['faculty_id'] !== null && $faculty->id !== $scope['faculty_id']) {
+            return response()->json(['message' => 'Forbidden: Cannot access another faculty member\'s reports.'], Response::HTTP_FORBIDDEN);
+        }
+
+        if ($scope['dept_id'] !== null && $faculty->department_id !== $scope['dept_id']) {
             return response()->json(['message' => 'Forbidden: Cannot access faculty from another department.'], Response::HTTP_FORBIDDEN);
         }
 
@@ -166,14 +174,18 @@ class FacultyReportController extends Controller
         $facultyId = (int)$request->input('faculty_id');
         $assignmentId = $request->input('teaching_assignment_id') ? (int)$request->input('teaching_assignment_id') : null;
 
-        $scopedDeptId = $this->getUserDepartmentScope($request);
+        $scope = $this->getUserScope($request);
 
         $faculty = Faculty::with(['department', 'designation'])->find($facultyId);
         if (!$faculty) {
             return response()->json(['message' => 'Faculty member not found.'], Response::HTTP_NOT_FOUND);
         }
 
-        if ($scopedDeptId !== null && $faculty->department_id !== $scopedDeptId) {
+        if ($scope['faculty_id'] !== null && $faculty->id !== $scope['faculty_id']) {
+            return response()->json(['message' => 'Forbidden: Cannot access another faculty member\'s report.'], Response::HTTP_FORBIDDEN);
+        }
+
+        if ($scope['dept_id'] !== null && $faculty->department_id !== $scope['dept_id']) {
             return response()->json(['message' => 'Forbidden: Access denied for this department faculty.'], Response::HTTP_FORBIDDEN);
         }
 

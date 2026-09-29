@@ -35,18 +35,42 @@ class FeedbackQuestionCategoryController extends Controller
         ], Response::HTTP_CREATED);
     }
 
-    public function destroy(FeedbackQuestionCategory $feedbackQuestionCategory): JsonResponse
+    public function update(Request $request, $id): JsonResponse
     {
+        $feedbackQuestionCategory = $id instanceof FeedbackQuestionCategory ? $id : FeedbackQuestionCategory::findOrFail($id);
+
+        $validated = $request->validate([
+            'category_name' => [
+                'sometimes',
+                'string',
+                'max:100',
+                \Illuminate\Validation\Rule::unique('feedback_question_category', 'category_name')->ignore($feedbackQuestionCategory->id),
+            ],
+            'display_order' => ['nullable', 'integer'],
+        ]);
+
+        $feedbackQuestionCategory->update($validated);
+
+        return response()->json([
+            'message' => 'Category updated successfully',
+            'data' => new FeedbackQuestionCategoryResource($feedbackQuestionCategory)
+        ], Response::HTTP_OK);
+    }
+
+    public function destroy($id): JsonResponse
+    {
+        $feedbackQuestionCategory = $id instanceof FeedbackQuestionCategory ? $id : FeedbackQuestionCategory::findOrFail($id);
+
         if ($feedbackQuestionCategory->questions()->exists()) {
             return response()->json([
-                'message' => 'Cannot delete category referenced by questions.'
+                'message' => 'Cannot delete category with associated feedback questions.'
             ], Response::HTTP_CONFLICT);
         }
 
         $feedbackQuestionCategory->delete();
 
         return response()->json([
-            'message' => 'Category deleted successfully'
+            'message' => 'Question category deleted successfully'
         ], Response::HTTP_OK);
     }
 }

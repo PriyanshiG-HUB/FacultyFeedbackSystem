@@ -33,10 +33,17 @@ class CheckRole
         }
 
         $allowed = false;
+        $isHod = method_exists($user, 'isHod') ? $user->isHod() : false;
+
         foreach ($roles as $role) {
             $normalizedRole = strtoupper($role);
             if ($normalizedRole === 'ADMIN') {
                 if (in_array('SUPER_ADMIN', $normalizedUserRoles) || in_array('ADMIN', $normalizedUserRoles)) {
+                    $allowed = true;
+                    break;
+                }
+            } elseif ($normalizedRole === 'HOD') {
+                if (in_array('SUPER_ADMIN', $normalizedUserRoles) || in_array('ADMIN', $normalizedUserRoles) || $isHod) {
                     $allowed = true;
                     break;
                 }

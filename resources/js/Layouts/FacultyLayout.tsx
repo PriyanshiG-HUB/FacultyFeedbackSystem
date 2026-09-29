@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Link from '../Components/shared/Link';
-import { GraduationCap, LogOut, FileText, User } from 'lucide-react';
+import { GraduationCap, LogOut, FileText, User, Loader2 } from 'lucide-react';
 import { handleLogout } from '../lib/api';
 
 interface FacultyLayoutProps {
@@ -12,10 +12,26 @@ export const FacultyLayout: React.FC<FacultyLayoutProps> = ({
   children,
   facultyName = 'Dr. Sarah Jenkins',
 }) => {
+  const [isLoggingOut, setIsLoggingOut] = useState<boolean>(false);
+
+  const onLogoutClick = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      await handleLogout('#Faculty/Login');
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col">
       {/* Faculty Navbar */}
-      <header className="h-16 bg-white border-b border-slate-200/90 px-8 flex items-center justify-between sticky top-0 z-30 shadow-2xs">
+      <header className="h-16 bg-white border-b border-slate-200/90 px-8 flex items-center justify-between sticky top-[41px] z-40 shadow-2xs">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-teal-600 to-emerald-500 flex items-center justify-center shadow-md shadow-teal-600/20">
             <GraduationCap className="w-5 h-5 text-white" />
@@ -45,11 +61,19 @@ export const FacultyLayout: React.FC<FacultyLayoutProps> = ({
           </div>
 
           <button
-            onClick={handleLogout}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700 hover:text-rose-600 transition-colors border border-slate-200 cursor-pointer"
+            id="faculty-logout-button"
+            onClick={onLogoutClick}
+            disabled={isLoggingOut}
+            aria-label="Logout"
+            title={isLoggingOut ? 'Logging out...' : 'Logout of session'}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700 hover:text-rose-600 transition-colors border border-slate-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <LogOut className="w-3.5 h-3.5" />
-            Logout
+            {isLoggingOut ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-600 pointer-events-none" />
+            ) : (
+              <LogOut className="w-3.5 h-3.5 pointer-events-none" />
+            )}
+            {isLoggingOut ? 'Logging out...' : 'Logout'}
           </button>
         </nav>
       </header>

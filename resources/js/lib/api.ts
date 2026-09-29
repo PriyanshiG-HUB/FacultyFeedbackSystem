@@ -30,6 +30,7 @@ export function setAuthToken(token: string): void {
 export function removeAuthToken(): void {
   localStorage.removeItem('sanctum_token');
   localStorage.removeItem('user_account_info');
+  window.dispatchEvent(new CustomEvent('auth:logout'));
 }
 
 export function setStoredUserInfo(user: UserAccountInfo): void {
@@ -46,99 +47,58 @@ export function getStoredUserInfo(): UserAccountInfo | null {
 }
 
 let isRedirectingToLogin = false;
-let isRefreshingAuth = false;
-let authRefreshPromise: Promise<string | null> | null = null;
 
-export async function attemptDevAutoLogin(): Promise<string | null> {
-  if (isRefreshingAuth && authRefreshPromise) {
-    return authRefreshPromise;
-  }
-  isRefreshingAuth = true;
-  authRefreshPromise = (async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-          email: 'admin@college.edu',
-          password: 'password123',
-        }),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (data.token) {
-          setAuthToken(data.token);
-          if (data.user) {
-            setStoredUserInfo(data.user);
-          }
-          return data.token;
-        }
-      }
-    } catch {
-      // Backend server may be offline or starting up
-    } finally {
-      isRefreshingAuth = false;
-      authRefreshPromise = null;
-    }
-    return null;
-  })();
-  return authRefreshPromise;
+export function redirectToLogin(redirectHash?: string): void {
+  const storedUser = getStoredUserInfo();
+  const currentHash = (window.location.hash || '').replace(/^#\/?/, '').split('?')[0];
+  const isStudentContext = currentHash.startsWith('Student/') || storedUser?.role === 'STUDENT';
+  const defaultTarget = isStudentContext ? '#Student/Identify' : '#Faculty/Login';
+  const target = redirectHash || defaultTarget;
+  const cleanTarget = target.startsWith('#') ? target : `#${target}`;
+
+  window.location.hash = cleanTarget;
+  const targetUrl = `${window.location.origin}${window.location.pathname}${cleanTarget}`;
+  window.location.replace(targetUrl);
+  window.location.reload();
 }
 
-export async function handle401Redirect(): Promise<void> {
-  const currentHash = window.location.hash || '';
+export function handle401Redirect(): void {
   removeAuthToken();
 
   if (isRedirectingToLogin) return;
   isRedirectingToLogin = true;
 
-  if (currentHash.includes('Admin/')) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ email: 'admin@college.edu', password: 'password123' }),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (data.token) {
-          setAuthToken(data.token);
-          if (data.user) setStoredUserInfo(data.user);
-          isRedirectingToLogin = false;
-          window.location.reload();
-          return;
-        }
-      }
-    } catch {
-      // Fallback to login redirect if backend is down
-    }
-  }
+  const currentHash = (window.location.hash || '').replace(/^#\/?/, '').split('?')[0];
 
   // Only redirect if not already on login/identify pages
-  if (!currentHash.includes('Faculty/Login') && !currentHash.includes('Student/Identify')) {
-    window.location.hash = '#Faculty/Login';
+  if (currentHash !== 'Faculty/Login' && currentHash !== 'Student/Identify') {
+    const target = currentHash.startsWith('Student/') ? '#Student/Identify' : '#Faculty/Login';
+    redirectToLogin(target);
   }
 
   setTimeout(() => {
     isRedirectingToLogin = false;
-  }, 2000);
+  }, 1000);
 }
 
-export async function handleLogout(): Promise<void> {
+export async function handleLogout(redirectHash?: string): Promise<void> {
   const token = getAuthToken();
-  if (token) {
-    try {
+  const storedUser = getStoredUserInfo();
+  const currentHash = (window.location.hash || '').replace(/^#\/?/, '').split('?')[0];
+  const isStudentContext = currentHash.startsWith('Student/') || storedUser?.role === 'STUDENT';
+  const defaultTarget = isStudentContext ? '#Student/Identify' : '#Faculty/Login';
+  const target = redirectHash || defaultTarget;
+
+  try {
+    if (token) {
       await api.post('/auth/logout');
-    } catch {
-      // Ignore network failures on logout
     }
+  } catch (error: any) {
+    console.warn('Backend logout API request failed or timed out (proceeding to clear client session):', error);
+  } finally {
+    removeAuthToken();
+    redirectToLogin(target);
   }
-  removeAuthToken();
-  window.location.hash = '#Faculty/Login';
-  window.location.reload();
 }
 
 export function buildApiUrl(endpoint: string): { url: string; isExternal: boolean } {
@@ -245,24 +205,11 @@ export async function apiRequest<T = any>(
     let message = data.message;
 
     if (errorStatus === 401) {
+      removeAuthToken();
       const isAuthEndpoint = endpoint.includes('/auth/login') || endpoint.includes('/auth/logout');
-      const isRetry = (options as any)._isRetry;
-
-      if (!isAuthEndpoint && !isRetry) {
-        const newToken = await attemptDevAutoLogin();
-        if (newToken) {
-          return apiRequest<T>(endpoint, {
-            ...options,
-            _isRetry: true,
-            headers: {
-              ...(options.headers as Record<string, string> || {}),
-              'Authorization': `Bearer ${newToken}`,
-            },
-          } as any);
-        }
+      if (!isAuthEndpoint) {
+        handle401Redirect();
       }
-
-      handle401Redirect();
       message = message || 'Unauthenticated. Please log in again.';
     } else if (errorStatus === 403) {
       message = message || 'You do not have permission to perform this action.';

@@ -124,7 +124,7 @@ export default function Index({
   };
 
   const handleDownload = (reportTitle: string) => {
-    alert(`Downloading evaluation report PDF for: "${reportTitle}"`);
+    window.print();
   };
 
   const filteredReports = reports.filter((r) => {

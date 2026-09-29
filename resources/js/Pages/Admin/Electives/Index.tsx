@@ -6,7 +6,7 @@ import { Button } from '../../../Components/ui/Button';
 import { Modal } from '../../../Components/ui/Modal';
 import { Input, Select } from '../../../Components/ui/Input';
 import Link from '../../../Components/shared/Link';
-import { Users, Plus, ArrowRight, RefreshCw, AlertCircle, Sparkles } from 'lucide-react';
+import { Users, Plus, ArrowRight, RefreshCw, AlertCircle, Sparkles, Trash2 } from 'lucide-react';
 import { getDepartmentName } from '../../../utils/departmentScope';
 import { api } from '../../../lib/api';
 
@@ -186,6 +186,16 @@ export default function Index({
     }
   };
 
+  const handleDeleteOffering = async (offeringId: number, subjectName: string) => {
+    if (!confirm(`Are you sure you want to remove the offering configuration for "${subjectName}"?`)) return;
+    try {
+      await api.delete(`/subject-offerings/${offeringId}`);
+      await fetchElectivesData();
+    } catch (err: any) {
+      alert(err.message || 'Cannot remove elective offering. Student enrollments exist.');
+    }
+  };
+
   const filteredElectives = electiveList.filter((e) => {
     const eDeptCode = (e.departmentCode || '').toUpperCase();
     const eDeptName = (e.department || '').toLowerCase();
@@ -275,6 +285,24 @@ export default function Index({
         );
       },
       sortable: true,
+    },
+    {
+      header: 'Action',
+      accessor: (row) =>
+        row.hasOffering && row.offeringId ? (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeleteOffering(row.offeringId!, row.subjectName);
+            }}
+            className="text-rose-600 hover:bg-rose-50 border-rose-200 p-1.5"
+            title="Delete Elective Offering"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </Button>
+        ) : null,
     },
   ];
 

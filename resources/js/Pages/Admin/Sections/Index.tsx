@@ -6,7 +6,7 @@ import { StatusBadge } from '../../../Components/ui/StatusBadge';
 import { Button } from '../../../Components/ui/Button';
 import { Modal } from '../../../Components/ui/Modal';
 import { Input, Select } from '../../../Components/ui/Input';
-import { Plus, RefreshCw, AlertCircle } from 'lucide-react';
+import { Plus, RefreshCw, AlertCircle, Trash2 } from 'lucide-react';
 import { api } from '../../../lib/api';
 
 interface DepartmentOption {
@@ -194,6 +194,27 @@ export default function Index({
     }
   };
 
+  const handleDeleteSection = async (sectionId: number, sectionName: string) => {
+    if (!confirm(`Are you sure you want to delete section "${sectionName}"?`)) return;
+    try {
+      await api.delete(`/sections/${sectionId}`);
+      await fetchSectionsAndMetadata();
+    } catch (err: any) {
+      if (err.status === 409) {
+        if (confirm(`Section "${sectionName}" has active students or teaching assignments.\n\nDo you want to permanently delete this section AND all associated records?`)) {
+          try {
+            await api.delete(`/sections/${sectionId}?cascade=true`);
+            await fetchSectionsAndMetadata();
+          } catch (cascadeErr: any) {
+            alert(cascadeErr.message || 'Failed to delete section.');
+          }
+        }
+      } else {
+        alert(err.message || 'Cannot delete section.');
+      }
+    }
+  };
+
   const columns: Column<SectionItem>[] = [
     {
       header: 'Section Code / Name',
@@ -237,6 +258,23 @@ export default function Index({
       header: 'Status',
       accessor: (row) => <StatusBadge status={row.status} />,
       sortable: true,
+    },
+    {
+      header: 'Action',
+      accessor: (row) => (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDeleteSection(row.id, row.name);
+          }}
+          className="text-rose-600 hover:bg-rose-50 border-rose-200 p-1.5"
+          title="Delete Section"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </Button>
+      ),
     },
   ];
 

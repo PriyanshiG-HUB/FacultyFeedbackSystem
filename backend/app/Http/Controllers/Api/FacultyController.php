@@ -8,6 +8,7 @@ use App\Http\Requests\Faculty\UpdateFacultyRequest;
 use App\Http\Resources\FacultyResource;
 use App\Models\Faculty;
 use App\Models\UserAccount;
+use App\Traits\AuthorizesDepartmentScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -16,11 +17,16 @@ use Symfony\Component\HttpFoundation\Response;
 
 class FacultyController extends Controller
 {
+    use AuthorizesDepartmentScope;
+
     public function index(Request $request): JsonResponse
     {
         $query = Faculty::with(['department', 'designation', 'userAccount']);
 
-        if ($request->has('department_id')) {
+        $hodDeptId = $this->getAuthorizedDepartmentId($request);
+        if ($hodDeptId !== null) {
+            $query->where('department_id', $hodDeptId);
+        } elseif ($request->has('department_id')) {
             $query->where('department_id', $request->get('department_id'));
         }
 
@@ -43,6 +49,14 @@ class FacultyController extends Controller
     {
         $data = $request->validated();
 
+        $hodDeptId = $this->getAuthorizedDepartmentId($request);
+        if ($hodDeptId !== null) {
+            if (isset($data['department_id']) && (int)$data['department_id'] !== $hodDeptId) {
+                abort(Response::HTTP_FORBIDDEN, 'Forbidden: You cannot create faculty for another department.');
+            }
+            $data['department_id'] = $hodDeptId;
+        }
+
         $faculty = DB::transaction(function () use ($data) {
             $password = $data['password'] ?? 'password123';
             $userAccount = UserAccount::create([
@@ -64,8 +78,10 @@ class FacultyController extends Controller
         ], Response::HTTP_CREATED);
     }
 
-    public function show(Faculty $faculty): JsonResponse
+    public function show(Request $request, Faculty $faculty): JsonResponse
     {
+        $this->validateDepartmentAccess($request, $faculty->department_id);
+
         return response()->json([
             'data' => new FacultyResource($faculty->load(['department', 'designation', 'userAccount']))
         ], Response::HTTP_OK);
@@ -73,6 +89,8 @@ class FacultyController extends Controller
 
     public function update(UpdateFacultyRequest $request, Faculty $faculty): JsonResponse
     {
+        $this->validateDepartmentAccess($request, $faculty->department_id);
+
         $data = $request->validated();
 
         DB::transaction(function () use ($faculty, $data) {
@@ -88,12 +106,17 @@ class FacultyController extends Controller
         ], Response::HTTP_OK);
     }
 
-    public function destroy(Faculty $faculty): JsonResponse
+    public function destroy(Request $request, Faculty $faculty): JsonResponse
     {
+        $this->validateDepartmentAccess($request, $faculty->department_id);
+
         if ($faculty->teachingAssignments()->exists()) {
-            return response()->json([
-                'message' => 'Cannot delete faculty member with active teaching assignments.'
-            ], Response::HTTP_CONFLICT);
+            if (!$request->boolean('cascade')) {
+                return response()->json([
+                    'message' => 'Cannot delete faculty member with active teaching assignments.',
+                    'has_dependencies' => true
+                ], Response::HTTP_CONFLICT);
+            }
         }
 
         DB::transaction(function () use ($faculty) {
@@ -103,6 +126,13 @@ class FacultyController extends Controller
             \App\Models\Department::where('hod_faculty_id', $faculty->id)
                 ->update(['hod_faculty_id' => null]);
             
+            // Delete teaching assignments & associated feedback forms and timetables
+            foreach ($faculty->teachingAssignments as $assignment) {
+                \App\Models\FeedbackForm::where('teaching_assignment_id', $assignment->id)->delete();
+                \App\Models\Timetable::where('teaching_assignment_id', $assignment->id)->delete();
+                $assignment->delete();
+            }
+
             $faculty->delete();
             if ($userAccount) {
                 $userAccount->delete();

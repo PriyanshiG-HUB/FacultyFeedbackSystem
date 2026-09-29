@@ -43,7 +43,7 @@ export default function Show({ report }: FacultyReportShowProps) {
   const effectiveScore = courseStats.includedCount > 0 ? courseStats.averageScore : report.overallScore;
 
   const handleDownload = () => {
-    alert(`Downloading official evaluation report PDF for ${report.subjectName}`);
+    window.print();
   };
 
   return (

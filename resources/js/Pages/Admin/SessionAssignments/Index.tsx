@@ -186,7 +186,18 @@ export default function Index({
       await api.delete(`/teaching-assignments/${id}`);
       await fetchAssignmentsAndMetadata();
     } catch (err: any) {
-      alert(err.message || 'Cannot delete assignment. Dependent feedback forms exist.');
+      if (err.status === 409) {
+        if (confirm('This teaching assignment has active feedback forms or timetable entries.\n\nDo you want to permanently delete this assignment AND all associated feedback forms and schedules?')) {
+          try {
+            await api.delete(`/teaching-assignments/${id}?cascade=true`);
+            await fetchAssignmentsAndMetadata();
+          } catch (cascadeErr: any) {
+            alert(cascadeErr.message || 'Failed to delete assignment.');
+          }
+        }
+      } else {
+        alert(err.message || 'Cannot delete assignment.');
+      }
     }
   };
 
@@ -258,6 +269,23 @@ export default function Index({
         </span>
       ),
       sortable: true,
+    },
+    {
+      header: 'Action',
+      accessor: (row) => (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDeleteAssignment(row.id);
+          }}
+          className="text-rose-600 hover:bg-rose-50 border-rose-200 p-1.5"
+          title="Delete Session Assignment"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </Button>
+      ),
     },
   ];
 

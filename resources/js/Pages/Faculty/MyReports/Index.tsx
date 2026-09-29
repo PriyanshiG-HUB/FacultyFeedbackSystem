@@ -35,7 +35,7 @@ export default function Index({ facultyName = 'Dr. Sarah Jenkins', reports = [] 
   // Compute aggregate stats across all faculty submissions
   const overallStats = useMemo(() => {
     const facultySubmissions = submissions.filter(
-      (s) => s.facultyName.toLowerCase().includes(facultyName.toLowerCase()) || s.facultyId === 'FAC_JENKINS'
+      (s) => s.facultyName.toLowerCase().includes(facultyName.toLowerCase())
     );
     const targetSubmissions = facultySubmissions.length > 0 ? facultySubmissions : submissions;
     return calculateFacultyOverallScore(targetSubmissions);
@@ -55,11 +55,15 @@ export default function Index({ facultyName = 'Dr. Sarah Jenkins', reports = [] 
             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Overall Aggregate Score</p>
             <div className="flex items-baseline gap-1.5">
               <p className="text-lg font-extrabold text-slate-900">
-                {overallStats.averageScore > 0 ? overallStats.averageScore.toFixed(2) : '4.86'}
+                {apiDashboardStats?.stats?.average_rating != null
+                  ? Number(apiDashboardStats.stats.average_rating).toFixed(2)
+                  : (overallStats.averageScore > 0 ? overallStats.averageScore.toFixed(2) : '0.00')}
               </p>
               <span className="text-xs text-amber-700 font-normal">/ 5.0</span>
               <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 ml-1">
-                {overallStats.includedCount} Submissions Included
+                {apiDashboardStats?.stats?.total_feedback_responses != null
+                  ? `${apiDashboardStats.stats.total_feedback_responses} Submissions Included`
+                  : `${overallStats.includedCount} Submissions Included`}
               </span>
             </div>
           </div>

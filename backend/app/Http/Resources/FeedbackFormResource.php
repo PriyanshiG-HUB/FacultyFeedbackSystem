@@ -18,6 +18,7 @@ class FeedbackFormResource extends JsonResource
             'window_end_date' => $this->window_end_date?->format('Y-m-d'),
             'is_anonymous' => $this->is_anonymous,
             'is_published' => $this->is_published,
+            'has_submitted' => (bool) ($this->has_submitted ?? false),
             'published_at' => $this->published_at?->toIso8601String(),
             'status' => $this->status,
             'created_by_user_account_id' => $this->created_by_user_account_id,

@@ -19,14 +19,43 @@ class AuthController extends Controller
     public function login(LoginRequest $request): JsonResponse
     {
         $credentials = $request->validated();
+        $input = trim($credentials['email']);
+
+        $inputPrefix = str_contains($input, '@') ? explode('@', $input)[0] : $input;
 
         $user = UserAccount::with(['faculty.department', 'faculty.designation', 'student.department', 'student.batch', 'student.division', 'student.section'])
-            ->where('email', $credentials['email'])
+            ->where(function ($query) use ($input, $inputPrefix) {
+                $query->where('email', $input)
+                      ->orWhere('email', strtolower($input))
+                      ->orWhereHas('student', function ($sq) use ($input, $inputPrefix) {
+                          $sq->where('roll_no', $input)
+                             ->orWhere('roll_no', strtoupper($input))
+                             ->orWhere('roll_no', strtolower($input))
+                             ->orWhere('roll_no', $inputPrefix)
+                             ->orWhere('roll_no', strtoupper($inputPrefix))
+                             ->orWhere('roll_no', strtolower($inputPrefix))
+                             ->orWhere('enrollment_no', $input)
+                             ->orWhere('enrollment_no', $inputPrefix);
+                      });
+            })
             ->first();
 
-        if (!$user || !Hash::check($credentials['password'], $user->password_hash)) {
+        $passwordMatches = false;
+        if ($user) {
+            if (Hash::check($credentials['password'], $user->password_hash)) {
+                $passwordMatches = true;
+            } elseif ($user->role === 'STUDENT') {
+                // Support uppercase / lowercase roll number matching for student password
+                if (Hash::check(strtoupper($credentials['password']), $user->password_hash) ||
+                    Hash::check(strtolower($credentials['password']), $user->password_hash)) {
+                    $passwordMatches = true;
+                }
+            }
+        }
+
+        if (!$user || !$passwordMatches) {
             return response()->json([
-                'message' => 'Invalid email or password'
+                'message' => 'Invalid credentials.'
             ], Response::HTTP_UNAUTHORIZED);
         }
 

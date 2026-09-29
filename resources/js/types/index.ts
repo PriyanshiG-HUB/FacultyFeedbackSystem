@@ -625,6 +625,7 @@ export interface PublishedFormItem {
   createdBy: string;
   createdAt: string;
   publishedAt?: string;
+  has_submitted?: boolean;
 }
 
 export interface PublishFormIndexProps {

@@ -7,10 +7,6 @@ import { Card } from '../../../Components/ui/Card';
 import { Modal } from '../../../Components/ui/Modal';
 import {
   SYSTEM_QUESTIONS,
-  getMergedSubmissions,
-  excludeSubmission,
-  bulkExcludeSubmissions,
-  includeSubmission,
   calculateFacultyOverallScore,
   calculateQuestionDistribution,
 } from '../../../utils/feedbackExclusionStore';
@@ -41,64 +37,57 @@ export default function Index({
   submissions: propSubmissions,
 }: CriticalCommentsIndexProps) {
   // Live feedback submissions state from MySQL
-  const [submissions, setSubmissions] = useState<FeedbackSubmissionItem[]>(() => getMergedSubmissions());
+  const [submissions, setSubmissions] = useState<FeedbackSubmissionItem[]>([]);
 
   // Fetch live responses from backend API
+  const fetchModerationData = async () => {
+    try {
+      const { api } = await import('../../../lib/api');
+      const res = await api.get('/feedback/moderation');
+      const rawList = Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : []);
+      const apiSubs: FeedbackSubmissionItem[] = rawList.map((r: any) => {
+        const form = r.feedback_form || {};
+        const ta = form.teaching_assignment || {};
+        return {
+          id: `FS-${r.id}`,
+          studentRoll: r.student?.roll_no || 'Anonymous Student',
+          facultyId: String(ta.faculty_id || 'FAC'),
+          facultyName: ta.faculty?.full_name || 'Faculty Member',
+          subjectCode: ta.subject?.subject_code || 'SUB101',
+          subjectName: ta.subject?.subject_name || 'Subject',
+          academicYear: ta.academic_year?.year_code || '2025-26',
+          batch: ta.batch?.batch_title || '2022-26',
+          semester: ta.semester?.semester_no || ta.semester_id || 5,
+          division: ta.division?.division_code || 'Division 1',
+          section: ta.section?.section_code || 'A1',
+          departmentCode: ta.batch?.department?.department_code || ta.subject?.department?.department_code || 'IT',
+          submittedAt: r.submitted_at ? new Date(r.submitted_at).toLocaleDateString() : 'Recent',
+          evaluationStatus: r.is_excluded ? 'excluded' : 'included',
+          exclusionReason: r.excluded_reason || undefined,
+          answers: Array.isArray(r.answers)
+            ? r.answers.map((a: any) => ({
+                questionId: a.question_id,
+                questionText: a.question?.question_text || `Question ${a.question_id}`,
+                rating: a.rating_value || 5,
+                ratingLabel: a.rating_value === 5 ? 'Strongly Agree' : a.rating_value === 4 ? 'Agree' : a.rating_value === 3 ? 'Neutral' : a.rating_value === 2 ? 'Disagree' : 'Strongly Disagree',
+                comment: a.text_value || r.overall_remark || undefined,
+              }))
+            : [],
+        };
+      });
+      setSubmissions(apiSubs);
+    } catch (err) {
+      console.error('Failed to load moderation data from API:', err);
+      setSubmissions([]);
+    }
+  };
+
   useEffect(() => {
-    const fetchModerationData = async () => {
-      try {
-        const { api } = await import('../../../lib/api');
-        const res = await api.get('/feedback/moderation');
-        if (Array.isArray(res.data) && res.data.length > 0) {
-          const apiSubs: FeedbackSubmissionItem[] = res.data.map((r: any) => {
-            const form = r.feedback_form || {};
-            const ta = form.teaching_assignment || {};
-            return {
-              id: `FS-${r.id}`,
-              studentRoll: r.student?.roll_no || 'Anonymous Student',
-              facultyId: String(ta.faculty_id || 'FAC'),
-              facultyName: ta.faculty?.full_name || 'Faculty Member',
-              subjectCode: ta.subject?.subject_code || 'SUB101',
-              subjectName: ta.subject?.subject_name || 'Subject',
-              academicYear: ta.academic_year?.year_code || '2025-26',
-              batch: ta.batch?.batch_title || '2022-26',
-              semester: ta.semester?.semester_no || ta.semester_id || 5,
-              division: ta.division?.division_code || 'Division 1',
-              section: ta.section?.section_code || 'A1',
-              departmentCode: ta.batch?.department?.department_code || ta.subject?.department?.department_code || 'IT',
-              submittedAt: r.submitted_at ? new Date(r.submitted_at).toLocaleDateString() : 'Recent',
-              evaluationStatus: r.is_excluded ? 'excluded' : 'included',
-              exclusionReason: r.excluded_reason || undefined,
-              answers: Array.isArray(r.answers)
-                ? r.answers.map((a: any) => ({
-                    questionId: a.question_id,
-                    questionText: a.question?.question_text || `Question ${a.question_id}`,
-                    rating: a.rating_value || 5,
-                    ratingLabel: a.rating_value === 5 ? 'Strongly Agree' : a.rating_value === 4 ? 'Agree' : a.rating_value === 3 ? 'Neutral' : a.rating_value === 2 ? 'Disagree' : 'Strongly Disagree',
-                    comment: a.text_value || r.overall_remark || undefined,
-                  }))
-                : [],
-            };
-          });
-          setSubmissions(apiSubs);
-        }
-      } catch {
-        // Fallback to local store
-        setSubmissions(getMergedSubmissions());
-      }
-    };
-
     fetchModerationData();
-
-    const handleUpdate = () => {
-      fetchModerationData();
-    };
-    window.addEventListener('feedback_exclusion_updated', handleUpdate);
-    return () => window.removeEventListener('feedback_exclusion_updated', handleUpdate);
   }, []);
 
   // Filter States
-  const [selectedFaculty, setSelectedFaculty] = useState<string>('Dr. Sarah Jenkins');
+  const [selectedFaculty, setSelectedFaculty] = useState<string>('ALL');
   const [selectedSubject, setSelectedSubject] = useState<string>('ALL');
   const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>('ALL');
   const [selectedSemester, setSelectedSemester] = useState<string>('ALL');
@@ -201,19 +190,21 @@ export default function Index({
     setReasonError('');
   };
 
-  const handleConfirmExcludeSingle = () => {
+  const handleConfirmExcludeSingle = async () => {
     if (!excludeModalSubmission) return;
     if (!exclusionReason.trim()) {
       setReasonError('Reason for exclusion is required for moderation review.');
       return;
     }
 
-    const updated = excludeSubmission(excludeModalSubmission.id, exclusionReason.trim(), userRole === 'admin' ? 'Administrator' : `HOD (${departmentName})`);
-    setSubmissions(updated);
-
-    if (fullFeedbackSubmission && fullFeedbackSubmission.id === excludeModalSubmission.id) {
-      const updatedItem = updated.find((s) => s.id === excludeModalSubmission.id);
-      if (updatedItem) setFullFeedbackSubmission(updatedItem);
+    const rawId = parseInt(excludeModalSubmission.id.replace(/^FS-/, ''), 10);
+    try {
+      const { api } = await import('../../../lib/api');
+      await api.post(`/feedback/responses/${rawId}/exclude`, { reason: exclusionReason.trim() });
+      await fetchModerationData();
+    } catch (err: any) {
+      console.error('Failed to exclude response:', err);
+      alert(err.message || 'Failed to exclude response');
     }
 
     setExcludeModalSubmission(null);
@@ -222,15 +213,25 @@ export default function Index({
   };
 
   // Bulk Exclusion Handler
-  const handleConfirmBulkExclude = () => {
+  const handleConfirmBulkExclude = async () => {
     if (selectedSubmissionIds.length === 0) return;
     if (!exclusionReason.trim()) {
       setReasonError('Reason for exclusion is required for moderation review.');
       return;
     }
 
-    const updated = bulkExcludeSubmissions(selectedSubmissionIds, exclusionReason.trim(), userRole === 'admin' ? 'Administrator' : `HOD (${departmentName})`);
-    setSubmissions(updated);
+    try {
+      const { api } = await import('../../../lib/api');
+      for (const subId of selectedSubmissionIds) {
+        const rawId = parseInt(subId.replace(/^FS-/, ''), 10);
+        await api.post(`/feedback/responses/${rawId}/exclude`, { reason: exclusionReason.trim() });
+      }
+      await fetchModerationData();
+    } catch (err: any) {
+      console.error('Failed to bulk exclude responses:', err);
+      alert(err.message || 'Failed to bulk exclude responses');
+    }
+
     setSelectedSubmissionIds([]);
     setIsBulkExcludeModalOpen(false);
     setExclusionReason('');
@@ -242,15 +243,17 @@ export default function Index({
     setIncludeModalSubmission(sub);
   };
 
-  const handleConfirmIncludeSingle = () => {
+  const handleConfirmIncludeSingle = async () => {
     if (!includeModalSubmission) return;
 
-    const updated = includeSubmission(includeModalSubmission.id);
-    setSubmissions(updated);
-
-    if (fullFeedbackSubmission && fullFeedbackSubmission.id === includeModalSubmission.id) {
-      const updatedItem = updated.find((s) => s.id === includeModalSubmission.id);
-      if (updatedItem) setFullFeedbackSubmission(updatedItem);
+    const rawId = parseInt(includeModalSubmission.id.replace(/^FS-/, ''), 10);
+    try {
+      const { api } = await import('../../../lib/api');
+      await api.post(`/feedback/responses/${rawId}/restore`);
+      await fetchModerationData();
+    } catch (err: any) {
+      console.error('Failed to restore response:', err);
+      alert(err.message || 'Failed to restore response');
     }
 
     setIncludeModalSubmission(null);

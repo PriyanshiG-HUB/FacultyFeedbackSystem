@@ -36,7 +36,7 @@ class StudentEligibilityService
         // Fetch published forms with teaching assignments matching base context
         $forms = FeedbackForm::with([
             'teachingAssignment.subject.department',
-            'teachingAssignment.faculty',
+            'teachingAssignment.faculty.designation',
             'teachingAssignment.batch.department',
             'teachingAssignment.division',
             'teachingAssignment.section',
@@ -46,7 +46,6 @@ class StudentEligibilityService
             'questions.category',
         ])
         ->where('is_published', true)
-        ->whereNotIn('id', $submittedFormIds)
         ->where(function ($query) use ($today) {
             $query->whereNull('window_start_date')
                 ->orWhere('window_start_date', '<=', $today);
@@ -57,7 +56,7 @@ class StudentEligibilityService
         })
         ->get();
 
-        // Filter forms matching scope hierarchy
+        // Filter forms matching scope hierarchy and attach has_submitted
         return $forms->filter(function (FeedbackForm $form) use ($departmentId, $batchId, $currentSemesterId, $divisionId, $sectionId) {
             $ta = $form->teachingAssignment;
             if (!$ta) {
@@ -67,6 +66,22 @@ class StudentEligibilityService
             // Base match check
             if ($ta->batch_id != $batchId || $ta->semester_id != $currentSemesterId) {
                 return false;
+            }
+
+            // Elective Course Type Check: Student must be actively enrolled in the subject offering
+            $subject = $ta->subject;
+            if ($subject && $subject->course_type === 'ELECTIVE') {
+                $isEnrolled = \App\Models\StudentElectiveEnrollment::where('student_id', $student->id)
+                    ->where('status', 'ENROLLED')
+                    ->whereHas('subjectOffering', function ($sq) use ($ta) {
+                        $sq->where('subject_id', $ta->subject_id)
+                           ->where('batch_id', $ta->batch_id);
+                    })
+                    ->exists();
+
+                if (!$isEnrolled) {
+                    return false;
+                }
             }
 
             // Scope match check
@@ -86,6 +101,9 @@ class StudentEligibilityService
             }
 
             return false;
+        })->map(function (FeedbackForm $form) use ($submittedFormIds) {
+            $form->has_submitted = in_array($form->id, $submittedFormIds);
+            return $form;
         })->values();
     }
 
