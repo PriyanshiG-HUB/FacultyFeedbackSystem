@@ -59,11 +59,11 @@ export default function Login({ status }: FacultyLoginProps) {
 
       <div className="w-full max-w-md space-y-6 relative z-10">
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-teal-600 to-emerald-500 flex items-center justify-center mx-auto shadow-xl shadow-teal-600/20">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-900 flex items-center justify-center mx-auto shadow-xl shadow-indigo-600/20">
             <GraduationCap className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-2xl font-extrabold text-slate-900">Faculty Feedback Portal</h1>
-          <p className="text-xs text-slate-500">Sign in with your institutional credentials to access your dashboard</p>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">University Portal Login</h1>
+          <p className="text-xs text-slate-500 font-medium">Sign in with your institutional email or university roll number.</p>
         </div>
 
         {status && (
@@ -82,9 +82,9 @@ export default function Login({ status }: FacultyLoginProps) {
         <Card className="shadow-lg border-slate-200">
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
-              label="Institutional Email"
-              type="email"
-              placeholder="admin@college.edu or dr.smith@college.edu"
+              label="Institutional Email or Roll Number"
+              type="text"
+              placeholder="e.g. admin@college.edu or 24IT019"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               error={fieldErrors.email?.[0]}
@@ -120,22 +120,15 @@ export default function Login({ status }: FacultyLoginProps) {
               id="faculty-login-submit-button"
               type="submit"
               variant="primary"
-              className="w-full bg-teal-600 hover:bg-teal-700 border-teal-600 focus:ring-teal-500 shadow-teal-600/20"
+              className="w-full bg-indigo-600 hover:bg-indigo-700 border-indigo-600 focus:ring-indigo-500 shadow-indigo-600/20"
               size="lg"
               disabled={isSubmitting}
             >
               <LogIn className="w-4 h-4 mr-2" />
-              {isSubmitting ? 'Authenticating...' : 'Sign In to Portal'}
+              {isSubmitting ? 'Authenticating...' : 'Sign In'}
             </Button>
           </form>
         </Card>
-
-        <div className="text-center text-xs text-slate-500">
-          Not a faculty member or administrator?{' '}
-          <Link href="#Student/Identify" className="text-teal-700 font-bold hover:underline">
-            Go to Student Feedback Portal
-          </Link>
-        </div>
       </div>
     </div>
   );

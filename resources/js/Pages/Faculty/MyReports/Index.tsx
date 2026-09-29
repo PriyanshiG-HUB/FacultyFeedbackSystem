@@ -12,13 +12,13 @@ import {
 } from '../../../utils/feedbackExclusionStore';
 import { getStoredUserInfo } from '../../../lib/api';
 
-export default function Index({ facultyName = 'Dr. Sarah Jenkins', reports: propReports = [] }: FacultyReportsIndexProps) {
+export default function Index({ facultyName = '', reports: propReports = [] }: FacultyReportsIndexProps) {
   const [submissions, setSubmissions] = useState(() => getMergedSubmissions());
   const [apiDashboardStats, setApiDashboardStats] = useState<any>(null);
-  const [reports, setReports] = useState<any[]>(propReports);
+  const [reports, setReports] = useState<any[]>([]);
   
   const authUser = getStoredUserInfo();
-  const activeFacultyName = authUser?.faculty?.full_name || facultyName;
+  const activeFacultyName = authUser?.faculty?.full_name || facultyName || 'Faculty Member';
 
   useEffect(() => {
     import('../../../lib/api').then(({ api }) => {
@@ -62,24 +62,24 @@ export default function Index({ facultyName = 'Dr. Sarah Jenkins', reports: prop
 
   return (
     <FacultyLayout facultyName={activeFacultyName}>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-6 mb-8">
         <div>
           <h2 className="text-2xl font-extrabold text-slate-900">Feedback Evaluation Reports</h2>
-          <p className="text-xs text-slate-500">Semester performance metrics based on anonymous student responses</p>
+          <p className="text-xs text-slate-500 mt-1">Semester performance metrics based on anonymous student responses</p>
         </div>
 
-        <div className="flex items-center gap-3 bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-2xs">
-          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+        <div className="flex items-center gap-3 bg-white border border-slate-200 px-5 py-3 rounded-xl shadow-sm">
+          <CheckCircle2 className="w-6 h-6 text-indigo-600 shrink-0" />
           <div className="text-left">
             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Overall Aggregate Score</p>
-            <div className="flex items-baseline gap-1.5">
-              <p className="text-lg font-extrabold text-slate-900">
+            <div className="flex items-baseline gap-1.5 mt-0.5">
+              <p className="text-xl font-extrabold text-slate-900">
                 {apiDashboardStats?.stats?.average_rating != null
                   ? Number(apiDashboardStats.stats.average_rating).toFixed(2)
                   : (overallStats.averageScore > 0 ? overallStats.averageScore.toFixed(2) : '0.00')}
               </p>
-              <span className="text-xs text-amber-700 font-normal">/ 5.0</span>
-              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 ml-1">
+              <span className="text-xs text-slate-400 font-medium">/ 5.0</span>
+              <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200 ml-2">
                 {apiDashboardStats?.stats?.total_feedback_responses != null
                   ? `${apiDashboardStats.stats.total_feedback_responses} Submissions Included`
                   : `${overallStats.includedCount} Submissions Included`}
@@ -90,72 +90,84 @@ export default function Index({ facultyName = 'Dr. Sarah Jenkins', reports: prop
       </div>
 
       {/* Course Evaluation Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {reports.map((report) => {
-          const courseSubmissions = submissions.filter(
-            (s) => s.subjectCode === report.subjectCode || s.subjectName.toLowerCase() === report.subjectName.toLowerCase()
-          );
+      {reports.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 px-4 text-center bg-white border border-slate-200 border-dashed rounded-2xl shadow-sm">
+          <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center border border-slate-100 mb-4 shadow-sm">
+            <ShieldCheck className="w-8 h-8 text-slate-400" />
+          </div>
+          <h3 className="text-lg font-extrabold text-slate-900 mb-1">No Active Reports Found</h3>
+          <p className="text-sm text-slate-500 max-w-md mx-auto">
+            There are currently no published feedback reports available for your assigned subjects. Once a feedback cycle completes and is published by the HOD, it will appear here.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {reports.map((report) => {
+            const courseSubmissions = submissions.filter(
+              (s) => s.subjectCode === report.subjectCode || s.subjectName.toLowerCase() === report.subjectName.toLowerCase()
+            );
 
-          const courseStats = calculateFacultyOverallScore(
-            courseSubmissions.length > 0 ? courseSubmissions : submissions
-          );
+            const courseStats = calculateFacultyOverallScore(
+              courseSubmissions.length > 0 ? courseSubmissions : submissions
+            );
 
-          const effectiveScore = courseStats.includedCount > 0 ? courseStats.averageScore : report.overallScore;
+            const effectiveScore = courseStats.includedCount > 0 ? courseStats.averageScore : report.overallScore;
 
-          return (
-            <Card key={report.id} className="relative group hover:border-teal-400 transition-all">
-              <div className="space-y-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <span className="font-mono text-xs font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
-                      {report.subjectCode}
-                    </span>
-                    <h3 className="text-lg font-bold text-slate-900 mt-1.5">{report.subjectName}</h3>
-                    <p className="text-xs text-slate-500">{report.batchName} &bull; {report.academicYear}</p>
+            return (
+              <Card key={report.id} className="relative group hover:border-indigo-300 hover:shadow-md transition-all">
+                <div className="space-y-5">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                        {report.subjectCode}
+                      </span>
+                      <h3 className="text-lg font-bold text-slate-900 mt-2">{report.subjectName}</h3>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">{report.batchName} &bull; {report.academicYear}</p>
+                    </div>
+                    <StatusBadge status={report.status} />
                   </div>
-                  <StatusBadge status={report.status} />
-                </div>
 
-                <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
-                  <div>
-                    <span className="text-[10px] text-slate-500 font-bold uppercase">Evaluation Rating</span>
-                    <div className="flex items-center gap-1.5 text-amber-700 font-extrabold text-lg mt-0.5">
-                      <Star className="w-5 h-5 fill-amber-400 text-amber-500" />
-                      <span>{effectiveScore.toFixed(2)}</span>
+                  <div className="grid grid-cols-2 gap-3 p-4 bg-slate-50/50 rounded-xl border border-slate-100">
+                    <div>
+                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">Evaluation Rating</span>
+                      <div className="flex items-center gap-1.5 text-amber-600 font-extrabold text-xl mt-1">
+                        <Star className="w-5 h-5 fill-amber-400 text-amber-500" />
+                        <span>{effectiveScore.toFixed(2)}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">Submissions Considered</span>
+                      <p className="text-base font-extrabold text-slate-900 mt-1">
+                        {courseStats.includedCount}{' '}
+                        <span className="text-xs text-slate-400 font-medium">/ {courseStats.totalSubmissions} Total</span>
+                      </p>
+                      {courseStats.excludedCount > 0 && (
+                        <p className="text-[10px] font-bold text-rose-600 mt-1">
+                          ({courseStats.excludedCount} complete submission{courseStats.excludedCount > 1 ? 's' : ''} excluded by HOD)
+                        </p>
+                      )}
                     </div>
                   </div>
-                  <div>
-                    <span className="text-[10px] text-slate-500 font-bold uppercase">Submissions Considered</span>
-                    <p className="text-sm font-bold text-slate-900 mt-1">
-                      {courseStats.includedCount}{' '}
-                      <span className="text-xs text-slate-500 font-medium">/ {courseStats.totalSubmissions} Total</span>
-                    </p>
-                    {courseStats.excludedCount > 0 && (
-                      <p className="text-[10px] font-bold text-rose-600 mt-0.5">
-                        ({courseStats.excludedCount} complete submission{courseStats.excludedCount > 1 ? 's' : ''} excluded by HOD)
-                      </p>
-                    )}
+
+                  <div className="pt-2 flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+                      <ShieldCheck className="w-4 h-4 text-indigo-600" />
+                      <span>HOD Moderated Score</span>
+                    </div>
+
+                    <Link href="#Faculty/MyReports/Show">
+                      <Button variant="primary" size="sm" className="bg-indigo-600 hover:bg-indigo-700 border-indigo-600 focus:ring-indigo-500 shadow-indigo-600/20 text-xs px-4">
+                        <span>View Detailed Report</span>
+                        <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                      </Button>
+                    </Link>
                   </div>
                 </div>
-
-                <div className="pt-2 flex items-center justify-between">
-                  <div className="flex items-center gap-1 text-[11px] text-slate-500 font-medium">
-                    <ShieldCheck className="w-3.5 h-3.5 text-teal-600" />
-                    <span>HOD Moderated Score</span>
-                  </div>
-
-                  <Link href="#Faculty/MyReports/Show">
-                    <Button variant="primary" size="sm" className="bg-teal-600 hover:bg-teal-700 border-teal-600 focus:ring-teal-500 shadow-teal-600/20">
-                      <span>View Detailed Report</span>
-                      <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </Card>
-          );
-        })}
-      </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </FacultyLayout>
   );
 }

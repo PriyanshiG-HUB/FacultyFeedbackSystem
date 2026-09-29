@@ -38,18 +38,18 @@ export const StatCard: React.FC<StatCardProps> = ({
   };
 
   return (
-    <div className={`bg-white border border-slate-200/90 rounded-xl p-5 shadow-xs hover:shadow-md transition-all relative overflow-hidden group flex flex-col justify-between h-full ${className}`}>
+    <div className={`bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-lg hover:border-indigo-200 transition-all duration-300 relative overflow-hidden group flex flex-col justify-between h-full ${className}`}>
       <div>
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-500 truncate" title={label}>
+          <span className="text-xs font-bold uppercase tracking-widest text-slate-500 truncate" title={label}>
             {label}
           </span>
-          <div className="p-2.5 bg-slate-50 border border-slate-100 rounded-lg group-hover:scale-105 transition-transform shrink-0">
+          <div className="p-2.5 bg-indigo-50/50 border border-indigo-100/50 rounded-xl group-hover:scale-110 group-hover:bg-indigo-50 transition-all duration-300 shrink-0">
             {getIcon()}
           </div>
         </div>
-        <div className="mt-4 flex items-baseline justify-between flex-wrap gap-2">
-          <h4 className="text-2xl font-extrabold text-slate-900 tracking-tight whitespace-nowrap">
+        <div className="mt-5 flex items-baseline justify-between flex-wrap gap-2">
+          <h4 className="text-3xl font-black text-indigo-950 tracking-tight whitespace-nowrap">
             {value}
           </h4>
           {change && (

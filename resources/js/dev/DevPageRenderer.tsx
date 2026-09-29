@@ -104,7 +104,7 @@ export const DevPageRenderer: React.FC = () => {
           setAuthUser(null);
           setIsAuthReady(true);
           if (!isPublicPage(currentRoute)) {
-            const target = currentRoute.startsWith('Student/') ? 'Student/Identify' : 'Faculty/Login';
+            const target = 'Faculty/Login';
             window.location.hash = `#${target}`;
             setActivePage(target);
           }
@@ -148,7 +148,7 @@ export const DevPageRenderer: React.FC = () => {
       const token = getAuthToken();
 
       if (!token && !isPublicPage(routeKey)) {
-        const target = routeKey.startsWith('Student/') ? 'Student/Identify' : 'Faculty/Login';
+        const target = 'Faculty/Login';
         window.location.hash = `#${target}`;
         setActivePage(target);
         return;
@@ -262,7 +262,7 @@ export const DevPageRenderer: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col relative">
       {/* Dev Harness Header Bar - Embedded at the top header */}
-      <header className="sticky top-0 z-50 bg-slate-900 text-slate-100 border-b border-slate-800 shadow-md">
+      <header className="hidden sticky top-0 z-50 bg-slate-900 text-slate-100 border-b border-slate-800 shadow-md">
         <div className="px-4 py-2 flex flex-wrap items-center justify-between gap-3 text-xs">
           {/* Brand & Active Inertia Route */}
           <div className="flex items-center gap-2.5">

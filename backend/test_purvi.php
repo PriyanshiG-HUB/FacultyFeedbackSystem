@@ -1,0 +1,2 @@
+<?php require 'vendor/autoload.php'; \ = require_once 'bootstrap/app.php'; \ = \->make(Illuminate\Contracts\Console\Kernel::class); \->bootstrap(); \ = App\Models\Faculty::where('full_name', 'like', '%Purvi%')->first(); if (!\) { echo 'No Purvi found.'; } else { echo 'Purvi ID: ' . \->id . \
+\n\; \ = App\Models\TeachingAssignment::with('subject')->where('faculty_id', \->id)->get(); foreach (\ as \) { echo \->subject->subject_name . \\n\; } }

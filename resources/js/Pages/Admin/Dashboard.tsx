@@ -217,16 +217,17 @@ export default function Dashboard({
       departmentScope={currentDepartmentName}
     >
       {/* 1. Header Banner - Administrator vs HOD Scope */}
-      <div className="bg-gradient-to-r from-[#193073] via-[#1e3a8a] to-[#254cb8] rounded-2xl p-5 sm:p-6 text-white shadow-md border border-blue-800/80 flex flex-col md:flex-row md:items-center justify-between gap-5">
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-blue-100 text-xs font-bold uppercase tracking-wider mb-2 border border-white/20">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+      <div className="relative overflow-hidden rounded-[2rem] bg-indigo-950 p-6 sm:p-10 text-white shadow-xl mb-2 border border-indigo-900/50 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 rounded-full bg-white/5 blur-3xl pointer-events-none"></div>
+        <div className="relative z-10 flex-1">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-md rounded-full text-blue-100 text-[10px] font-bold uppercase tracking-widest mb-3 border border-white/20 shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse"></span>
             {isAdministrator ? 'ADMINISTRATOR ACCESS LEVEL' : `HOD • ${currentDepartmentName.toUpperCase()}`}
           </div>
-          <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight drop-shadow-sm">
             {isAdministrator ? 'System Administration & Department Portal' : `${currentDepartmentName} — HOD Overview`}
           </h1>
-          <p className="text-xs text-blue-100 mt-1 font-medium">
+          <p className="text-xs text-blue-100 mt-2 font-medium max-w-2xl leading-relaxed">
             {isAdministrator ? (
               <span className="text-emerald-300 font-bold">Scope filter: {currentDepartmentName}</span>
             ) : (
@@ -238,16 +239,16 @@ export default function Dashboard({
         </div>
 
         {/* Admin Department Selector Dropdown */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center gap-3 shrink-0">
           {isAdministrator ? (
-            <div className="bg-white/15 backdrop-blur-md p-2 rounded-xl border border-white/25 flex flex-col sm:flex-row items-start sm:items-center gap-2">
-              <label className="text-[11px] font-extrabold uppercase tracking-wider text-blue-200 whitespace-nowrap pl-1">
+            <div className="bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/20 flex flex-col sm:flex-row items-start sm:items-center gap-3 shadow-inner">
+              <label className="text-[11px] font-black uppercase tracking-widest text-blue-200 whitespace-nowrap pl-1">
                 Department:
               </label>
               <select
                 value={selectedDeptCode}
                 onChange={(e) => setSelectedDeptCode(e.target.value)}
-                className="bg-white text-blue-950 font-bold text-xs px-3 py-1.5 rounded-lg border border-white shadow-xs focus:outline-none focus:ring-2 focus:ring-amber-400 cursor-pointer"
+                className="bg-white text-indigo-950 font-bold text-xs px-4 py-2 rounded-xl border-none shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer min-w-[140px]"
               >
                 {ADMIN_DEPARTMENT_OPTIONS.map((dept) => (
                   <option key={dept.code} value={dept.code}>

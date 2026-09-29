@@ -296,29 +296,38 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
         <StudentLayout studentInfo={{ rollNumber: studentRoll, division: studentDivision }}>
           <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
             {/* Header Banner */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-indigo-50 border border-indigo-100 rounded-full text-indigo-700 text-[11px] font-bold uppercase tracking-wider">
-                  <BookOpen className="w-3.5 h-3.5 text-indigo-600" /> Student Evaluation Portal
+            <div className="relative overflow-hidden rounded-[2rem] bg-indigo-950 p-8 sm:p-10 text-white shadow-xl mb-8 border border-indigo-900/50">
+              <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 rounded-full bg-white/5 blur-3xl pointer-events-none"></div>
+              <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-8">
+                <div className="space-y-4 max-w-xl">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-white text-[10px] font-bold uppercase tracking-widest shadow-sm">
+                    <BookOpen className="w-3.5 h-3.5 text-blue-200" /> Student Evaluation Portal
+                  </div>
+                  <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight drop-shadow-sm">Faculty Feedback</h1>
+                  <p className="text-blue-100 font-medium text-sm leading-relaxed">
+                    View and submit feedback for active evaluation forms published by your Head of Department. Your responses shape the future of our academic excellence.
+                  </p>
                 </div>
-                <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Faculty Feedback Forms</h1>
-                <p className="text-xs text-slate-500">
-                  View and submit feedback for active evaluation forms published by your Head of Department.
-                </p>
-              </div>
 
-              {/* Student Identity Badge */}
-              <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-2xs text-xs space-y-1 shrink-0">
-                <div className="flex items-center gap-2">
-                  <UserCheck className="w-4 h-4 text-emerald-600" />
-                  <span className="font-extrabold text-slate-900">{studentName}</span>
-                  <span className="font-mono text-[11px] text-slate-500 bg-slate-100 px-1.5 rounded">
-                    {studentRoll}
-                  </span>
+                {/* Student Identity Badge */}
+                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-5 shadow-xl text-xs space-y-3 shrink-0 sm:min-w-[240px] transition-transform hover:scale-[1.02] duration-300">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-emerald-400/20 flex items-center justify-center border border-emerald-400/30 shrink-0">
+                      <UserCheck className="w-5 h-5 text-emerald-300" />
+                    </div>
+                    <div>
+                      <span className="font-extrabold text-white block text-sm">{studentName}</span>
+                      <span className="font-mono text-[10px] text-blue-200 uppercase tracking-widest">
+                        Roll: {studentRoll}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="pt-3 border-t border-white/10">
+                    <p className="text-[11px] text-blue-100 font-semibold leading-tight">
+                      {studentDept} &bull; Sem {studentSem} &bull; {studentDivision}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-[11px] text-slate-500 font-medium">
-                  {studentDept} &bull; Semester {studentSem} &bull; {studentDivision}
-                </p>
               </div>
             </div>
 
@@ -371,83 +380,88 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
                     return (
                       <div
                         key={form.id}
-                        className={`bg-white border rounded-2xl p-5 space-y-4 shadow-2xs transition-all ${isSubmitted
-                            ? 'border-emerald-200/80 bg-emerald-50/20'
-                            : 'border-slate-200 hover:border-indigo-300 hover:shadow-md'
+                        className={`group relative overflow-hidden bg-white border rounded-2xl p-6 space-y-5 shadow-sm transition-all duration-300 ${isSubmitted
+                            ? 'border-emerald-200/60 bg-gradient-to-br from-emerald-50/40 to-white'
+                            : 'border-slate-200 hover:border-indigo-400 hover:shadow-xl hover:-translate-y-1'
                           }`}
                       >
+                        {/* Decorative background glow for pending */}
+                        {!isSubmitted && (
+                          <div className="absolute top-0 right-0 -mt-10 -mr-10 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl group-hover:bg-indigo-500/10 transition-colors pointer-events-none"></div>
+                        )}
+
                         {/* Top Form Header */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
-                          <div className="flex items-center gap-3">
-                            <span className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded border border-indigo-200">
+                        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                          <div className="flex items-center gap-4">
+                            <span className="font-mono text-[11px] font-bold text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-md border border-indigo-200/60 shadow-xs">
                               {form.subjectCode}
                             </span>
                             <div>
-                              <h3 className="text-base font-extrabold text-slate-900 leading-tight">
+                              <h3 className="text-lg font-black text-slate-900 leading-tight group-hover:text-indigo-700 transition-colors">
                                 {form.subjectName}
                               </h3>
-                              <p className="text-[11px] text-slate-500 font-medium">
+                              <p className="text-xs text-slate-500 font-medium mt-0.5">
                                 Semester {form.semester} &bull; {form.departmentName} ({form.academicYear})
                               </p>
                             </div>
                           </div>
 
                           {/* Status Badge */}
-                          <div className="self-start sm:self-auto">
+                          <div className="self-start sm:self-auto shrink-0">
                             {isSubmitted ? (
-                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-extrabold">
+                              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[11px] font-black uppercase tracking-wider shadow-xs">
                                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                                 Submitted
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-300 text-xs font-extrabold">
+                              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-50 text-amber-700 border border-amber-300/80 text-[11px] font-black uppercase tracking-wider shadow-xs">
                                 <Clock className="w-3.5 h-3.5 text-amber-600" />
-                                Pending Submission
+                                Pending
                               </span>
                             )}
                           </div>
                         </div>
 
                         {/* Faculty Details & Action Button */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1">
-                          <div className="flex items-center gap-3">
+                        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-5 pt-1">
+                          <div className="flex items-center gap-4">
                             <div
-                              className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 shadow-2xs ${isSubmitted
-                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                                  : 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+                              className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-lg shrink-0 shadow-sm ${isSubmitted
+                                  ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                                  : 'bg-gradient-to-br from-indigo-100 to-purple-100 text-indigo-700 border border-indigo-200/60'
                                 }`}
                             >
                               {form.facultyName.charAt(0)}
                             </div>
                             <div>
-                              <span className="text-xs text-slate-400 font-semibold block uppercase tracking-wider text-[10px]">
-                                Evaluating Faculty:
+                              <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-widest mb-0.5">
+                                Evaluating Faculty
                               </span>
                               <p className="text-sm font-extrabold text-slate-900">{form.facultyName}</p>
-                              <p className="text-xs text-slate-500 font-medium">
+                              <p className="text-xs text-slate-500 font-medium mt-0.5">
                                 {form.facultyDesignation || 'Faculty Member'} &bull; {form.questions.length} Evaluation Criteria
                               </p>
                             </div>
                           </div>
 
                           {/* Action Button */}
-                          <div>
+                          <div className="shrink-0">
                             {isSubmitted ? (
                               <button
                                 disabled
-                                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-100 text-slate-500 font-bold text-xs border border-slate-200 cursor-not-allowed flex items-center justify-center gap-2"
+                                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-50 text-slate-400 font-bold text-xs border border-slate-200 cursor-not-allowed flex items-center justify-center gap-2"
                               >
-                                <Check className="w-4 h-4 text-emerald-600" />
-                                <span>Feedback Submitted</span>
+                                <Check className="w-4 h-4 text-emerald-500" />
+                                <span>Completed</span>
                               </button>
                             ) : (
                               <Button
                                 variant="primary"
                                 size="md"
                                 onClick={() => handleOpenFormQuestionnaire(form.id)}
-                                className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold shadow-md shadow-indigo-600/20 px-5 py-2.5"
+                                className="w-full sm:w-auto bg-indigo-800 hover:bg-indigo-900 text-white font-extrabold shadow-lg shadow-indigo-900/30 hover:shadow-indigo-900/40 px-6 py-2.5 rounded-xl transition-all hover:scale-105 active:scale-95"
                               >
-                                <span>Give Feedback</span>
+                                <span>Evaluate Now</span>
                                 <ChevronRight className="w-4 h-4 ml-1" />
                               </Button>
                             )}
@@ -550,41 +564,42 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
           <div className="flex items-center justify-between gap-4 border-b border-slate-200 pb-4">
             <button
               onClick={handleBackToList}
-              className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-indigo-600 transition-colors"
+              className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-indigo-600 transition-colors group"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
               <span>Back to Active Forms</span>
             </button>
 
-            <span className="text-xs font-extrabold text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-200">
-              Progress: {answeredCount} / {totalQuestions} Answered
+            <span className="text-xs font-black text-indigo-700 bg-indigo-50 px-3.5 py-1.5 rounded-full border border-indigo-200 shadow-xs">
+              Progress: <span className="text-indigo-900">{answeredCount} / {totalQuestions}</span> Answered
             </span>
           </div>
 
           {/* Target Form Summary Header Card */}
-          <Card className="p-6 bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 text-white border-blue-900 shadow-xl space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-white/10 text-white flex items-center justify-center font-extrabold text-lg border border-white/20">
+          <Card className="relative overflow-hidden p-8 bg-indigo-950 text-white border-indigo-900/50 shadow-xl rounded-3xl space-y-4">
+            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 rounded-full bg-white/5 blur-3xl pointer-events-none"></div>
+            <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-sm text-white flex items-center justify-center font-black text-2xl border border-white/20 shadow-inner">
                   {activeForm.facultyName.charAt(0)}
                 </div>
                 <div>
-                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-300">
-                    Target Faculty Member
+                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-300 drop-shadow-sm">
+                    Evaluating Faculty Member
                   </span>
-                  <h1 className="text-xl font-extrabold tracking-tight">{activeForm.facultyName}</h1>
-                  <p className="text-xs text-slate-300 font-medium">
+                  <h1 className="text-2xl font-black tracking-tight text-white">{activeForm.facultyName}</h1>
+                  <p className="text-xs text-indigo-200 font-medium mt-0.5">
                     {activeForm.facultyDesignation || 'Professor'} &bull; {activeForm.departmentName}
                   </p>
                 </div>
               </div>
 
-              <div className="sm:text-right space-y-1 border-t sm:border-t-0 border-white/10 pt-3 sm:pt-0">
-                <span className="font-mono text-xs font-bold text-amber-300 bg-amber-950/60 px-2.5 py-1 rounded border border-amber-600/60 inline-block">
+              <div className="sm:text-right space-y-1.5 border-t sm:border-t-0 border-white/10 pt-4 sm:pt-0">
+                <span className="font-mono text-[11px] font-black text-amber-300 bg-amber-950/60 px-3 py-1.5 rounded-lg border border-amber-500/50 shadow-inner inline-block">
                   {activeForm.subjectCode}
                 </span>
-                <h2 className="text-sm font-bold text-white leading-tight">{activeForm.subjectName}</h2>
-                <p className="text-[11px] text-slate-400">
+                <h2 className="text-base font-extrabold text-white leading-tight">{activeForm.subjectName}</h2>
+                <p className="text-[11px] text-indigo-300 font-medium">
                   Semester {activeForm.semester} &bull; Academic Year {activeForm.academicYear}
                 </p>
               </div>
@@ -619,18 +634,18 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
               const isTextVisible = true;
 
               return (
-                <Card key={param.id} className="p-5 sm:p-6 space-y-4 border-slate-200 shadow-2xs hover:border-slate-300 transition-all">
+                <Card key={param.id} className="p-6 sm:p-8 space-y-5 border border-slate-200/80 shadow-md hover:shadow-xl hover:border-indigo-300/60 rounded-2xl transition-all duration-300 bg-white">
                   {/* Question Title */}
-                  <div className="space-y-1">
+                  <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-extrabold text-indigo-600 uppercase tracking-wider">
+                      <span className="text-[11px] font-black text-indigo-600 uppercase tracking-widest">
                         Question {index + 1} of {totalQuestions}
                       </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                      <span className="text-[10px] font-bold px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 border border-slate-200/60">
                         {qType === 'BOTH' ? 'Rating + Text' : qType === 'TEXT' ? 'Text Response' : 'Rating (1-5)'}
                       </span>
                     </div>
-                    <h3 className="text-sm font-extrabold text-slate-900 leading-snug">
+                    <h3 className="text-base font-black text-slate-900 leading-snug">
                       {param.statement}
                     </h3>
                   </div>
