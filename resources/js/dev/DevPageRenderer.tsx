@@ -193,10 +193,8 @@ export const DevPageRenderer: React.FC = () => {
     : (componentRegistry[activePage] || (currentToken ? AdminDashboard : FacultyLogin));
   const baseProps = mockPropsMap[activePage] || mockPropsMap[currentToken ? 'Admin/Dashboard' : 'Faculty/Login'];
 
-  // Role Scope Mock Props Generation
-  const isHodRole = devRoleMode.startsWith('hod_');
-  const userRole = isHodRole ? 'hod' : 'admin';
-  
+  // Role Scope Props Generation (Real Authenticated User vs Dev Switcher)
+  let userRole: 'admin' | 'hod' = devRoleMode.startsWith('hod_') ? 'hod' : 'admin';
   let assignedDepartmentCode: string | null = null;
   let hodInfo = {
     name: 'Administrator',
@@ -205,38 +203,55 @@ export const DevPageRenderer: React.FC = () => {
     departmentCode: 'ALL',
   };
 
-  if (devRoleMode === 'hod_ce') {
-    assignedDepartmentCode = 'CE';
-    hodInfo = {
-      name: 'Dr. Robert Vance',
-      role: 'Head of Department',
-      department: 'Computer Engineering',
-      departmentCode: 'CE',
-    };
-  } else if (devRoleMode === 'hod_it') {
-    assignedDepartmentCode = 'IT';
-    hodInfo = {
-      name: 'Dr. Sarah Jenkins',
-      role: 'Head of Department',
-      department: 'Information Technology',
-      departmentCode: 'IT',
-    };
-  } else if (devRoleMode === 'hod_cse') {
-    assignedDepartmentCode = 'CSE';
-    hodInfo = {
-      name: 'Dr. Vikram Shah',
-      role: 'Head of Department',
-      department: 'Computer Science & Engineering',
-      departmentCode: 'CSE',
-    };
-  } else if (devRoleMode === 'hod_aiml') {
-    assignedDepartmentCode = 'AIML';
-    hodInfo = {
-      name: 'Dr. Anita Roy',
-      role: 'Head of Department',
-      department: 'Artificial Intelligence & Machine Learning',
-      departmentCode: 'AIML',
-    };
+  if (authUser) {
+    const isHodUser = authUser.role === 'HOD' || authUser.canonical_role === 'HOD' || !!authUser.is_hod;
+    if (isHodUser) {
+      userRole = 'hod';
+      assignedDepartmentCode = authUser.hod_department_code || authUser.faculty?.department?.department_code || null;
+      hodInfo = {
+        name: authUser.faculty?.full_name || authUser.email || 'Head of Department',
+        role: 'Head of Department',
+        department: authUser.faculty?.department?.department_name || 'Department Scope',
+        departmentCode: assignedDepartmentCode || 'DEPT',
+      };
+    } else if (authUser.role === 'SUPER_ADMIN' || authUser.role === 'ADMIN') {
+      userRole = 'admin';
+      assignedDepartmentCode = null;
+    }
+  } else {
+    if (devRoleMode === 'hod_ce') {
+      assignedDepartmentCode = 'CE';
+      hodInfo = {
+        name: 'Dr. Robert Vance',
+        role: 'Head of Department',
+        department: 'Computer Engineering',
+        departmentCode: 'CE',
+      };
+    } else if (devRoleMode === 'hod_it') {
+      assignedDepartmentCode = 'IT';
+      hodInfo = {
+        name: 'Dr. Sarah Jenkins',
+        role: 'Head of Department',
+        department: 'Information Technology',
+        departmentCode: 'IT',
+      };
+    } else if (devRoleMode === 'hod_cse') {
+      assignedDepartmentCode = 'CSE';
+      hodInfo = {
+        name: 'Dr. Vikram Shah',
+        role: 'Head of Department',
+        department: 'Computer Science & Engineering',
+        departmentCode: 'CSE',
+      };
+    } else if (devRoleMode === 'hod_aiml') {
+      assignedDepartmentCode = 'AIML';
+      hodInfo = {
+        name: 'Dr. Anita Roy',
+        role: 'Head of Department',
+        department: 'Artificial Intelligence & Machine Learning',
+        departmentCode: 'AIML',
+      };
+    }
   }
 
   const studentProp = baseProps?.student

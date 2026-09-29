@@ -54,7 +54,63 @@ class DepartmentController extends Controller
             abort(Response::HTTP_FORBIDDEN, 'Forbidden: Only administrators can create departments.');
         }
 
-        $department = Department::create($request->validated());
+        $validated = $request->validated();
+
+        $department = DB::transaction(function () use ($validated) {
+            $dept = Department::create([
+                'department_code' => $validated['department_code'],
+                'department_name' => $validated['department_name'],
+                'status' => $validated['status'] ?? 'ACTIVE',
+            ]);
+
+            $hodFullName = $validated['hod_full_name'] ?? $validated['hod_name'] ?? null;
+            $hodEmail = $validated['hod_email'] ?? null;
+
+            // Option A: Register a new Faculty member as HOD
+            if (!empty($hodFullName) && !empty($hodEmail)) {
+                $password = $validated['hod_password'] ?? 'password123';
+                $userAccount = \App\Models\UserAccount::create([
+                    'email' => $hodEmail,
+                    'password_hash' => \Illuminate\Support\Facades\Hash::make($password),
+                    'role' => 'HOD',
+                    'status' => 'ACTIVE',
+                ]);
+
+                $designationId = $validated['hod_designation_id'] ?? null;
+                if (!$designationId) {
+                    $designation = \App\Models\Designation::firstOrCreate(
+                        ['designation_name' => 'Head of Department'],
+                        ['status' => 'ACTIVE']
+                    );
+                    $designationId = $designation->id;
+                }
+
+                $hodFaculty = \App\Models\Faculty::create([
+                    'user_account_id' => $userAccount->id,
+                    'full_name' => $hodFullName,
+                    'email' => $hodEmail,
+                    'mobile' => $validated['hod_mobile'] ?? null,
+                    'department_id' => $dept->id,
+                    'designation_id' => $designationId,
+                    'status' => 'ACTIVE',
+                ]);
+
+                $dept->update(['hod_faculty_id' => $hodFaculty->id]);
+            }
+            // Option B: Select an existing Faculty member as HOD
+            elseif (!empty($validated['hod_faculty_id'])) {
+                $faculty = \App\Models\Faculty::find($validated['hod_faculty_id']);
+                if ($faculty) {
+                    $faculty->update(['department_id' => $dept->id]);
+                    if ($faculty->userAccount) {
+                        $faculty->userAccount->update(['role' => 'HOD']);
+                    }
+                    $dept->update(['hod_faculty_id' => $faculty->id]);
+                }
+            }
+
+            return $dept;
+        });
 
         return response()->json([
             'message' => 'Department created successfully',
@@ -77,11 +133,79 @@ class DepartmentController extends Controller
     {
         $this->validateDepartmentAccess($request, $department->id);
 
-        $department->update($request->validated());
+        $validated = $request->validated();
+
+        DB::transaction(function () use ($department, $validated) {
+            $hodFullName = $validated['hod_full_name'] ?? $validated['hod_name'] ?? null;
+            $hodEmail = $validated['hod_email'] ?? null;
+
+            // Option A: Register a new Faculty member as the new HOD
+            if (!empty($hodFullName) && !empty($hodEmail)) {
+                $password = $validated['hod_password'] ?? 'password123';
+                $userAccount = \App\Models\UserAccount::create([
+                    'email' => $hodEmail,
+                    'password_hash' => \Illuminate\Support\Facades\Hash::make($password),
+                    'role' => 'HOD',
+                    'status' => 'ACTIVE',
+                ]);
+
+                $designationId = $validated['hod_designation_id'] ?? null;
+                if (!$designationId) {
+                    $designation = \App\Models\Designation::firstOrCreate(
+                        ['designation_name' => 'Head of Department'],
+                        ['status' => 'ACTIVE']
+                    );
+                    $designationId = $designation->id;
+                }
+
+                $newFaculty = \App\Models\Faculty::create([
+                    'user_account_id' => $userAccount->id,
+                    'full_name' => $hodFullName,
+                    'email' => $hodEmail,
+                    'mobile' => $validated['hod_mobile'] ?? null,
+                    'department_id' => $department->id,
+                    'designation_id' => $designationId,
+                    'status' => 'ACTIVE',
+                ]);
+
+                // Update department HOD. Note: The previous faculty member record is preserved in faculty table.
+                $department->update(['hod_faculty_id' => $newFaculty->id]);
+            }
+            // Option B: Change HOD to another existing Faculty member or remove HOD (set to null)
+            elseif (array_key_exists('hod_faculty_id', $validated)) {
+                $newHodId = $validated['hod_faculty_id'];
+                if ($newHodId) {
+                    $faculty = \App\Models\Faculty::find($newHodId);
+                    if ($faculty) {
+                        $faculty->update(['department_id' => $department->id]);
+                        if ($faculty->userAccount) {
+                            $faculty->userAccount->update(['role' => 'HOD']);
+                        }
+                    }
+                }
+                // Update department HOD pointer. Note: The previous faculty record is preserved.
+                $department->update(['hod_faculty_id' => $newHodId]);
+            }
+
+            // Update basic department fields if supplied
+            $updateFields = [];
+            if (isset($validated['department_code'])) {
+                $updateFields['department_code'] = $validated['department_code'];
+            }
+            if (isset($validated['department_name'])) {
+                $updateFields['department_name'] = $validated['department_name'];
+            }
+            if (isset($validated['status'])) {
+                $updateFields['status'] = $validated['status'];
+            }
+            if (!empty($updateFields)) {
+                $department->update($updateFields);
+            }
+        });
 
         return response()->json([
             'message' => 'Department updated successfully',
-            'data' => new DepartmentResource($department->fresh('hodFaculty'))
+            'data' => new DepartmentResource($department->fresh(['hodFaculty.designation']))
         ], Response::HTTP_OK);
     }
 

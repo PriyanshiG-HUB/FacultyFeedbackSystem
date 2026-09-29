@@ -22,7 +22,8 @@ class Phase6IntegrationTest extends TestCase
     protected function getFacultyToken(): ?string
     {
         try {
-            $user = UserAccount::where('email', 'dr.smith@college.edu')->first();
+            $user = UserAccount::where('email', 'prof.jones@college.edu')->first()
+                ?? UserAccount::where('role', 'FACULTY')->get()->first(fn($u) => !$u->isHod());
             return $user ? $user->createToken('phase6_fac_token')->plainTextToken : null;
         } catch (\Throwable $e) {
             return null;

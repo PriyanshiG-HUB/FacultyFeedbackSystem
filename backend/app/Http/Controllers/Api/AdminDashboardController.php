@@ -24,9 +24,10 @@ class AdminDashboardController extends Controller
 
         // Resolve Department scope
         $department = null;
-        if ($user && $user->role === 'hod' && $user->faculty) {
-            $department = Department::find($user->faculty->department_id);
-        } elseif ($deptCode && $deptCode !== 'ALL') {
+        if ($user && (strtoupper($user->role) === 'HOD' || $user->isHod())) {
+            $department = $user->getHodDepartment() ?? $user->faculty?->department;
+        }
+        if (!$department && $deptCode && $deptCode !== 'ALL') {
             $department = Department::where('department_code', strtoupper($deptCode))->first();
         }
 
