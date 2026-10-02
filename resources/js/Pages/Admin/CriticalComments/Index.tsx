@@ -28,14 +28,23 @@ import {
   ShieldCheck,
   UserCheck,
 } from 'lucide-react';
+import { getDepartmentName } from '../../../utils/departmentScope';
+import { getStoredUserInfo } from '../../../lib/api';
 
 export default function Index({
-  departmentName = 'Information Technology',
-  userRole = 'hod',
+  departmentName,
+  userRole,
   assignedDepartmentCode,
   comments,
   submissions: propSubmissions,
 }: CriticalCommentsIndexProps) {
+  const storedUser = getStoredUserInfo();
+  const isHodUser = userRole === 'hod' || storedUser?.role === 'HOD' || storedUser?.canonical_role === 'HOD' || !!storedUser?.is_hod;
+  const effectiveRole: 'admin' | 'hod' = isHodUser ? 'hod' : 'admin';
+  const isAdministrator = effectiveRole === 'admin';
+
+  const effectiveDeptCode = assignedDepartmentCode || storedUser?.hod_department_code || storedUser?.faculty?.department?.department_code || null;
+  const currentDeptName = storedUser?.faculty?.department?.department_name || getDepartmentName(effectiveDeptCode) || departmentName || 'Department Scope';
   // Live feedback submissions state from MySQL
   const [submissions, setSubmissions] = useState<FeedbackSubmissionItem[]>([]);
 
@@ -260,13 +269,12 @@ export default function Index({
   };
 
   // Role Scope Display Formatting
-  const isAdministrator = userRole === 'admin';
   const roleBadgeText = isAdministrator
     ? 'Administrator • All Departments'
-    : `HOD Portal • ${departmentName} Scope`;
+    : `HOD Portal • ${currentDeptName} Scope`;
   const pageHeaderTitle = isAdministrator
     ? 'System Administrator — Faculty Feedback Moderation'
-    : `${departmentName} — Faculty Feedback Moderation Console`;
+    : `${currentDeptName} — Faculty Feedback Moderation Console`;
 
   // Columns for Submissions Table
   const columns: Column<FeedbackSubmissionItem>[] = [
@@ -376,7 +384,12 @@ export default function Index({
   ];
 
   return (
-    <AdminLayout title="Feedback Moderation Console" currentPath="#Admin/CriticalComments/Index">
+    <AdminLayout
+      title="Feedback Moderation Console"
+      currentPath="#Admin/CriticalComments/Index"
+      userRole={effectiveRole}
+      departmentScope={isAdministrator ? 'All Departments' : currentDeptName}
+    >
       <div className="space-y-6">
         {/* Header Title Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

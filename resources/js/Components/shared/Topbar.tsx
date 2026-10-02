@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Bell, ShieldCheck, User, LogOut, Loader2 } from 'lucide-react';
-import { handleLogout } from '../../lib/api';
+import { ShieldCheck, User, LogOut, Loader2 } from 'lucide-react';
+import { handleLogout, getStoredUserInfo } from '../../lib/api';
+import { getDepartmentName } from '../../utils/departmentScope';
 
 interface TopbarProps {
   pageTitle?: string;
@@ -12,18 +13,42 @@ interface TopbarProps {
 
 export const Topbar: React.FC<TopbarProps> = ({
   pageTitle = 'Dashboard',
-  userName = 'Dr. Grace Hopper',
-  userRole = 'HOD — Information Technology',
+  userName,
+  userRole,
   userRoleType,
   departmentScope,
 }) => {
   const [isLoggingOut, setIsLoggingOut] = useState<boolean>(false);
-  const isAdministrator = userRoleType === 'admin';
+
+  const storedUser = getStoredUserInfo();
+  const isHodUser = storedUser?.role === 'HOD' || storedUser?.canonical_role === 'HOD' || !!storedUser?.is_hod;
+  
+  const effectiveRoleType: 'admin' | 'hod' = userRoleType || (isHodUser ? 'hod' : 'admin');
+  const isAdministrator = effectiveRoleType === 'admin';
+
+  let resolvedUserName = userName;
+  if (!resolvedUserName || resolvedUserName === 'Dr. Grace Hopper') {
+    if (storedUser) {
+      resolvedUserName = storedUser.faculty?.full_name || storedUser.faculty?.name || storedUser.email || (isHodUser ? 'Head of Department' : 'Administrator');
+    } else {
+      resolvedUserName = isAdministrator ? 'Administrator' : 'Head of Department';
+    }
+  }
+
+  let resolvedDeptScope = departmentScope;
+  if (!resolvedDeptScope || resolvedDeptScope === 'Information Technology') {
+    if (storedUser) {
+      resolvedDeptScope = storedUser.faculty?.department?.department_name ||
+        getDepartmentName(storedUser.hod_department_code) ||
+        (isHodUser ? 'Department Scope' : 'All Departments');
+    } else {
+      resolvedDeptScope = isAdministrator ? 'All Departments' : 'Department Scope';
+    }
+  }
+
   const roleBadgeText = isAdministrator
     ? 'Administrator • All Departments'
-    : userRoleType === 'hod' && departmentScope
-    ? `HOD • ${departmentScope}`
-    : userRole;
+    : `HOD • ${resolvedDeptScope}`;
 
   const onLogoutClick = async (e?: React.MouseEvent) => {
     if (e) {
@@ -62,7 +87,7 @@ export const Topbar: React.FC<TopbarProps> = ({
             <User className="w-4 h-4 text-indigo-600" />
           </div>
           <div className="hidden md:block text-left leading-tight">
-            <p className="text-xs font-bold text-slate-900">{userName}</p>
+            <p className="text-xs font-bold text-slate-900">{resolvedUserName}</p>
             <p className="text-[10px] text-slate-500 font-medium">{roleBadgeText}</p>
           </div>
           <button

@@ -115,7 +115,7 @@ export default function Index({
           id: f.id,
           name: f.full_name,
           email: f.email,
-          department: f.department?.department_name || f.department?.department_code || 'Information Technology',
+          department: f.department?.department_name || f.department?.department_code || 'Department Scope',
           designation: f.designation?.designation_name || 'Professor',
           status: f.status === 'INACTIVE' ? 'Inactive' : 'Active',
         }));

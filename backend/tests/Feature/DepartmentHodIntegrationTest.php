@@ -281,5 +281,18 @@ class DepartmentHodIntegrationTest extends TestCase
         $deptRes->assertStatus(200);
         $deptCodes = collect($deptRes->json('data'))->pluck('department_code')->all();
         $this->assertEquals([$code], $deptCodes);
+
+        // 5. HOD accesses moderation, reports, and faculty-list
+        $modRes = $this->withHeader('Authorization', 'Bearer ' . $hodToken)
+            ->getJson('/api/feedback/moderation');
+        $modRes->assertStatus(200);
+
+        $reportsRes = $this->withHeader('Authorization', 'Bearer ' . $hodToken)
+            ->getJson('/api/reports');
+        $reportsRes->assertStatus(200);
+
+        $facListRes = $this->withHeader('Authorization', 'Bearer ' . $hodToken)
+            ->getJson('/api/faculty-reports/faculty-list');
+        $facListRes->assertStatus(200);
     }
 }

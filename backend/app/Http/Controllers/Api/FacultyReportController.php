@@ -33,6 +33,13 @@ class FacultyReportController extends Controller
             return ['dept_id' => null, 'faculty_id' => null];
         }
 
+        if (strtoupper($user->role) === 'HOD' || $user->isHod()) {
+            $hodDept = $user->getHodDepartment() ?? ($user->faculty ? Department::where('hod_faculty_id', $user->faculty->id)->first() : null);
+            if ($hodDept) {
+                return ['dept_id' => $hodDept->id, 'faculty_id' => null];
+            }
+        }
+
         $faculty = $user->faculty;
         if ($faculty) {
             $hodDept = Department::where('hod_faculty_id', $faculty->id)->first();

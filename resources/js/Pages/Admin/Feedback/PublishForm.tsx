@@ -8,7 +8,7 @@ import { Modal } from '../../../Components/ui/Modal';
 import { StatusBadge } from '../../../Components/ui/StatusBadge';
 import { StatCard } from '../../../Components/ui/StatCard';
 import { getDepartmentName } from '../../../utils/departmentScope';
-import { api, API_BASE_URL, getAuthToken } from '../../../lib/api';
+import { api, API_BASE_URL, getAuthToken, getStoredUserInfo } from '../../../lib/api';
 import {
   Send,
   EyeOff,
@@ -45,12 +45,19 @@ interface ParsedCustomQuestion {
 }
 
 export default function PublishForm({
-  userRole = 'admin',
+  userRole,
   assignedDepartmentCode = null,
-  departmentName = 'Information Technology',
+  departmentName,
 }: PublishFormIndexProps) {
-  const isAdministrator = userRole === 'admin';
-  const initialDeptFilter = !isAdministrator && assignedDepartmentCode ? assignedDepartmentCode.toUpperCase() : 'ALL';
+  const storedUser = getStoredUserInfo();
+  const isHodUser = userRole === 'hod' || storedUser?.role === 'HOD' || storedUser?.canonical_role === 'HOD' || !!storedUser?.is_hod;
+  const effectiveRole: 'admin' | 'hod' = isHodUser ? 'hod' : 'admin';
+  const isAdministrator = effectiveRole === 'admin';
+
+  const effectiveDeptCode = assignedDepartmentCode || storedUser?.hod_department_code || storedUser?.faculty?.department?.department_code || null;
+  const currentDeptName = storedUser?.faculty?.department?.department_name || getDepartmentName(effectiveDeptCode) || departmentName || 'Department Scope';
+
+  const initialDeptFilter = !isAdministrator && effectiveDeptCode ? effectiveDeptCode.toUpperCase() : 'ALL';
   const [deptFilter, setDeptFilter] = useState<string>(initialDeptFilter);
 
   const [forms, setForms] = useState<PublishedFormItem[]>([]);
@@ -82,6 +89,16 @@ export default function PublishForm({
   // Question Source & Response Type Enhancement Fields
   const [questionSource, setQuestionSource] = useState<'EXISTING' | 'CUSTOM'>('EXISTING');
   const [responseType, setResponseType] = useState<'RATING' | 'TEXT' | 'BOTH'>('RATING');
+
+  // Selection Mode State: 'INDIVIDUAL' | 'DIVISION_SECTION'
+  const [selectionMode, setSelectionMode] = useState<'INDIVIDUAL' | 'DIVISION_SECTION'>('DIVISION_SECTION');
+
+  // Division / Section Selection Mode Filters & Selection State
+  const [bulkAcademicYearId, setBulkAcademicYearId] = useState<number | 'ALL'>('ALL');
+  const [bulkSemesterNo, setBulkSemesterNo] = useState<string>('ALL');
+  const [bulkDivisionId, setBulkDivisionId] = useState<number | 'ALL'>('ALL');
+  const [selectedSectionIds, setSelectedSectionIds] = useState<number[]>([]);
+  const [selectedBulkAssignmentIds, setSelectedBulkAssignmentIds] = useState<number[]>([]);
 
   // Custom Question Import State
   const [importFile, setImportFile] = useState<File | null>(null);
@@ -176,9 +193,103 @@ export default function PublishForm({
     return true;
   });
 
+  // Filtered divisions based on Academic Year & Semester selection
+  const availableDivisions = React.useMemo(() => {
+    const map = new Map<number, { id: number; code: string }>();
+    availableTeachingAssignments.forEach((ta) => {
+      if (bulkAcademicYearId !== 'ALL' && ta.academic_year_id !== Number(bulkAcademicYearId) && ta.academic_year?.id !== Number(bulkAcademicYearId)) {
+        return;
+      }
+      if (bulkSemesterNo !== 'ALL' && String(ta.semester?.semester_no || ta.semester_id) !== String(bulkSemesterNo)) {
+        return;
+      }
+      if (ta.division && ta.division.id) {
+        map.set(ta.division.id, { id: ta.division.id, code: ta.division.division_code || `Division ${ta.division.id}` });
+      }
+    });
+    return Array.from(map.values());
+  }, [availableTeachingAssignments, bulkAcademicYearId, bulkSemesterNo]);
+
+  // Filtered sections based on Academic Year, Semester & Division selection
+  const availableSections = React.useMemo(() => {
+    const map = new Map<number, { id: number; code: string }>();
+    availableTeachingAssignments.forEach((ta) => {
+      if (bulkAcademicYearId !== 'ALL' && ta.academic_year_id !== Number(bulkAcademicYearId) && ta.academic_year?.id !== Number(bulkAcademicYearId)) {
+        return;
+      }
+      if (bulkSemesterNo !== 'ALL' && String(ta.semester?.semester_no || ta.semester_id) !== String(bulkSemesterNo)) {
+        return;
+      }
+      if (bulkDivisionId !== 'ALL' && Number(ta.division_id || ta.division?.id) !== Number(bulkDivisionId)) {
+        return;
+      }
+      if (ta.section && ta.section.id) {
+        map.set(ta.section.id, { id: ta.section.id, code: ta.section.section_code || `Section ${ta.section.id}` });
+      }
+    });
+    return Array.from(map.values());
+  }, [availableTeachingAssignments, bulkAcademicYearId, bulkSemesterNo, bulkDivisionId]);
+
+  // Auto-fetched Teaching Assignments matching current Division / Section filters
+  const autoFetchedAssignments = React.useMemo(() => {
+    return availableTeachingAssignments.filter((ta) => {
+      if (bulkAcademicYearId !== 'ALL' && ta.academic_year_id !== Number(bulkAcademicYearId) && ta.academic_year?.id !== Number(bulkAcademicYearId)) {
+        return false;
+      }
+      if (bulkSemesterNo !== 'ALL' && String(ta.semester?.semester_no || ta.semester_id) !== String(bulkSemesterNo)) {
+        return false;
+      }
+      if (bulkDivisionId !== 'ALL' && Number(ta.division_id || ta.division?.id) !== Number(bulkDivisionId)) {
+        return false;
+      }
+      if (selectedSectionIds.length > 0 && ta.section) {
+        if (!selectedSectionIds.includes(ta.section.id)) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [availableTeachingAssignments, bulkAcademicYearId, bulkSemesterNo, bulkDivisionId, selectedSectionIds]);
+
+  // Sync selected assignments whenever autoFetchedAssignments changes in DIVISION_SECTION mode
+  useEffect(() => {
+    if (selectionMode === 'DIVISION_SECTION') {
+      setSelectedBulkAssignmentIds(autoFetchedAssignments.map((a) => a.id));
+    }
+  }, [autoFetchedAssignments, selectionMode]);
+
+  const handleToggleSection = (secId: number) => {
+    setSelectedSectionIds((prev) =>
+      prev.includes(secId) ? prev.filter((id) => id !== secId) : [...prev, secId]
+    );
+  };
+
+  const handleSelectAllSections = () => {
+    if (selectedSectionIds.length === availableSections.length) {
+      setSelectedSectionIds([]);
+    } else {
+      setSelectedSectionIds(availableSections.map((s) => s.id));
+    }
+  };
+
+  const handleToggleBulkAssignment = (aId: number) => {
+    setSelectedBulkAssignmentIds((prev) =>
+      prev.includes(aId) ? prev.filter((id) => id !== aId) : [...prev, aId]
+    );
+  };
+
+  const handleSelectAllBulkAssignments = () => {
+    if (selectedBulkAssignmentIds.length === autoFetchedAssignments.length) {
+      setSelectedBulkAssignmentIds([]);
+    } else {
+      setSelectedBulkAssignmentIds(autoFetchedAssignments.map((a) => a.id));
+    }
+  };
+
   const handleOpenAddModal = () => {
     setFormError('');
     setFieldErrors({});
+    setSelectionMode('DIVISION_SECTION');
     setQuestionSource('EXISTING');
     setResponseType('RATING');
     setImportFile(null);
@@ -187,12 +298,15 @@ export default function PublishForm({
 
     const firstAssignment = availableTeachingAssignments[0] || teachingAssignments[0];
     setSelectedAssignmentId(firstAssignment?.id || '');
-    setFormTitle(
-      firstAssignment
-        ? `Faculty Feedback — ${firstAssignment.subject?.subject_name || 'Course'} (${firstAssignment.faculty?.full_name || 'Faculty'})`
-        : 'Faculty Feedback Survey'
-    );
+    setFormTitle('Faculty Feedback Survey');
+
+    const firstAyId = academicYears[0]?.id || 'ALL';
     setSelectedAcademicYearId(academicYears[0]?.id || '');
+    setBulkAcademicYearId(firstAyId);
+    setBulkSemesterNo('ALL');
+    setBulkDivisionId('ALL');
+    setSelectedSectionIds([]);
+
     const today = new Date().toISOString().split('T')[0];
     setWindowStartDate(today);
     const nextMonth = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -289,6 +403,16 @@ export default function PublishForm({
     e.preventDefault();
     if (isSubmitting) return;
 
+    if (selectionMode === 'INDIVIDUAL' && !selectedAssignmentId) {
+      setFormError('Please select a Teaching Session Assignment.');
+      return;
+    }
+
+    if (selectionMode === 'DIVISION_SECTION' && selectedBulkAssignmentIds.length === 0) {
+      setFormError('Please select at least one teaching assignment from the division/section list.');
+      return;
+    }
+
     if (questionSource === 'CUSTOM') {
       const selectedQs = customQuestionsList.filter((q) => q.isSelected);
       if (selectedQs.length === 0) {
@@ -305,15 +429,20 @@ export default function PublishForm({
       const selectedQs = customQuestionsList.filter((q) => q.isSelected);
 
       const payload: any = {
-        title: formTitle.trim(),
-        teaching_assignment_id: Number(selectedAssignmentId),
-        academic_year_id: Number(selectedAcademicYearId),
+        title: formTitle.trim() || 'Faculty Feedback',
+        academic_year_id: bulkAcademicYearId !== 'ALL' ? Number(bulkAcademicYearId) : (selectedAcademicYearId ? Number(selectedAcademicYearId) : null),
         window_start_date: windowStartDate,
         window_end_date: windowEndDate,
         question_source: questionSource,
         response_type: responseType,
         is_published: true,
       };
+
+      if (selectionMode === 'INDIVIDUAL') {
+        payload.teaching_assignment_id = Number(selectedAssignmentId);
+      } else {
+        payload.teaching_assignment_ids = selectedBulkAssignmentIds;
+      }
 
       if (questionSource === 'CUSTOM' && selectedQs.length > 0) {
         payload.questions = selectedQs.map((q, idx) => ({
@@ -326,9 +455,16 @@ export default function PublishForm({
       }
 
       const createdRes = await api.post('/feedback-forms', payload);
-      const createdForm = createdRes?.data;
-      if (createdForm?.id) {
-        await api.post(`/feedback-forms/${createdForm.id}/publish`).catch(() => {});
+      const createdFormsData = createdRes?.data;
+
+      if (Array.isArray(createdFormsData)) {
+        for (const f of createdFormsData) {
+          if (f?.id) {
+            await api.post(`/feedback-forms/${f.id}/publish`).catch(() => {});
+          }
+        }
+      } else if (createdFormsData?.id) {
+        await api.post(`/feedback-forms/${createdFormsData.id}/publish`).catch(() => {});
       }
 
       // Optionally persist custom questions to bank if needed
@@ -348,7 +484,7 @@ export default function PublishForm({
       if (err.status === 422 && err.errors) {
         setFieldErrors(err.errors);
       } else {
-        setFormError(err.message || 'Failed to create and publish feedback form.');
+        setFormError(err.message || 'Failed to create and publish feedback form(s).');
       }
     } finally {
       setIsSubmitting(false);
@@ -412,8 +548,8 @@ export default function PublishForm({
     <AdminLayout
       title="Feedback Publishing"
       currentPath="#Admin/Feedback/PublishForm"
-      userRole={userRole}
-      departmentScope={isAdministrator ? 'All Departments' : getDepartmentName(assignedDepartmentCode)}
+      userRole={effectiveRole}
+      departmentScope={isAdministrator ? 'All Departments' : currentDeptName}
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -442,7 +578,7 @@ export default function PublishForm({
             </div>
           ) : (
             <span className="px-3 py-1 bg-blue-50 text-blue-800 font-extrabold text-xs rounded-lg border border-blue-200">
-              Scope: {getDepartmentName(assignedDepartmentCode)} Only
+              Scope: {currentDeptName} Only
             </span>
           )}
 
@@ -597,41 +733,270 @@ export default function PublishForm({
             </div>
           )}
 
-          <Select
-            label="Select Teaching Session Assignment *"
-            value={selectedAssignmentId}
-            onChange={(e) => handleAssignmentChange(Number(e.target.value))}
-            error={fieldErrors.teaching_assignment_id?.[0]}
-            required
-          >
-            {availableTeachingAssignments.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.subject?.subject_code} &mdash; {a.subject?.subject_name} &bull; {a.faculty?.full_name} ({a.batch?.batch_title}, Sem {a.semester_id || a.semester?.semester_no})
-              </option>
-            ))}
-          </Select>
+          {/* ========================================================================= */}
+          {/* SELECTION MODE TOGGLE */}
+          {/* ========================================================================= */}
+          <div className="space-y-2 pb-1">
+            <label className="block text-xs font-bold text-slate-800">
+              Selection Mode *
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setSelectionMode('DIVISION_SECTION')}
+                className={`p-3 rounded-xl border text-left flex items-start gap-3 transition-all ${
+                  selectionMode === 'DIVISION_SECTION'
+                    ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500/20 text-blue-900 font-semibold'
+                    : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                <Layers className={`w-5 h-5 shrink-0 mt-0.5 ${selectionMode === 'DIVISION_SECTION' ? 'text-blue-600' : 'text-slate-400'}`} />
+                <div>
+                  <div className="text-xs font-extrabold">Division / Section</div>
+                  <div className="text-[11px] opacity-80 leading-tight mt-0.5">
+                    Auto-fetch assignments by division/section and batch-create feedback forms.
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelectionMode('INDIVIDUAL')}
+                className={`p-3 rounded-xl border text-left flex items-start gap-3 transition-all ${
+                  selectionMode === 'INDIVIDUAL'
+                    ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500/20 text-blue-900 font-semibold'
+                    : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                <User className={`w-5 h-5 shrink-0 mt-0.5 ${selectionMode === 'INDIVIDUAL' ? 'text-blue-600' : 'text-slate-400'}`} />
+                <div>
+                  <div className="text-xs font-extrabold">Individual Teaching Assignment</div>
+                  <div className="text-[11px] opacity-80 leading-tight mt-0.5">
+                    Select a single faculty/subject teaching assignment manually.
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* ========================================================================= */}
+          {/* INDIVIDUAL SELECTION MODE */}
+          {/* ========================================================================= */}
+          {selectionMode === 'INDIVIDUAL' && (
+            <Select
+              label="Select Teaching Session Assignment *"
+              value={selectedAssignmentId}
+              onChange={(e) => handleAssignmentChange(Number(e.target.value))}
+              error={fieldErrors.teaching_assignment_id?.[0]}
+              required
+            >
+              {availableTeachingAssignments.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.subject?.subject_code} &mdash; {a.subject?.subject_name} &bull; {a.faculty?.full_name} ({a.batch?.batch_title}, Sem {a.semester_id || a.semester?.semester_no})
+                </option>
+              ))}
+            </Select>
+          )}
+
+          {/* ========================================================================= */}
+          {/* DIVISION / SECTION SELECTION MODE */}
+          {/* ========================================================================= */}
+          {selectionMode === 'DIVISION_SECTION' && (
+            <div className="space-y-3 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <Select
+                  label="Academic Year *"
+                  value={bulkAcademicYearId}
+                  onChange={(e) => setBulkAcademicYearId(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
+                >
+                  <option value="ALL">All Academic Years</option>
+                  {academicYears.map((ay) => (
+                    <option key={ay.id} value={ay.id}>
+                      {ay.year_code}
+                    </option>
+                  ))}
+                </Select>
+
+                <Select
+                  label="Semester"
+                  value={bulkSemesterNo}
+                  onChange={(e) => setBulkSemesterNo(e.target.value)}
+                >
+                  <option value="ALL">All Semesters</option>
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
+                    <option key={s} value={String(s)}>
+                      Semester {s}
+                    </option>
+                  ))}
+                </Select>
+
+                <Select
+                  label="Division"
+                  value={bulkDivisionId}
+                  onChange={(e) => setBulkDivisionId(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
+                >
+                  <option value="ALL">All Divisions</option>
+                  {availableDivisions.map((div) => (
+                    <option key={div.id} value={div.id}>
+                      Division {div.code}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+
+              {/* Sections Checkboxes (Optional section filter) */}
+              {availableSections.length > 0 && (
+                <div className="space-y-2 pt-2 border-t border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-800">
+                      Sections ({availableSections.length})
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleSelectAllSections}
+                      className="text-[11px] text-blue-600 hover:underline font-bold"
+                    >
+                      {selectedSectionIds.length === availableSections.length ? 'Deselect All Sections' : 'Select All Sections'}
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    {availableSections.map((sec) => {
+                      const isChecked = selectedSectionIds.length === 0 || selectedSectionIds.includes(sec.id);
+                      return (
+                        <label
+                          key={sec.id}
+                          className={`px-3 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer flex items-center gap-1.5 transition-all ${
+                            isChecked
+                              ? 'bg-blue-50 border-blue-300 text-blue-800'
+                              : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => handleToggleSection(sec.id)}
+                            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-3.5 w-3.5"
+                          />
+                          <span>Section {sec.code}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Auto-fetched Teaching Assignments preview */}
+              <div className="space-y-2 pt-3 border-t border-slate-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                      <BookOpen className="w-4 h-4 text-blue-600" />
+                      Auto-Fetched Teaching Assignments ({autoFetchedAssignments.length})
+                    </h4>
+                    <p className="text-[11px] text-slate-500">
+                      {selectedBulkAssignmentIds.length} of {autoFetchedAssignments.length} selected for feedback form creation
+                    </p>
+                  </div>
+
+                  {autoFetchedAssignments.length > 0 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSelectAllBulkAssignments}
+                      className="text-xs"
+                    >
+                      {selectedBulkAssignmentIds.length === autoFetchedAssignments.length ? 'Deselect All' : 'Select All Assignments'}
+                    </Button>
+                  )}
+                </div>
+
+                {autoFetchedAssignments.length > 0 ? (
+                  <div className="max-h-56 overflow-y-auto space-y-2 pr-1">
+                    {autoFetchedAssignments.map((a) => {
+                      const isSelected = selectedBulkAssignmentIds.includes(a.id);
+                      const alreadyExists = forms.some((f) => f.assignmentId === a.id);
+
+                      return (
+                        <div
+                          key={a.id}
+                          onClick={() => handleToggleBulkAssignment(a.id)}
+                          className={`p-3 rounded-lg border text-xs cursor-pointer flex items-start gap-3 transition-all ${
+                            isSelected
+                              ? 'bg-white border-blue-300 shadow-2xs'
+                              : 'bg-slate-100/70 border-slate-200 opacity-60'
+                          }`}
+                        >
+                          <button type="button" className="mt-0.5 shrink-0 text-blue-600">
+                            {isSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4 text-slate-400" />}
+                          </button>
+
+                          <div className="flex-1 space-y-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-bold text-slate-900">
+                                {a.subject?.subject_code} &mdash; {a.subject?.subject_name}
+                              </span>
+                              {alreadyExists && (
+                                <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 rounded border border-amber-200 shrink-0">
+                                  Form Exists
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-slate-600">
+                              <span>Faculty: <strong className="text-slate-800">{a.faculty?.full_name || 'Unassigned'}</strong></span>
+                              <span>&bull;</span>
+                              <span>Batch: {a.batch?.batch_title || 'N/A'} (Sem {a.semester?.semester_no || a.semester_id || 'N/A'})</span>
+                              {a.division && (
+                                <>
+                                  <span>&bull;</span>
+                                  <span className="font-semibold text-blue-700">
+                                    Div {a.division.division_code || a.division.id}
+                                    {a.section?.section_code ? ` • Sec ${a.section.section_code}` : ''}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="p-6 text-center text-slate-400 bg-white border border-dashed border-slate-200 rounded-lg">
+                    <Info className="w-6 h-6 mx-auto mb-1 text-slate-300" />
+                    <p className="text-xs font-semibold text-slate-600">No teaching assignments match the selected division/section filters</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">Try selecting a different Academic Year, Semester, or Division.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <Input
-            label="Feedback Form Survey Title *"
+            label="Feedback Form Survey Title Prefix / Base Title *"
             value={formTitle}
             onChange={(e) => setFormTitle(e.target.value)}
             error={fieldErrors.title?.[0]}
             required
           />
 
-          <Select
-            label="Academic Year *"
-            value={selectedAcademicYearId}
-            onChange={(e) => setSelectedAcademicYearId(Number(e.target.value))}
-            error={fieldErrors.academic_year_id?.[0]}
-            required
-          >
-            {academicYears.map((ay) => (
-              <option key={ay.id} value={ay.id}>
-                {ay.year_code}
-              </option>
-            ))}
-          </Select>
+          {selectionMode === 'INDIVIDUAL' && (
+            <Select
+              label="Academic Year *"
+              value={selectedAcademicYearId}
+              onChange={(e) => setSelectedAcademicYearId(Number(e.target.value))}
+              error={fieldErrors.academic_year_id?.[0]}
+              required
+            >
+              {academicYears.map((ay) => (
+                <option key={ay.id} value={ay.id}>
+                  {ay.year_code}
+                </option>
+              ))}
+            </Select>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input

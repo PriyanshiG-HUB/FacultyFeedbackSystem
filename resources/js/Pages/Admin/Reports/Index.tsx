@@ -8,14 +8,21 @@ import { Modal } from '../../../Components/ui/Modal';
 import { Input, Select } from '../../../Components/ui/Input';
 import { FileText, Download, Send, Plus, RefreshCw, AlertCircle, Filter } from 'lucide-react';
 import { getDepartmentName } from '../../../utils/departmentScope';
-import { api } from '../../../lib/api';
+import { api, getStoredUserInfo } from '../../../lib/api';
 
 export default function Index({
-  userRole = 'admin',
+  userRole,
   assignedDepartmentCode = null,
 }: Partial<ReportsIndexProps> & { userRole?: 'admin' | 'hod'; assignedDepartmentCode?: string | null }) {
-  const isAdministrator = userRole === 'admin';
-  const initialDeptFilter = !isAdministrator && assignedDepartmentCode ? assignedDepartmentCode.toUpperCase() : 'ALL';
+  const storedUser = getStoredUserInfo();
+  const isHodUser = userRole === 'hod' || storedUser?.role === 'HOD' || storedUser?.canonical_role === 'HOD' || !!storedUser?.is_hod;
+  const effectiveRole: 'admin' | 'hod' = isHodUser ? 'hod' : 'admin';
+  const isAdministrator = effectiveRole === 'admin';
+
+  const effectiveDeptCode = assignedDepartmentCode || storedUser?.hod_department_code || storedUser?.faculty?.department?.department_code || null;
+  const currentDeptName = storedUser?.faculty?.department?.department_name || getDepartmentName(effectiveDeptCode) || 'Department Scope';
+
+  const initialDeptFilter = !isAdministrator && effectiveDeptCode ? effectiveDeptCode.toUpperCase() : 'ALL';
   const [deptFilter, setDeptFilter] = useState<string>(initialDeptFilter);
 
   const [reports, setReports] = useState<ReportItem[]>([]);
@@ -183,12 +190,12 @@ export default function Index({
     <AdminLayout
       title="Department Evaluation Reports"
       currentPath="#Admin/Reports/Index"
-      userRole={userRole}
-      departmentScope={isAdministrator ? 'All Departments' : getDepartmentName(assignedDepartmentCode)}
+      userRole={effectiveRole}
+      departmentScope={isAdministrator ? 'All Departments' : currentDeptName}
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Evaluation & Accreditation Reports</h2>
+          <h2 className="text-xl font-bold text-slate-900">Evaluation &amp; Accreditation Reports</h2>
           <p className="text-xs text-slate-500">
             Official department evaluation reports ready for publication and faculty download
           </p>
@@ -213,7 +220,7 @@ export default function Index({
             </div>
           ) : (
             <span className="px-3 py-1 bg-blue-50 text-blue-800 font-extrabold text-xs rounded-lg border border-blue-200">
-              Scope: {getDepartmentName(assignedDepartmentCode)} Only
+              Scope: {currentDeptName} Only
             </span>
           )}
 

@@ -124,10 +124,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/feedback-forms/{feedbackForm}/publish', [FeedbackFormController::class, 'publish']);
         Route::post('/feedback-forms/{feedbackForm}/unpublish', [FeedbackFormController::class, 'unpublish']);
         Route::apiResource('reports', ReportController::class);
-    });
 
-    // Unrestricted Admin Only Routes
-    Route::middleware(CheckRole::class . ':ADMIN,SUPER_ADMIN')->group(function () {
         // Question Bank & Categories
         Route::apiResource('feedback-question-categories', FeedbackQuestionCategoryController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::get('/custom-feedback-questions/template', [\App\Http\Controllers\Api\CustomFeedbackQuestionController::class, 'template']);
@@ -135,12 +132,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/custom-feedback-questions/import', [\App\Http\Controllers\Api\CustomFeedbackQuestionController::class, 'import']);
         Route::apiResource('custom-feedback-questions', \App\Http\Controllers\Api\CustomFeedbackQuestionController::class)->only(['index', 'store', 'destroy']);
 
-        // Feedback Moderation / Exclusion
+        // Feedback Moderation / Exclusion (Accessible to ADMIN, SUPER_ADMIN, HOD)
         Route::get('/feedback/moderation', [FeedbackModerationController::class, 'index']);
         Route::post('/feedback/responses/{response}/exclude', [FeedbackModerationController::class, 'exclude']);
         Route::post('/feedback/responses/{response}/restore', [FeedbackModerationController::class, 'restore']);
 
-        // System Settings & Data Imports
+        // System Settings & Data Imports (Accessible to ADMIN, SUPER_ADMIN, HOD)
         Route::get('/system-settings', [SystemSettingsController::class, 'show']);
         Route::put('/system-settings/{systemSettings}', [SystemSettingsController::class, 'update']);
         Route::put('/system-settings', [SystemSettingsController::class, 'update']);

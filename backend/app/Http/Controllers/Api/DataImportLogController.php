@@ -37,7 +37,7 @@ class DataImportLogController extends Controller
     {
         $validated = $request->validate([
             'file_name' => ['required', 'string', 'max:255'],
-            'import_type' => ['required', 'in:STUDENT_ROSTER,FACULTY_SESSION_MAPPING,HISTORIC_FEEDBACK_METRICS,OTHER'],
+            'import_type' => ['required', 'string', 'max:100'],
             'department_id' => ['nullable', 'integer', 'exists:department,id'],
             'record_count' => ['nullable', 'integer', 'min:0'],
             'status' => ['required', 'in:SUCCESS,FAILED,PROCESSING'],

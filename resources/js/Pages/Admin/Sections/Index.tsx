@@ -92,7 +92,7 @@ export default function Index({
           division: s.division?.division_code || 'Division 1',
           batch: s.division?.batch?.batch_title || '2022-26',
           currentSemester: s.division?.semester?.semester_no || s.division?.semester_id || 7,
-          department: s.division?.department?.department_name || s.division?.department?.department_code || 'Information Technology',
+          department: s.division?.department?.department_name || s.division?.department?.department_code || 'Department Scope',
           studentCount: s.students_count || 0,
           status: s.status === 'INACTIVE' ? 'Inactive' : 'Active',
         }));

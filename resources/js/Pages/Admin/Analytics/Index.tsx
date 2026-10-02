@@ -16,31 +16,38 @@ import {
 
 import { getDepartmentName, ADMIN_DEPARTMENT_OPTIONS } from '../../../utils/departmentScope';
 import { Filter } from 'lucide-react';
+import { getStoredUserInfo } from '../../../lib/api';
 
 export default function Index({
-  userRole = 'admin',
+  userRole,
   assignedDepartmentCode = null,
-  departmentName = 'Computer Engineering',
+  departmentName,
   departmentRatings,
   topFaculty,
   scoreDistribution,
 }: AnalyticsIndexProps & { userRole?: 'admin' | 'hod'; assignedDepartmentCode?: string | null }) {
-  const isAdministrator = userRole === 'admin';
+  const storedUser = getStoredUserInfo();
+  const isHodUser = userRole === 'hod' || storedUser?.role === 'HOD' || storedUser?.canonical_role === 'HOD' || !!storedUser?.is_hod;
+  const effectiveRole: 'admin' | 'hod' = isHodUser ? 'hod' : 'admin';
+  const isAdministrator = effectiveRole === 'admin';
+
+  const userHodDeptName = storedUser?.faculty?.department?.department_name || getDepartmentName(assignedDepartmentCode || storedUser?.hod_department_code);
+
   const [selectedDeptCode, setSelectedDeptCode] = React.useState<string>(
-    assignedDepartmentCode || 'ALL'
+    assignedDepartmentCode || storedUser?.hod_department_code || 'ALL'
   );
 
   const currentDeptName = isAdministrator
     ? selectedDeptCode === 'ALL'
       ? 'All Departments'
       : getDepartmentName(selectedDeptCode)
-    : departmentName || getDepartmentName(assignedDepartmentCode);
+    : departmentName || userHodDeptName || getDepartmentName(assignedDepartmentCode) || 'Department Scope';
 
   return (
     <AdminLayout
       title="Analytics & Insights"
       currentPath="#Admin/Analytics/Index"
-      userRole={userRole}
+      userRole={effectiveRole}
       departmentScope={currentDeptName}
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -71,7 +78,7 @@ export default function Index({
       </div>
 
       {/* Multi-parameter Subject Comparison Chart */}
-      <Card title={`Subject Parameter Scores Comparison (${departmentName})`} subtitle="Scores breakdown out of 5.0 across key evaluation categories">
+      <Card title={`Subject Parameter Scores Comparison (${currentDeptName})`} subtitle="Scores breakdown out of 5.0 across key evaluation categories">
         <div className="h-80 w-full pt-2">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={departmentRatings}>

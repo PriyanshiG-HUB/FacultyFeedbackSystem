@@ -13,7 +13,11 @@ export interface ApiResponse<T = any> {
 export interface UserAccountInfo {
   id: number;
   email: string;
-  role: 'SUPER_ADMIN' | 'ADMIN' | 'FACULTY' | 'STUDENT';
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'FACULTY' | 'HOD' | 'STUDENT';
+  canonical_role?: string;
+  is_hod?: boolean;
+  hod_department_id?: number | null;
+  hod_department_code?: string | null;
   status: string;
   faculty?: any;
   student?: any;
@@ -168,7 +172,7 @@ export async function apiRequest<T = any>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const timeoutMs = options.timeoutMs ?? 15000;
+  const timeoutMs = options.timeoutMs ?? 60000;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -239,14 +243,14 @@ export async function apiRequest<T = any>(
 export const api = {
   get: <T = any>(endpoint: string, options?: RequestInit & { timeoutMs?: number; params?: Record<string, any> }) =>
     apiRequest<T>(endpoint, { method: 'GET', ...options }),
-  post: <T = any>(endpoint: string, body?: any, options?: RequestInit) =>
+  post: <T = any>(endpoint: string, body?: any, options?: RequestInit & { timeoutMs?: number; params?: Record<string, any> }) =>
     apiRequest<T>(endpoint, { method: 'POST', body, ...options }),
-  postForm: <T = any>(endpoint: string, formData: FormData, options?: RequestInit) =>
+  postForm: <T = any>(endpoint: string, formData: FormData, options?: RequestInit & { timeoutMs?: number; params?: Record<string, any> }) =>
     apiRequest<T>(endpoint, { method: 'POST', body: formData, ...options }),
-  put: <T = any>(endpoint: string, body?: any, options?: RequestInit) =>
+  put: <T = any>(endpoint: string, body?: any, options?: RequestInit & { timeoutMs?: number; params?: Record<string, any> }) =>
     apiRequest<T>(endpoint, { method: 'PUT', body, ...options }),
-  patch: <T = any>(endpoint: string, body?: any, options?: RequestInit) =>
+  patch: <T = any>(endpoint: string, body?: any, options?: RequestInit & { timeoutMs?: number; params?: Record<string, any> }) =>
     apiRequest<T>(endpoint, { method: 'PATCH', body, ...options }),
-  delete: <T = any>(endpoint: string, options?: RequestInit) =>
+  delete: <T = any>(endpoint: string, options?: RequestInit & { timeoutMs?: number; params?: Record<string, any> }) =>
     apiRequest<T>(endpoint, { method: 'DELETE', ...options }),
 };
