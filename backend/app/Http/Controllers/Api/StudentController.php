@@ -70,17 +70,27 @@ class StudentController extends Controller
         }
 
         $student = DB::transaction(function () use ($data) {
-            // Student credentials: password defaults to student ID / roll number (e.g. 24IT019)
-            $defaultPassword = $data['roll_no'] ?? $data['enrollment_no'] ?? 'password123';
-            $password = $data['password'] ?? $defaultPassword;
+            $rollNo = trim($data['roll_no'] ?? $data['enrollment_no'] ?? '');
+            $email = strtolower($rollNo) . '@college.edu';
+            $password = $data['password'] ?? 'studentit';
 
-            $userAccount = UserAccount::create([
-                'email' => $data['email'],
-                'password_hash' => Hash::make($password),
-                'role' => 'STUDENT',
-                'status' => 'ACTIVE',
-            ]);
+            $userAccount = UserAccount::where('email', $email)->first();
+            if (!$userAccount) {
+                $userAccount = UserAccount::create([
+                    'email' => $email,
+                    'password_hash' => Hash::make($password),
+                    'role' => 'STUDENT',
+                    'status' => 'ACTIVE',
+                ]);
+            } else {
+                $userAccount->update([
+                    'password_hash' => Hash::make($password),
+                    'role' => 'STUDENT',
+                    'status' => 'ACTIVE',
+                ]);
+            }
 
+            $data['email'] = $email;
             $data['user_account_id'] = $userAccount->id;
             $data['enrollment_no'] = $data['enrollment_no'] ?? 'ENR-' . strtoupper(substr(md5((string) microtime()), 0, 6));
             unset($data['password']);

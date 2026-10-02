@@ -593,7 +593,7 @@ class DatasetImportRegistry
         }
 
         $now = now()->toDateTimeString();
-        $defaultPasswordHash = Hash::make('Student@123');
+        $defaultPasswordHash = Hash::make('studentit');
 
         // Pre-fetch reference maps
         $departmentsMap = Department::all()->keyBy(fn($d) => strtoupper(trim($d->department_code)));
@@ -710,7 +710,7 @@ class DatasetImportRegistry
                 $sec = $sectionsMap->get($secKey);
             }
 
-            $email = !empty($row['email']) ? strtolower(trim($row['email'])) : strtolower($rollNo) . '@student.college.edu';
+            $email = strtolower($rollNo) . '@college.edu';
             $statusStr = strtoupper(trim($row['status'] ?? 'ACTIVE'));
             $status = in_array($statusStr, ['ACTIVE', 'INACTIVE', 'GRADUATED', 'WITHDRAWN']) ? $statusStr : 'ACTIVE';
 
@@ -751,6 +751,15 @@ class DatasetImportRegistry
                     'created_at' => $now,
                     'updated_at' => $now,
                 ];
+            } elseif ($existingUsersMap->has($em)) {
+                $existingUser = $existingUsersMap->get($em);
+                if ($existingUser) {
+                    $existingUser->update([
+                        'password_hash' => $defaultPasswordHash,
+                        'role' => 'STUDENT',
+                        'status' => 'ACTIVE',
+                    ]);
+                }
             }
         }
 
