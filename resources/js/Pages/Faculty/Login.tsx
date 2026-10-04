@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { FacultyLoginProps } from '../../types';
-import { Card } from '../../Components/ui/Card';
 import { Input } from '../../Components/ui/Input';
 import { Button } from '../../Components/ui/Button';
 import { api, setAuthToken, setStoredUserInfo, removeAuthToken } from '../../lib/api';
 import Link from '../../Components/shared/Link';
-import { GraduationCap, LogIn, AlertCircle } from 'lucide-react';
+import { LogIn, AlertCircle, GraduationCap } from 'lucide-react';
 
 export default function Login({ status }: FacultyLoginProps) {
   const [email, setEmail] = useState('');
@@ -53,82 +52,104 @@ export default function Login({ status }: FacultyLoginProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50/60 via-slate-50 to-emerald-50/60 text-slate-800 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Glow ambient */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-teal-200/40 rounded-full blur-3xl pointer-events-none" />
-
-      <div className="w-full max-w-md space-y-6 relative z-10">
-        <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-900 flex items-center justify-center mx-auto shadow-xl shadow-indigo-600/20">
-            <GraduationCap className="w-6 h-6 text-white" />
+    <div className="login-page font-sans flex items-center justify-center p-4">
+      
+      {/* Main Login Panel */}
+      <div className="login-content w-full max-w-[480px] my-4 bg-white/[0.96] border border-white/80 rounded-[20px] p-8 shadow-[0_20px_50px_rgba(1,7,54,0.20)]">
+        
+        <div className="text-center mb-6">
+          {/* Official Logo */}
+          <img 
+            src="/charusat-logo.jpg" 
+            alt="CHARUSAT Logo" 
+            className="w-40 mx-auto object-contain mb-4" 
+          />
+          
+          <h1 className="text-[22px] font-semibold font-heading text-[#0D1C42] tracking-tight leading-tight mb-1">
+            Faculty Feedback<br/>Management System
+          </h1>
+          <p className="text-[13px] text-slate-600 font-medium mb-4">
+            Charotar University of Science and Technology
+          </p>
+          
+          <div className="pt-4 border-t border-slate-200">
+            <p className="text-[14px] text-[#0D1C42] font-semibold">Sign in to your account</p>
           </div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">University Portal Login</h1>
-          <p className="text-xs text-slate-500 font-medium">Sign in with your institutional email or university roll number.</p>
         </div>
 
         {status && (
-          <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg text-xs text-center font-bold">
+          <div className="p-3 mb-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg text-[13px] text-center font-medium">
             {status}
           </div>
         )}
 
         {errorMessage && (
-          <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs flex items-center gap-2.5 font-medium">
-            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+          <div className="p-3 mb-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-[13px] flex items-start gap-2 font-medium">
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
             <span>{errorMessage}</span>
           </div>
         )}
 
-        <Card className="shadow-lg border-slate-200">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="Institutional Email or Roll Number"
-              type="text"
-              placeholder="e.g. admin@college.edu or 24IT019"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              error={fieldErrors.email?.[0]}
-              required
-            />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            label="EMAIL / COLLEGE ID"
+            type="text"
+            placeholder=""
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            error={fieldErrors.email?.[0]}
+            className="bg-white border-[#D6DCE8] focus:border-[#22396F] focus:ring-[#22396F] rounded-lg text-[14px] h-[48px]"
+            required
+          />
 
-            <Input
-              label="Account Password"
-              type="password"
-              placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              error={fieldErrors.password?.[0]}
-              required
-            />
+          <Input
+            label="PASSWORD"
+            type="password"
+            placeholder=""
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            error={fieldErrors.password?.[0]}
+            className="bg-white border-[#D6DCE8] focus:border-[#22396F] focus:ring-[#22396F] rounded-lg text-[14px] h-[48px]"
+            required
+          />
 
-            <div className="flex items-center justify-between text-xs">
-              <label className="flex items-center gap-2 cursor-pointer text-slate-600 font-medium">
-                <input
-                  type="checkbox"
-                  checked={remember}
-                  onChange={(e) => setRemember(e.target.checked)}
-                  className="rounded bg-white border-slate-300 text-teal-600 focus:ring-teal-500"
-                />
-                <span>Remember session</span>
-              </label>
-              <a href="#" className="text-teal-700 font-semibold hover:underline">
-                Forgot Password?
-              </a>
-            </div>
+          <div className="flex items-center justify-between pt-1">
+            <label className="flex items-center gap-2 cursor-pointer text-slate-600">
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+                className="rounded bg-white border-slate-300 text-[#22396F] focus:ring-[#22396F]"
+              />
+              <span className="text-[13px]">Remember session</span>
+            </label>
+            <a href="#" className="text-[#22396F] text-[13px] hover:underline">
+              Forgot password?
+            </a>
+          </div>
 
-            <Button
-              id="faculty-login-submit-button"
-              type="submit"
-              variant="primary"
-              className="w-full bg-indigo-600 hover:bg-indigo-700 border-indigo-600 focus:ring-indigo-500 shadow-indigo-600/20"
-              size="lg"
-              disabled={isSubmitting}
-            >
-              <LogIn className="w-4 h-4 mr-2" />
-              {isSubmitting ? 'Authenticating...' : 'Sign In'}
-            </Button>
-          </form>
-        </Card>
+          <Button
+            id="faculty-login-submit-button"
+            type="submit"
+            variant="primary"
+            className="w-full bg-[#22396F] hover:bg-[#0D1C42] text-white border-none rounded-lg transition-colors h-[48px] font-medium mt-2 text-[15px]"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Authenticating...' : 'SIGN IN'}
+          </Button>
+        </form>
+
+        {/* Institutional Cream Accent Panel */}
+        <div className="mt-6 p-3 bg-[#FCF1D0] rounded-lg flex items-center gap-3">
+          <div className="text-lg">🎓</div>
+          <div>
+            <p className="text-[13px] font-semibold text-[#0D1C42]">College credentials</p>
+            <p className="text-[12px] text-[#22396F] mt-0.5">
+              Use your institutional login
+            </p>
+          </div>
+        </div>
+
       </div>
     </div>
   );

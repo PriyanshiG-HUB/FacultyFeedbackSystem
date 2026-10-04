@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from './Link';
+import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard,
   Building2,
@@ -28,6 +29,8 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentPath, isCollapsed = false, onToggleCollapse }) => {
+  const { user } = useAuth();
+
   const menuGroups = [
     {
       title: 'OVERVIEW',
@@ -70,45 +73,64 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath, isCollapsed = fal
     },
   ];
 
+  const roleText = user?.role === 'SUPER_ADMIN' ? 'Super Admin' 
+                 : user?.role === 'ADMIN' ? 'Administrator'
+                 : user?.role === 'HOD' ? 'Head of Department'
+                 : user?.role === 'FACULTY' ? 'Faculty Member'
+                 : 'Staff';
+
+  const deptText = user?.faculty?.department?.name || '';
+
   return (
     <aside
       className={`${
         isCollapsed ? 'w-20' : 'w-64'
-      } bg-[#1e3a8a] border-r border-blue-900/60 flex flex-col h-[calc(100vh-41px)] fixed left-0 top-[41px] z-30 shadow-xl transition-all duration-300 ease-in-out`}
+      } bg-brand-dark flex flex-col h-screen fixed left-0 top-0 z-50 shadow-2xl transition-all duration-300 ease-in-out border-r border-brand-navy`}
     >
       {/* Brand Header & Toggle */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-blue-900/60 bg-[#162a66]">
-        <div className={`flex items-center gap-3 overflow-hidden ${isCollapsed ? 'justify-center w-full' : ''}`}>
-          <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center shadow-md shadow-blue-950/40 shrink-0">
-            <GraduationCap className="w-5 h-5 text-blue-800" />
+      <div className="flex flex-col border-b border-brand-navy/60 bg-brand-dark pb-4 relative">
+        <div className="h-16 flex items-center justify-between px-4">
+          <div className="flex-1 flex justify-center">
+            <img src="/charusat-logo.jpg" alt="CHARUSAT Logo" className={`object-contain transition-all duration-300 ${isCollapsed ? 'h-10 w-10 rounded-full' : 'h-14 mt-4 bg-white p-1 rounded-sm shadow-md shadow-brand-navy/50'}`} />
           </div>
-          {!isCollapsed && (
-            <div className="truncate">
-              <h1 className="font-extrabold text-sm text-white tracking-tight leading-tight truncate">Faculty Feedback</h1>
-              <span className="text-[10px] font-extrabold tracking-wider text-blue-200 uppercase block truncate">IT HOD Portal</span>
-            </div>
+          {/* Sidebar Toggle Button */}
+          {onToggleCollapse && !isCollapsed && (
+            <button
+              onClick={onToggleCollapse}
+              title="Collapse sidebar"
+              className="absolute right-2 top-4 p-1.5 rounded-lg text-slate-400 hover:text-brand-accent hover:bg-brand-navy/80 transition-colors shrink-0"
+            >
+              <PanelLeftClose className="w-4 h-4" />
+            </button>
           )}
         </div>
 
-        {/* Sidebar Toggle Button */}
-        {onToggleCollapse && !isCollapsed && (
-          <button
-            onClick={onToggleCollapse}
-            title="Collapse sidebar"
-            className="p-1.5 rounded-lg text-blue-200 hover:text-white hover:bg-blue-800/80 transition-colors shrink-0"
-          >
-            <PanelLeftClose className="w-4 h-4" />
-          </button>
+        {!isCollapsed && (
+          <div className="flex flex-col items-center mt-3 px-4 text-center">
+            <h1 className="font-heading font-extrabold text-brand-accent tracking-wide leading-tight text-sm uppercase">
+              CHARUSAT
+            </h1>
+            <h2 className="text-[11px] font-medium text-white/90 mt-0.5">
+              Faculty Feedback System
+            </h2>
+            
+            <div className="mt-4 w-full bg-brand-navy/40 border border-brand-primary/30 rounded-sm p-2 flex flex-col items-center">
+              <span className="text-[10px] uppercase font-semibold tracking-widest text-brand-accent/70">{roleText}</span>
+              {deptText && (
+                <span className="text-xs font-bold text-white truncate max-w-full mt-0.5" title={deptText}>{deptText}</span>
+              )}
+            </div>
+          </div>
         )}
       </div>
 
-      {/* Collapsed Rail Toggle Button (when collapsed) */}
+      {/* Collapsed Rail Toggle Button */}
       {onToggleCollapse && isCollapsed && (
-        <div className="p-2 border-b border-blue-900/60 flex justify-center bg-[#162a66]">
+        <div className="p-2 border-b border-brand-navy flex justify-center bg-brand-dark">
           <button
             onClick={onToggleCollapse}
             title="Expand sidebar"
-            className="p-1.5 rounded-lg text-white hover:bg-blue-800/80 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-brand-accent hover:bg-brand-navy transition-colors"
           >
             <PanelLeftOpen className="w-5 h-5" />
           </button>
@@ -116,13 +138,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath, isCollapsed = fal
       )}
 
       {/* Navigation Links */}
-      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6 scrollbar-thin scrollbar-thumb-blue-600">
+      <div className="flex-1 overflow-y-auto px-3 py-6 space-y-8 scrollbar-thin scrollbar-thumb-brand-navy">
         {menuGroups.map((group, gIdx) => (
-          <div key={gIdx} className="space-y-1">
+          <div key={gIdx} className="space-y-2">
             {!isCollapsed && (
-              <h3 className="px-3 text-[10px] font-extrabold text-blue-200/90 uppercase tracking-widest">{group.title}</h3>
+              <h3 className="px-3 text-[11px] font-heading font-bold text-brand-accent/60 uppercase tracking-[0.2em]">
+                {group.title}
+              </h3>
             )}
-            <nav className="space-y-1 mt-1.5">
+            <nav className="space-y-1">
               {group.items.map((item) => {
                 const Icon = item.icon;
                 const itemPath = item.href.replace('#', '');
@@ -135,14 +159,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath, isCollapsed = fal
                     href={item.href}
                     title={isCollapsed ? item.name : undefined}
                     className={`flex items-center gap-3 ${
-                      isCollapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2'
-                    } rounded-xl text-xs font-semibold transition-all ${
+                      isCollapsed ? 'justify-center px-0 py-3' : 'px-3 py-2.5'
+                    } rounded-lg text-sm font-medium transition-all ${
                       isActive
-                        ? 'bg-white text-blue-950 font-extrabold shadow-md shadow-blue-950/30 border border-white/60'
-                        : 'text-blue-100 hover:text-white hover:bg-blue-800/80'
+                        ? 'bg-brand-primary text-white border border-brand-primary/50 shadow-sm'
+                        : 'text-slate-300 hover:text-white hover:bg-brand-navy border border-transparent'
                     }`}
                   >
-                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-blue-700' : 'text-blue-200 group-hover:text-white'}`} />
+                    <Icon className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-brand-accent' : 'text-slate-400 group-hover:text-brand-accent/70'}`} />
                     {!isCollapsed && <span className="truncate">{item.name}</span>}
                   </Link>
                 );
@@ -153,38 +177,38 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath, isCollapsed = fal
       </div>
 
       {/* Portal Switcher Footnote */}
-      <div className="p-3 border-t border-blue-900/60 bg-[#162a66]">
+      <div className="p-4 border-t border-brand-navy bg-brand-dark">
         {!isCollapsed ? (
-          <div className="bg-blue-950/60 rounded-xl p-3 border border-blue-800/80 text-xs">
-            <p className="text-blue-200 font-semibold text-[11px]">Switch Role Portals</p>
-            <div className="flex gap-2 mt-2">
+          <div className="bg-brand-navy/50 rounded-lg p-3 border border-brand-navy">
+            <p className="text-slate-400 font-medium text-xs mb-2">Switch Portal</p>
+            <div className="flex gap-2">
               <Link
                 href="#Faculty/MyReports/Index"
-                className="flex-1 text-center py-1.5 bg-blue-800/80 hover:bg-blue-700 text-blue-100 rounded-lg text-[11px] font-semibold border border-blue-700/60 transition-colors"
+                className="flex-1 text-center py-2 bg-brand-navy hover:bg-brand-primary text-slate-200 hover:text-white rounded text-xs font-medium transition-colors border border-brand-primary/30"
               >
                 Faculty
               </Link>
               <Link
                 href="#Student/Identify"
-                className="flex-1 text-center py-1.5 bg-white hover:bg-blue-50 text-blue-950 font-extrabold rounded-lg text-[11px] border border-white/60 transition-colors"
+                className="flex-1 text-center py-2 bg-brand-accent hover:brightness-95 text-brand-dark font-semibold rounded text-xs transition-colors"
               >
                 Student
               </Link>
             </div>
           </div>
         ) : (
-          <div className="flex flex-col gap-2 items-center py-1">
+          <div className="flex flex-col gap-2 items-center">
             <Link
               href="#Faculty/MyReports/Index"
               title="Faculty Portal"
-              className="p-2 bg-blue-800 hover:bg-blue-700 text-blue-100 rounded-lg text-[10px] font-bold border border-blue-700/60"
+              className="w-10 h-10 flex items-center justify-center bg-brand-navy hover:bg-brand-primary text-slate-200 hover:text-white rounded-lg text-xs font-medium transition-colors border border-brand-primary/30"
             >
               F
             </Link>
             <Link
               href="#Student/Identify"
               title="Student Portal"
-              className="p-2 bg-white hover:bg-blue-50 text-blue-950 rounded-lg text-[10px] font-extrabold border border-white/60"
+              className="w-10 h-10 flex items-center justify-center bg-brand-accent hover:brightness-95 text-brand-dark rounded-lg text-xs font-bold transition-colors"
             >
               S
             </Link>
@@ -194,4 +218,3 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath, isCollapsed = fal
     </aside>
   );
 };
-

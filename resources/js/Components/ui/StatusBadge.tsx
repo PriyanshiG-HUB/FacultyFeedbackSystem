@@ -26,7 +26,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, variant, class
     success: 'bg-emerald-50 text-emerald-700 border-emerald-200/80 font-semibold',
     warning: 'bg-amber-50 text-amber-700 border-amber-200/80 font-semibold',
     danger: 'bg-rose-50 text-rose-700 border-rose-200/80 font-semibold',
-    info: 'bg-indigo-50 text-indigo-700 border-indigo-200/80 font-semibold',
+    info: 'bg-brand-50 text-brand-navy border-indigo-200/80 font-semibold',
     neutral: 'bg-slate-100 text-slate-700 border-slate-200 font-semibold',
   };
 
@@ -43,7 +43,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, variant, class
             : computedVariant === 'danger'
             ? 'bg-rose-500'
             : computedVariant === 'info'
-            ? 'bg-indigo-500'
+            ? 'bg-brand-primary'
             : 'bg-slate-500'
         }`}
       />

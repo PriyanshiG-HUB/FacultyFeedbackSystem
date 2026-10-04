@@ -495,7 +495,7 @@ export default function Index({ recentImports }: FeedbackImportIndexProps) {
     {
       header: 'Dataset',
       accessor: (row) => (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-extrabold bg-blue-50 text-blue-800 border border-blue-200/80">
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-extrabold bg-brand-50 text-blue-800 border border-blue-200/80">
           {row.dataset || 'Dataset'}
         </span>
       ),
@@ -528,7 +528,7 @@ export default function Index({ recentImports }: FeedbackImportIndexProps) {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+          <h2 className="text-xl font-bold font-heading text-slate-900 tracking-tight flex items-center gap-2">
             <Database className="w-5 h-5 text-blue-800" />
             Data Import Center
           </h2>
@@ -537,7 +537,7 @@ export default function Index({ recentImports }: FeedbackImportIndexProps) {
           </p>
         </div>
         <div className="flex items-center gap-2 text-xs text-slate-500 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-2xs font-medium">
-          <Layers className="w-4 h-4 text-blue-700" />
+          <Layers className="w-4 h-4 text-brand-navy" />
           <span>Available Datasets: <strong className="text-slate-900">{datasets.length}</strong></span>
         </div>
       </div>
@@ -567,7 +567,7 @@ export default function Index({ recentImports }: FeedbackImportIndexProps) {
           </div>
           <ArrowRight className="w-4 h-4 text-slate-300 shrink-0" />
           <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold transition-all ${
-            validationReport ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-400'
+            validationReport ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-400'
           }`}>
             <span className="w-5 h-5 rounded-full bg-white/20 text-white flex items-center justify-center text-[10px]">4</span>
             <span>Validate & Preview</span>
@@ -600,7 +600,7 @@ export default function Index({ recentImports }: FeedbackImportIndexProps) {
                 onClick={() => handleSelectDataset(ds.key)}
                 className={`cursor-pointer rounded-xl border p-3.5 transition-all relative flex flex-col justify-between ${
                   isSelected
-                    ? 'border-blue-700 bg-blue-50/50 shadow-md ring-2 ring-blue-700/20'
+                    ? 'border-brand-navy bg-brand-50/50 shadow-md ring-2 ring-brand-navy/20'
                     : 'border-slate-200 bg-white hover:border-blue-400 hover:bg-slate-50/80 shadow-2xs'
                 }`}
               >
@@ -627,13 +627,13 @@ export default function Index({ recentImports }: FeedbackImportIndexProps) {
 
                   {/* Column counts */}
                   <div className="flex items-center justify-between text-[11px] font-medium pt-2 border-t border-slate-100">
-                    <span className="text-slate-600">Required: <strong className="text-blue-700">{reqC}</strong></span>
+                    <span className="text-slate-600">Required: <strong className="text-brand-navy">{reqC}</strong></span>
                     <span className="text-slate-400">Optional: <strong>{optC}</strong></span>
                   </div>
                 </div>
 
                 {isSelected && (
-                  <div className="absolute -top-2 -right-2 bg-blue-700 text-white rounded-full p-1 shadow-sm">
+                  <div className="absolute -top-2 -right-2 bg-brand-navy text-white rounded-full p-1 shadow-sm">
                     <Check className="w-3 h-3" />
                   </div>
                 )}
@@ -728,14 +728,14 @@ export default function Index({ recentImports }: FeedbackImportIndexProps) {
 
       {/* SECTION 3: Upload File & Validation */}
       <Card title={`Step 3 — Upload ${selectedDataset.name} Data File`}>
-        <div className="border-2 border-dashed border-slate-300 hover:border-blue-600 rounded-xl p-8 text-center transition-all bg-slate-50/60 space-y-4">
-          <div className="w-12 h-12 rounded-full bg-blue-50 border border-blue-200 text-blue-700 flex items-center justify-center mx-auto shadow-2xs">
+        <div className="border-2 border-dashed border-slate-300 hover:border-brand-primary rounded-xl p-8 text-center transition-all bg-slate-50/60 space-y-4">
+          <div className="w-12 h-12 rounded-full bg-brand-50 border border-blue-200 text-brand-navy flex items-center justify-center mx-auto shadow-2xs">
             <UploadCloud className="w-6 h-6" />
           </div>
           <div>
             <p className="text-sm font-semibold text-slate-700">
               Drag & drop your completed {selectedDataset.name} CSV or Excel file here, or{' '}
-              <label className="text-blue-700 hover:text-blue-800 font-bold underline cursor-pointer">
+              <label className="text-brand-navy hover:text-blue-800 font-bold underline cursor-pointer">
                 browse files
                 <input type="file" accept=".csv, .xlsx" className="hidden" onChange={handleFileChange} />
               </label>

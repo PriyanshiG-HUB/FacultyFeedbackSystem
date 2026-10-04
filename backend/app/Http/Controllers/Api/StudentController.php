@@ -27,28 +27,31 @@ class StudentController extends Controller
         if ($hodDeptId !== null) {
             $query->where('department_id', $hodDeptId);
         } elseif ($request->has('department_id')) {
-            $query->where('department_id', $request->get('department_id'));
+            $query->where('department_id', $request->input('department_id'));
         }
 
-        if ($request->has('batch_id')) {
-            $query->where('batch_id', $request->get('batch_id'));
-        }
-        if ($request->has('division_id')) {
-            $query->where('division_id', $request->get('division_id'));
-        }
-        if ($request->has('section_id')) {
-            $query->where('section_id', $request->get('section_id'));
-        }
+if ($request->has('batch_id')) {
+    $query->where('batch_id', $request->input('batch_id'));
+}
 
-        if ($request->has('search')) {
-            $search = $request->get('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('full_name', 'like', "%{$search}%")
-                    ->orWhere('roll_no', 'like', "%{$search}%")
-                    ->orWhere('enrollment_no', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
-            });
-        }
+if ($request->has('division_id')) {
+    $query->where('division_id', $request->input('division_id'));
+}
+
+if ($request->has('section_id')) {
+    $query->where('section_id', $request->input('section_id'));
+}
+
+if ($request->has('search')) {
+    $search = $request->input('search');
+
+    $query->where(function ($q) use ($search) {
+        $q->where('full_name', 'like', "%{$search}%")
+          ->orWhere('roll_no', 'like', "%{$search}%")
+          ->orWhere('enrollment_no', 'like', "%{$search}%")
+          ->orWhere('email', 'like', "%{$search}%");
+    });
+}
 
         $students = $query->get();
 

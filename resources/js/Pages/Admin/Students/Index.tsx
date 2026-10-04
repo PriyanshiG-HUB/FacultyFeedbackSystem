@@ -1,3 +1,4 @@
+import { isAdministratorRole } from '../../../utils/permissions';
 import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../../../Layouts/AdminLayout';
 import { StudentsIndexProps, StudentItem } from '../../../types';
@@ -9,6 +10,7 @@ import { Input, Select } from '../../../Components/ui/Input';
 import { Filter, Plus, Edit, RefreshCw, AlertCircle, Trash2 } from 'lucide-react';
 import { getDepartmentName, ADMIN_DEPARTMENT_OPTIONS } from '../../../utils/departmentScope';
 import { api } from '../../../lib/api';
+import { useAuth } from '../../../context/AuthContext';
 
 interface DepartmentOption {
   id: number;
@@ -40,12 +42,12 @@ interface SectionOption {
   section_code: string;
 }
 
-export default function Index({
-  userRole = 'admin',
-  assignedDepartmentCode = null,
-}: StudentsIndexProps & { userRole?: 'admin' | 'hod'; assignedDepartmentCode?: string | null }) {
-  const isAdministrator = userRole === 'admin';
-  const [studentsList, setStudentsList] = useState<StudentItem[]>([]);
+export default function Index() {
+  const { user } = useAuth();
+  const isAdministrator = isAdministratorRole(user?.role);
+  const assignedDepartmentCode = user?.role === 'HOD' ? user?.hod_department_code : null;
+
+    const [studentsList, setStudentsList] = useState<StudentItem[]>([]);
   const [departments, setDepartments] = useState<DepartmentOption[]>([]);
   const [batches, setBatches] = useState<BatchOption[]>([]);
   const [divisions, setDivisions] = useState<DivisionOption[]>([]);
@@ -359,7 +361,7 @@ export default function Index({
         <div className="text-xs">
           <span className="font-semibold text-slate-800">{row.batch}</span>
           <span className="text-slate-400 mx-1">&bull;</span>
-          <span className="font-mono text-[11px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">
+          <span className="font-mono text-[11px] font-bold text-brand-navy bg-brand-50 px-1.5 py-0.5 rounded border border-indigo-100">
             {row.division} - {row.section}
           </span>
         </div>
@@ -396,7 +398,7 @@ export default function Index({
               e.stopPropagation();
               handleOpenEditModal(row);
             }}
-            className="text-xs py-1 px-2 text-slate-600 hover:text-indigo-600"
+            className="text-xs py-1 px-2 text-slate-600 hover:text-brand-primary"
           >
             <Edit className="w-3.5 h-3.5 mr-1" />
             Edit
@@ -421,12 +423,12 @@ export default function Index({
     <AdminLayout
       title="Student Directory"
       currentPath="#Admin/Students/Index"
-      userRole={userRole}
-      departmentScope={isAdministrator ? 'All Departments' : getDepartmentName(assignedDepartmentCode)}
+      
+      
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Student Directory</h2>
+          <h2 className="text-xl font-bold font-heading text-slate-900">Student Directory</h2>
           <p className="text-xs text-slate-500">
             {isAdministrator
               ? 'Institutional student enrollment records, division assignments, and feedback status'
@@ -451,7 +453,7 @@ export default function Index({
               </select>
             </div>
           ) : (
-            <span className="px-3 py-1 bg-blue-50 text-blue-800 font-extrabold text-xs rounded-lg border border-blue-200">
+            <span className="px-3 py-1 bg-brand-50 text-blue-800 font-extrabold text-xs rounded-lg border border-blue-200">
               Scope: {getDepartmentName(assignedDepartmentCode)} Only
             </span>
           )}

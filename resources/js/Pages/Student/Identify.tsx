@@ -7,11 +7,11 @@ import { Button } from '../../Components/ui/Button';
 import { api, setAuthToken, setStoredUserInfo, removeAuthToken } from '../../lib/api';
 import { GraduationCap, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
 
-export default function Identify({ error: propError }: StudentIdentifyProps) {
+export default function Identify() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState(propError || '');
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +50,7 @@ export default function Identify({ error: propError }: StudentIdentifyProps) {
         <Card className="max-w-md w-full shadow-xl border-slate-200 bg-white">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="text-center space-y-2">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center mx-auto shadow-2xs">
+              <div className="w-12 h-12 rounded-2xl bg-brand-50 border border-indigo-100 text-brand-primary flex items-center justify-center mx-auto shadow-2xs">
                 <GraduationCap className="w-6 h-6" />
               </div>
               <h2 className="text-xl font-extrabold text-slate-900">Student Identity Verification</h2>
@@ -99,7 +99,7 @@ export default function Identify({ error: propError }: StudentIdentifyProps) {
               type="submit"
               variant="primary"
               size="lg"
-              className="w-full bg-indigo-600 hover:bg-indigo-700 border-indigo-600 focus:ring-indigo-500 shadow-indigo-600/20"
+              className="w-full bg-brand-primary hover:bg-brand-navy border-brand-primary focus:ring-brand-primary shadow-brand-primary/20"
               disabled={isSubmitting}
             >
               <span>Proceed to Feedback Form</span>

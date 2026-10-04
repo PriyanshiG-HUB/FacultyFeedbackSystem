@@ -1,3 +1,4 @@
+import { isAdministratorRole } from '../../../utils/permissions';
 import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../../../Layouts/AdminLayout';
 import { TimetableEntry } from '../../../types';
@@ -8,10 +9,14 @@ import { Input, Select } from '../../../Components/ui/Input';
 import { useForm } from '../../../Components/shared/useForm';
 import { Plus, Edit2, RefreshCw, AlertCircle, Trash2, Clock, MapPin, User, BookOpen } from 'lucide-react';
 import { api } from '../../../lib/api';
+import { useAuth } from '../../../context/AuthContext';
 
-export default function TimetableIndex({ userRole = 'admin', assignedDepartmentCode = null }: { userRole?: 'admin' | 'hod', assignedDepartmentCode?: string | null }) {
-  const isAdministrator = userRole === 'admin';
-  const [isModalOpen, setIsModalOpen] = useState(false);
+export default function TimetableIndex() {
+  const { user } = useAuth();
+  const isAdministrator = isAdministratorRole(user?.role);
+  const assignedDepartmentCode = user?.role === 'HOD' ? user?.hod_department_code : null;
+
+    const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedEntryId, setSelectedEntryId] = useState<number | null>(null);
 
@@ -132,7 +137,7 @@ export default function TimetableIndex({ userRole = 'admin', assignedDepartmentC
       header: 'Day & Time',
       accessor: (row) => (
         <div>
-          <div className="font-bold text-indigo-700">{row.day}</div>
+          <div className="font-bold text-brand-navy">{row.day}</div>
           <div className="text-xs text-slate-500 font-semibold flex items-center gap-1 mt-0.5">
             <Clock className="w-3 h-3" />
             {row.start_time.substring(0, 5)} - {row.end_time.substring(0, 5)}
@@ -198,11 +203,11 @@ export default function TimetableIndex({ userRole = 'admin', assignedDepartmentC
     <AdminLayout
       title="Timetable Management"
       currentPath="#Admin/Timetables/Index"
-      userRole={userRole}
+      
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Timetable Schedule</h2>
+          <h2 className="text-xl font-bold font-heading text-slate-900">Timetable Schedule</h2>
           <p className="text-xs text-slate-500 mt-0.5">
             Manage academic schedules, avoiding faculty, student, and room conflicts.
           </p>

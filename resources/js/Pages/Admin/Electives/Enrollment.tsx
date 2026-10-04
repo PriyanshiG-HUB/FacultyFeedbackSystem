@@ -135,11 +135,11 @@ export default function Enrollment(_props: ElectiveEnrollmentProps) {
             </Button>
           </Link>
           <div>
-            <h2 className="text-xl font-bold text-slate-900">
+            <h2 className="text-xl font-bold font-heading text-slate-900">
               {currentOffering?.subject?.subject_name || 'Elective Course Enrollment'}
             </h2>
             <p className="text-xs text-slate-500">
-              Code: <span className="font-mono text-blue-700 font-bold">{currentOffering?.subject?.subject_code || '---'}</span> &bull; Batch: {currentOffering?.batch?.batch_title || 'General'}
+              Code: <span className="font-mono text-brand-navy font-bold">{currentOffering?.subject?.subject_code || '---'}</span> &bull; Batch: {currentOffering?.batch?.batch_title || 'General'}
             </p>
           </div>
         </div>
@@ -216,7 +216,7 @@ export default function Enrollment(_props: ElectiveEnrollmentProps) {
                   return (
                     <div key={s.id} className="p-3.5 flex items-center justify-between hover:bg-slate-50 transition-colors">
                       <div className="flex items-center gap-3">
-                        <span className="font-mono text-xs font-bold px-2 py-1 bg-blue-50 border border-blue-200 rounded text-blue-700">
+                        <span className="font-mono text-xs font-bold px-2 py-1 bg-brand-50 border border-blue-200 rounded text-brand-navy">
                           {s.rollNumber}
                         </span>
                         <div>

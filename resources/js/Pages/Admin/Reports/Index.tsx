@@ -1,3 +1,4 @@
+import { isAdministratorRole } from '../../../utils/permissions';
 import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../../../Layouts/AdminLayout';
 import { ReportsIndexProps, ReportItem } from '../../../types';
@@ -9,13 +10,14 @@ import { Input, Select } from '../../../Components/ui/Input';
 import { FileText, Download, Send, Plus, RefreshCw, AlertCircle, Filter } from 'lucide-react';
 import { getDepartmentName } from '../../../utils/departmentScope';
 import { api } from '../../../lib/api';
+import { useAuth } from '../../../context/AuthContext';
 
-export default function Index({
-  userRole = 'admin',
-  assignedDepartmentCode = null,
-}: Partial<ReportsIndexProps> & { userRole?: 'admin' | 'hod'; assignedDepartmentCode?: string | null }) {
-  const isAdministrator = userRole === 'admin';
-  const initialDeptFilter = !isAdministrator && assignedDepartmentCode ? assignedDepartmentCode.toUpperCase() : 'ALL';
+export default function Index() {
+  const { user } = useAuth();
+  const isAdministrator = isAdministratorRole(user?.role);
+  const assignedDepartmentCode = user?.role === 'HOD' ? user?.hod_department_code : null;
+
+    const initialDeptFilter = !isAdministrator && assignedDepartmentCode ? assignedDepartmentCode.toUpperCase() : 'ALL';
   const [deptFilter, setDeptFilter] = useState<string>(initialDeptFilter);
 
   const [reports, setReports] = useState<ReportItem[]>([]);
@@ -143,7 +145,7 @@ export default function Index({
       header: 'Report Title',
       accessor: (row) => (
         <div className="flex items-center gap-2.5">
-          <FileText className="w-4 h-4 text-blue-600 shrink-0" />
+          <FileText className="w-4 h-4 text-brand-primary shrink-0" />
           <div>
             <p className="font-bold text-slate-900">{row.title}</p>
             <p className="text-[11px] text-slate-500">Generated on {row.generatedAt}</p>
@@ -183,12 +185,12 @@ export default function Index({
     <AdminLayout
       title="Department Evaluation Reports"
       currentPath="#Admin/Reports/Index"
-      userRole={userRole}
-      departmentScope={isAdministrator ? 'All Departments' : getDepartmentName(assignedDepartmentCode)}
+      
+      
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Evaluation & Accreditation Reports</h2>
+          <h2 className="text-xl font-bold font-heading text-slate-900">Evaluation & Accreditation Reports</h2>
           <p className="text-xs text-slate-500">
             Official department evaluation reports ready for publication and faculty download
           </p>
@@ -212,7 +214,7 @@ export default function Index({
               </select>
             </div>
           ) : (
-            <span className="px-3 py-1 bg-blue-50 text-blue-800 font-extrabold text-xs rounded-lg border border-blue-200">
+            <span className="px-3 py-1 bg-brand-50 text-blue-800 font-extrabold text-xs rounded-lg border border-blue-200">
               Scope: {getDepartmentName(assignedDepartmentCode)} Only
             </span>
           )}

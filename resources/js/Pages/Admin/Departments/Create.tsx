@@ -64,7 +64,7 @@ export default function Create({ hodOptions = [] }: DepartmentsCreateProps) {
             Back to Departments
           </Button>
         </Link>
-        <h2 className="text-xl font-bold text-slate-900">Add New Department</h2>
+        <h2 className="text-xl font-bold font-heading text-slate-900">Add New Department</h2>
       </div>
 
       <Card title="Department Details Form" className="max-w-2xl">
@@ -112,7 +112,7 @@ export default function Create({ hodOptions = [] }: DepartmentsCreateProps) {
             <textarea
               rows={4}
               placeholder="Brief description of department scope, labs, and degree offerings..."
-              className="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              className="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />

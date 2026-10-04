@@ -1,3 +1,4 @@
+import { isAdministratorRole } from '../../../utils/permissions';
 import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../../../Layouts/AdminLayout';
 import { DepartmentsIndexProps, DepartmentItem } from '../../../types';
@@ -11,11 +12,13 @@ import { Plus, Edit2, Star, ShieldCheck, RefreshCw, AlertCircle, Trash2 } from '
 import { getDepartmentName } from '../../../utils/departmentScope';
 import { api } from '../../../lib/api';
 
-export default function Index({
-  userRole = 'admin',
-  assignedDepartmentCode = null,
-}: DepartmentsIndexProps) {
-  const isAdministrator = userRole === 'admin';
+import { useAuth } from '../../../context/AuthContext';
+
+export default function Index() {
+  const { user } = useAuth();
+  const isAdministrator = isAdministratorRole(user?.role);
+  const assignedDepartmentCode = user?.role === 'HOD' ? user?.hod_department_code : null;
+
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedDept, setSelectedDept] = useState<DepartmentItem | null>(null);
 
@@ -136,7 +139,7 @@ export default function Index({
     {
       header: 'Dept Code',
       accessor: (row) => (
-        <span className="font-mono text-xs font-bold px-2.5 py-1 bg-blue-50 border border-blue-200 rounded text-blue-700">
+        <span className="font-mono text-xs font-bold px-2.5 py-1 bg-brand-50 border border-blue-200 rounded text-brand-navy">
           {row.code}
         </span>
       ),
@@ -194,7 +197,7 @@ export default function Index({
                   e.stopPropagation();
                   handleOpenEdit(row);
                 }}
-                className="text-indigo-600 hover:bg-indigo-50 border-indigo-200 p-1.5"
+                className="text-brand-primary hover:bg-brand-50 border-indigo-200 p-1.5"
                 title="Edit Department"
               >
                 <Edit2 className="w-3.5 h-3.5" />
@@ -222,14 +225,14 @@ export default function Index({
     <AdminLayout
       title="Academic Departments"
       currentPath="#Admin/Departments/Index"
-      userRole={userRole}
-      departmentScope={isAdministrator ? 'All Departments' : getDepartmentName(assignedDepartmentCode)}
+      
+      
     >
       {/* Header Banner & Role Scope Notice */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-bold text-slate-900">Academic Departments</h2>
+            <h2 className="text-xl font-bold font-heading text-slate-900">Academic Departments</h2>
             {!isAdministrator && (
               <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />

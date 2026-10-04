@@ -85,28 +85,28 @@ export function DataTable<T extends Record<string, any>>({
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="relative w-full sm:w-72">
+        <div className="relative w-full sm:w-80">
           <Input
             placeholder={searchPlaceholder}
             value={searchTerm}
             onChange={handleSearch}
-            className="pl-9"
+            className="pl-10"
           />
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          <Search className="w-4 h-4 text-slate-400 absolute left-4 top-3" />
         </div>
         {headerAction && <div>{headerAction}</div>}
       </div>
 
-      <div className="bg-white border border-slate-200/90 rounded-xl overflow-hidden shadow-sm">
+      <div className="bg-white border border-slate-200 rounded-sm overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-700">
-            <thead className="bg-slate-50 text-xs font-bold text-slate-600 uppercase tracking-wider border-b border-slate-200">
+            <thead className="bg-slate-50 border-b-2 border-slate-200 text-xs font-bold text-brand-dark uppercase tracking-wider">
               <tr>
                 {columns.map((col, idx) => (
                   <th
                     key={idx}
-                    className={`px-4 py-3.5 ${col.className || ''} ${
-                      col.sortable ? 'cursor-pointer select-none hover:text-slate-900' : ''
+                    className={`px-5 py-4 ${col.className || ''} ${
+                      col.sortable ? 'cursor-pointer select-none hover:text-brand-primary transition-colors' : ''
                     }`}
                     onClick={() =>
                       col.sortable && typeof col.accessor === 'string'
@@ -114,21 +114,21 @@ export function DataTable<T extends Record<string, any>>({
                         : null
                     }
                   >
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
                       <span>{col.header}</span>
                       {col.sortable && sortColumn === col.accessor && (
                         <span>
                           {sortDirection === 'asc' ? (
-                            <ChevronUp className="w-3.5 h-3.5 text-indigo-600" />
+                            <ChevronUp className="w-3.5 h-3.5 text-brand-primary" />
                           ) : (
-                            <ChevronDown className="w-3.5 h-3.5 text-indigo-600" />
+                            <ChevronDown className="w-3.5 h-3.5 text-brand-primary" />
                           )}
                         </span>
                       )}
                     </div>
                   </th>
                 ))}
-                {actions && <th className="px-4 py-3.5 text-right">Actions</th>}
+                {actions && <th className="px-5 py-4 text-right">Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -136,25 +136,25 @@ export function DataTable<T extends Record<string, any>>({
                 paginatedData.map((row, rowIdx) => {
                   const isSelected = selectedRowKey ? selectedRowKey(row) : false;
                   return (
-                    <tr
+                     <tr
                       key={rowIdx}
                       onClick={() => onRowClick && onRowClick(row)}
                       className={`transition-colors ${
-                        onRowClick ? 'cursor-pointer' : ''
+                        onRowClick ? 'cursor-pointer hover:bg-slate-50' : 'hover:bg-slate-50'
                       } ${
                         isSelected
-                          ? 'bg-indigo-50/70 border-l-4 border-l-indigo-600 font-medium'
-                          : 'hover:bg-slate-50/80'
+                          ? 'bg-brand-50/50 border-l-4 border-l-brand-primary font-medium'
+                          : ''
                       }`}
                     >
                       {columns.map((col, colIdx) => (
-                        <td key={colIdx} className={`px-4 py-3.5 ${col.className || ''}`}>
+                        <td key={colIdx} className={`px-5 py-3.5 ${col.className || ''}`}>
                           {typeof col.accessor === 'function'
                             ? col.accessor(row)
                             : String(row[col.accessor] ?? '')}
                         </td>
                       ))}
-                      {actions && <td className="px-4 py-3.5 text-right">{actions(row)}</td>}
+                      {actions && <td className="px-5 py-3.5 text-right">{actions(row)}</td>}
                     </tr>
                   );
                 })
@@ -162,9 +162,12 @@ export function DataTable<T extends Record<string, any>>({
                 <tr>
                   <td
                     colSpan={columns.length + (actions ? 1 : 0)}
-                    className="px-4 py-8 text-center text-slate-400"
+                    className="px-5 py-12 text-center text-slate-400 bg-slate-50/30"
                   >
-                    No matching records found
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <Search className="w-6 h-6 text-slate-300" />
+                      <span>No matching records found</span>
+                    </div>
                   </td>
                 </tr>
               )}
@@ -173,29 +176,29 @@ export function DataTable<T extends Record<string, any>>({
         </div>
 
         {/* Footer Pagination */}
-        <div className="px-4 py-3 border-t border-slate-200 flex items-center justify-between bg-slate-50/80 text-xs text-slate-600">
+        <div className="px-5 py-4 border-t border-slate-200 flex items-center justify-between bg-slate-50 text-xs text-slate-600">
           <div>
-            Showing <span className="font-semibold text-slate-900">{(currentPage - 1) * pageSize + 1}</span> to{' '}
-            <span className="font-semibold text-slate-900">
+            Showing <span className="font-bold text-brand-dark">{(currentPage - 1) * pageSize + 1}</span> to{' '}
+            <span className="font-bold text-brand-dark">
               {Math.min(currentPage * pageSize, sortedData.length)}
             </span>{' '}
-            of <span className="font-semibold text-slate-900">{sortedData.length}</span> results
+            of <span className="font-bold text-brand-dark">{sortedData.length}</span> results
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="p-1 rounded bg-white border border-slate-200 hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-white text-slate-700"
+              className="p-1.5 rounded bg-white border border-slate-200 hover:border-brand-primary hover:text-brand-primary transition-all disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:text-slate-700 text-slate-700 shadow-sm"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="px-2 font-medium text-slate-700">
+            <span className="px-3 font-semibold text-brand-dark">
               {currentPage} / {totalPages}
             </span>
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="p-1 rounded bg-white border border-slate-200 hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-white text-slate-700"
+              className="p-1.5 rounded bg-white border border-slate-200 hover:border-brand-primary hover:text-brand-primary transition-all disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:text-slate-700 text-slate-700 shadow-sm"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

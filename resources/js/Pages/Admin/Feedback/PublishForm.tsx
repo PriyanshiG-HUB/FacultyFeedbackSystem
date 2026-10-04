@@ -1,3 +1,4 @@
+import { isAdministratorRole } from '../../../utils/permissions';
 import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../../../Layouts/AdminLayout';
 import { PublishFormIndexProps, PublishedFormItem } from '../../../types';
@@ -9,6 +10,7 @@ import { StatusBadge } from '../../../Components/ui/StatusBadge';
 import { StatCard } from '../../../Components/ui/StatCard';
 import { getDepartmentName } from '../../../utils/departmentScope';
 import { api, API_BASE_URL, getAuthToken } from '../../../lib/api';
+import { useAuth } from '../../../context/AuthContext';
 import {
   Send,
   EyeOff,
@@ -44,12 +46,12 @@ interface ParsedCustomQuestion {
   isSelected?: boolean;
 }
 
-export default function PublishForm({
-  userRole = 'admin',
-  assignedDepartmentCode = null,
-  departmentName = 'Information Technology',
-}: PublishFormIndexProps) {
-  const isAdministrator = userRole === 'admin';
+export default function PublishForm() {
+  const { user } = useAuth();
+  const isAdministrator = isAdministratorRole(user?.role);
+  const assignedDepartmentCode = user?.role === 'HOD' ? user?.hod_department_code : null;
+
+  
   const initialDeptFilter = !isAdministrator && assignedDepartmentCode ? assignedDepartmentCode.toUpperCase() : 'ALL';
   const [deptFilter, setDeptFilter] = useState<string>(initialDeptFilter);
 
@@ -412,12 +414,12 @@ export default function PublishForm({
     <AdminLayout
       title="Feedback Publishing"
       currentPath="#Admin/Feedback/PublishForm"
-      userRole={userRole}
-      departmentScope={isAdministrator ? 'All Departments' : getDepartmentName(assignedDepartmentCode)}
+      
+      
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Feedback Form Lifecycle</h2>
+          <h2 className="text-xl font-bold font-heading text-slate-900">Feedback Form Lifecycle</h2>
           <p className="text-xs text-slate-500">
             Create, publish, and schedule student evaluation questionnaires with master or custom imported questions
           </p>
@@ -441,7 +443,7 @@ export default function PublishForm({
               </select>
             </div>
           ) : (
-            <span className="px-3 py-1 bg-blue-50 text-blue-800 font-extrabold text-xs rounded-lg border border-blue-200">
+            <span className="px-3 py-1 bg-brand-50 text-blue-800 font-extrabold text-xs rounded-lg border border-blue-200">
               Scope: {getDepartmentName(assignedDepartmentCode)} Only
             </span>
           )}
@@ -520,7 +522,7 @@ export default function PublishForm({
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold px-2 py-0.5 bg-blue-50 border border-blue-200 rounded text-blue-700">
+                    <span className="font-mono text-xs font-bold px-2 py-0.5 bg-brand-50 border border-blue-200 rounded text-brand-navy">
                       {form.subjectCode}
                     </span>
                     <h3 className="text-base font-bold text-slate-900">{form.title}</h3>
@@ -663,11 +665,11 @@ export default function PublishForm({
                 onClick={() => setQuestionSource('EXISTING')}
                 className={`p-3 rounded-xl border text-left flex items-start gap-3 transition-all ${
                   questionSource === 'EXISTING'
-                    ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500/20 text-blue-900 font-semibold'
+                    ? 'bg-brand-50 border-brand-primary ring-2 ring-brand-primary/20 text-blue-900 font-semibold'
                     : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                 }`}
               >
-                <BookOpen className={`w-5 h-5 shrink-0 mt-0.5 ${questionSource === 'EXISTING' ? 'text-blue-600' : 'text-slate-400'}`} />
+                <BookOpen className={`w-5 h-5 shrink-0 mt-0.5 ${questionSource === 'EXISTING' ? 'text-brand-primary' : 'text-slate-400'}`} />
                 <div>
                   <div className="text-xs font-extrabold">Option A &ndash; Use Existing Questions</div>
                   <div className="text-[11px] opacity-80 leading-tight mt-0.5">
@@ -681,11 +683,11 @@ export default function PublishForm({
                 onClick={() => setQuestionSource('CUSTOM')}
                 className={`p-3 rounded-xl border text-left flex items-start gap-3 transition-all ${
                   questionSource === 'CUSTOM'
-                    ? 'bg-indigo-50 border-indigo-500 ring-2 ring-indigo-500/20 text-indigo-900 font-semibold'
+                    ? 'bg-brand-50 border-brand-primary ring-2 ring-brand-primary/20 text-indigo-900 font-semibold'
                     : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                 }`}
               >
-                <FileSpreadsheet className={`w-5 h-5 shrink-0 mt-0.5 ${questionSource === 'CUSTOM' ? 'text-indigo-600' : 'text-slate-400'}`} />
+                <FileSpreadsheet className={`w-5 h-5 shrink-0 mt-0.5 ${questionSource === 'CUSTOM' ? 'text-brand-primary' : 'text-slate-400'}`} />
                 <div>
                   <div className="text-xs font-extrabold">Option B &ndash; Import Custom Questions</div>
                   <div className="text-[11px] opacity-80 leading-tight mt-0.5">
@@ -700,16 +702,16 @@ export default function PublishForm({
           {/* ENHANCEMENT 2: CUSTOM QUESTION IMPORT SECTION (When Option B is selected) */}
           {/* ========================================================================= */}
           {questionSource === 'CUSTOM' && (
-            <div className="p-4 bg-indigo-50/60 border border-indigo-200 rounded-xl space-y-3">
+            <div className="p-4 bg-brand-50/60 border border-indigo-200 rounded-xl space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-extrabold text-indigo-950 flex items-center gap-1.5">
-                  <Upload className="w-4 h-4 text-indigo-600" />
+                  <Upload className="w-4 h-4 text-brand-primary" />
                   Upload Custom Questions File (CSV / .xlsx)
                 </span>
                 <button
                   type="button"
                   onClick={handleDownloadTemplate}
-                  className="text-[11px] text-indigo-700 hover:underline font-bold flex items-center gap-1"
+                  className="text-[11px] text-brand-navy hover:underline font-bold flex items-center gap-1"
                 >
                   <Download className="w-3.5 h-3.5" />
                   Download Sample Template
@@ -724,12 +726,12 @@ export default function PublishForm({
                     const f = e.target.files?.[0];
                     if (f) handleFileUploadAndValidate(f);
                   }}
-                  className="block w-full text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer"
+                  className="block w-full text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-brand-primary file:text-white hover:file:bg-brand-navy cursor-pointer"
                 />
               </div>
 
               {isValidatingFile && (
-                <p className="text-xs text-indigo-700 font-semibold flex items-center gap-1.5 animate-pulse">
+                <p className="text-xs text-brand-navy font-semibold flex items-center gap-1.5 animate-pulse">
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                   Validating file format and parsing question rows...
                 </p>
@@ -768,7 +770,7 @@ export default function PublishForm({
                 <div className="space-y-2 pt-2 border-t border-indigo-100">
                   <div className="flex items-center justify-between text-xs font-bold text-slate-800">
                     <span>Parsed Custom Questions ({customQuestionsList.length})</span>
-                    <span className="text-[11px] text-indigo-700 font-semibold">
+                    <span className="text-[11px] text-brand-navy font-semibold">
                       {customQuestionsList.filter((q) => q.isSelected).length} Selected for Form
                     </span>
                   </div>
@@ -784,7 +786,7 @@ export default function PublishForm({
                             : 'bg-slate-50/80 border-slate-200 opacity-60'
                         }`}
                       >
-                        <button type="button" className="mt-0.5 shrink-0 text-indigo-600">
+                        <button type="button" className="mt-0.5 shrink-0 text-brand-primary">
                           {q.isSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4 text-slate-400" />}
                         </button>
                         <div className="flex-1 space-y-0.5">
@@ -792,7 +794,7 @@ export default function PublishForm({
                           <div className="flex items-center gap-2 text-[10px] text-slate-500">
                             <span className="bg-slate-100 px-1.5 py-0.5 rounded font-mono">{q.category || 'General'}</span>
                             <span>&bull;</span>
-                            <span className="font-bold text-indigo-700">{q.question_type || 'RATING'}</span>
+                            <span className="font-bold text-brand-navy">{q.question_type || 'RATING'}</span>
                           </div>
                         </div>
                       </div>
@@ -816,12 +818,12 @@ export default function PublishForm({
                 onClick={() => setResponseType('RATING')}
                 className={`p-3 rounded-xl border text-left flex flex-col justify-between gap-1 transition-all ${
                   responseType === 'RATING'
-                    ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500/20 text-blue-900 font-semibold'
+                    ? 'bg-brand-50 border-brand-primary ring-2 ring-brand-primary/20 text-blue-900 font-semibold'
                     : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                 }`}
               >
                 <div className="flex items-center gap-1.5 text-xs font-extrabold">
-                  <CheckCircle2 className={`w-4 h-4 ${responseType === 'RATING' ? 'text-blue-600' : 'text-slate-400'}`} />
+                  <CheckCircle2 className={`w-4 h-4 ${responseType === 'RATING' ? 'text-brand-primary' : 'text-slate-400'}`} />
                   Rating Based
                 </div>
                 <div className="text-[10px] opacity-80 leading-tight">
@@ -834,12 +836,12 @@ export default function PublishForm({
                 onClick={() => setResponseType('TEXT')}
                 className={`p-3 rounded-xl border text-left flex flex-col justify-between gap-1 transition-all ${
                   responseType === 'TEXT'
-                    ? 'bg-indigo-50 border-indigo-500 ring-2 ring-indigo-500/20 text-indigo-900 font-semibold'
+                    ? 'bg-brand-50 border-brand-primary ring-2 ring-brand-primary/20 text-indigo-900 font-semibold'
                     : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                 }`}
               >
                 <div className="flex items-center gap-1.5 text-xs font-extrabold">
-                  <FileText className={`w-4 h-4 ${responseType === 'TEXT' ? 'text-indigo-600' : 'text-slate-400'}`} />
+                  <FileText className={`w-4 h-4 ${responseType === 'TEXT' ? 'text-brand-primary' : 'text-slate-400'}`} />
                   Text Based
                 </div>
                 <div className="text-[10px] opacity-80 leading-tight">
@@ -868,8 +870,8 @@ export default function PublishForm({
           </div>
 
           {questionSource === 'EXISTING' && (
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-900 text-xs flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
+            <div className="p-3 bg-brand-50 border border-blue-200 rounded-lg text-blue-900 text-xs flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-brand-primary shrink-0" />
               <span>Standard evaluation criteria questions (Subject Knowledge, Clarity, Punctuality, etc.) will be attached automatically with {responseType.toLowerCase()} response format.</span>
             </div>
           )}

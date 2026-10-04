@@ -6,19 +6,16 @@ import { StatusBadge } from '../../../Components/ui/StatusBadge';
 import { Button } from '../../../Components/ui/Button';
 import Link from '../../../Components/shared/Link';
 import { Star, ArrowRight, CheckCircle2, ShieldCheck } from 'lucide-react';
-import {
-  getMergedSubmissions,
-  calculateFacultyOverallScore,
-} from '../../../utils/feedbackExclusionStore';
-import { getStoredUserInfo } from '../../../lib/api';
+import { calculateFacultyOverallScore } from '../../../utils/feedbackCalculations';
+import { useAuth } from '../../../context/AuthContext';
 
-export default function Index({ facultyName = '', reports: propReports = [] }: FacultyReportsIndexProps) {
-  const [submissions, setSubmissions] = useState(() => getMergedSubmissions());
+export default function Index() {
+  const { user } = useAuth();
+  const [submissions, setSubmissions] = useState<any[]>([]);
   const [apiDashboardStats, setApiDashboardStats] = useState<any>(null);
   const [reports, setReports] = useState<any[]>([]);
   
-  const authUser = getStoredUserInfo();
-  const activeFacultyName = authUser?.faculty?.full_name || facultyName || 'Faculty Member';
+  const activeFacultyName = user?.faculty?.full_name || user?.full_name || user?.email || 'Faculty Member';
 
   useEffect(() => {
     import('../../../lib/api').then(({ api }) => {
@@ -45,7 +42,7 @@ export default function Index({ facultyName = '', reports: propReports = [] }: F
     });
 
     const handleUpdate = () => {
-      setSubmissions(getMergedSubmissions());
+      setSubmissions([]);
     };
     window.addEventListener('feedback_exclusion_updated', handleUpdate);
     return () => window.removeEventListener('feedback_exclusion_updated', handleUpdate);
@@ -54,14 +51,14 @@ export default function Index({ facultyName = '', reports: propReports = [] }: F
   // Compute aggregate stats across all faculty submissions
   const overallStats = useMemo(() => {
     const facultySubmissions = submissions.filter(
-      (s) => s.facultyName.toLowerCase().includes(activeFacultyName.toLowerCase())
+      (s: any) => s.facultyName.toLowerCase().includes(activeFacultyName.toLowerCase())
     );
     const targetSubmissions = facultySubmissions.length > 0 ? facultySubmissions : submissions;
     return calculateFacultyOverallScore(targetSubmissions);
   }, [submissions, activeFacultyName]);
 
   return (
-    <FacultyLayout facultyName={activeFacultyName}>
+    <FacultyLayout >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-6 mb-8">
         <div>
           <h2 className="text-2xl font-extrabold text-slate-900">Feedback Evaluation Reports</h2>
@@ -69,7 +66,7 @@ export default function Index({ facultyName = '', reports: propReports = [] }: F
         </div>
 
         <div className="flex items-center gap-3 bg-white border border-slate-200 px-5 py-3 rounded-xl shadow-sm">
-          <CheckCircle2 className="w-6 h-6 text-indigo-600 shrink-0" />
+          <CheckCircle2 className="w-6 h-6 text-brand-primary shrink-0" />
           <div className="text-left">
             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Overall Aggregate Score</p>
             <div className="flex items-baseline gap-1.5 mt-0.5">
@@ -79,7 +76,7 @@ export default function Index({ facultyName = '', reports: propReports = [] }: F
                   : (overallStats.averageScore > 0 ? overallStats.averageScore.toFixed(2) : '0.00')}
               </p>
               <span className="text-xs text-slate-400 font-medium">/ 5.0</span>
-              <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200 ml-2">
+              <span className="text-[10px] font-bold text-brand-navy bg-brand-50 px-2 py-0.5 rounded border border-indigo-200 ml-2">
                 {apiDashboardStats?.stats?.total_feedback_responses != null
                   ? `${apiDashboardStats.stats.total_feedback_responses} Submissions Included`
                   : `${overallStats.includedCount} Submissions Included`}
@@ -104,7 +101,7 @@ export default function Index({ facultyName = '', reports: propReports = [] }: F
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {reports.map((report) => {
             const courseSubmissions = submissions.filter(
-              (s) => s.subjectCode === report.subjectCode || s.subjectName.toLowerCase() === report.subjectName.toLowerCase()
+              (s: any) => s.subjectCode === report.subjectCode || s.subjectName.toLowerCase() === report.subjectName.toLowerCase()
             );
 
             const courseStats = calculateFacultyOverallScore(
@@ -118,7 +115,7 @@ export default function Index({ facultyName = '', reports: propReports = [] }: F
                 <div className="space-y-5">
                   <div className="flex items-start justify-between">
                     <div>
-                      <span className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                      <span className="font-mono text-xs font-bold text-brand-navy bg-brand-50 px-2 py-0.5 rounded border border-indigo-200">
                         {report.subjectCode}
                       </span>
                       <h3 className="text-lg font-bold text-slate-900 mt-2">{report.subjectName}</h3>
@@ -151,12 +148,12 @@ export default function Index({ facultyName = '', reports: propReports = [] }: F
 
                   <div className="pt-2 flex items-center justify-between">
                     <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-                      <ShieldCheck className="w-4 h-4 text-indigo-600" />
+                      <ShieldCheck className="w-4 h-4 text-brand-primary" />
                       <span>HOD Moderated Score</span>
                     </div>
 
-                    <Link href="#Faculty/MyReports/Show">
-                      <Button variant="primary" size="sm" className="bg-indigo-600 hover:bg-indigo-700 border-indigo-600 focus:ring-indigo-500 shadow-indigo-600/20 text-xs px-4">
+                    <Link href={`#Faculty/MyReports/Show?subjectCode=${report.subjectCode}&subjectName=${encodeURIComponent(report.subjectName)}&overallScore=${effectiveScore.toFixed(2)}`}>
+                      <Button variant="primary" size="sm" className="bg-brand-primary hover:bg-brand-navy border-brand-primary focus:ring-brand-primary shadow-brand-primary/20 text-xs px-4">
                         <span>View Detailed Report</span>
                         <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
                       </Button>

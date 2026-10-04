@@ -1,3 +1,4 @@
+import { isAdministratorRole } from '../../../utils/permissions';
 import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../../../Layouts/AdminLayout';
 import { FacultyIndexProps, FacultyItem, FacultyFeedbackDetails } from '../../../types';
@@ -21,6 +22,7 @@ import {
 
 import { getDepartmentName } from '../../../utils/departmentScope';
 import { api } from '../../../lib/api';
+import { useAuth } from '../../../context/AuthContext';
 
 const PARAMETER_COLORS = ['#0284c7', '#4f46e5', '#059669', '#d97706'];
 
@@ -35,12 +37,12 @@ interface DesignationOption {
   designation_name: string;
 }
 
-export default function Index({
-  userRole = 'admin',
-  assignedDepartmentCode = null,
-}: FacultyIndexProps & { userRole?: 'admin' | 'hod'; assignedDepartmentCode?: string | null }) {
-  const isAdministrator = userRole === 'admin';
-  const initialFilter = !isAdministrator && assignedDepartmentCode
+export default function Index() {
+  const { user } = useAuth();
+  const isAdministrator = isAdministratorRole(user?.role);
+  const assignedDepartmentCode = user?.role === 'HOD' ? user?.hod_department_code : null;
+
+    const initialFilter = !isAdministrator && assignedDepartmentCode
     ? getDepartmentName(assignedDepartmentCode)
     : 'all';
 
@@ -216,7 +218,7 @@ export default function Index({
       header: 'Faculty Name',
       accessor: (row) => (
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-full bg-indigo-100 border border-indigo-200 flex items-center justify-center text-indigo-700 font-bold text-xs">
+          <div className="w-7 h-7 rounded-full bg-indigo-100 border border-indigo-200 flex items-center justify-center text-brand-navy font-bold text-xs">
             {row.name.charAt(0)}
           </div>
           <div>
@@ -317,12 +319,12 @@ export default function Index({
     <AdminLayout
       title="Faculty Directory"
       currentPath="#Admin/Faculty/Index"
-      userRole={userRole}
-      departmentScope={isAdministrator ? 'All Departments' : getDepartmentName(assignedDepartmentCode)}
+      
+      
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Faculty Members</h2>
+          <h2 className="text-xl font-bold font-heading text-slate-900">Faculty Members</h2>
           <p className="text-xs text-slate-500">
             {isAdministrator
               ? 'Complete faculty directory and individual feedback ratings across all departments'
@@ -348,7 +350,7 @@ export default function Index({
               </select>
             </div>
           ) : (
-            <span className="px-3 py-1 bg-blue-50 text-blue-800 font-extrabold text-xs rounded-lg border border-blue-200">
+            <span className="px-3 py-1 bg-brand-50 text-blue-800 font-extrabold text-xs rounded-lg border border-blue-200">
               Scope: {getDepartmentName(assignedDepartmentCode)} Only
             </span>
           )}
@@ -381,7 +383,7 @@ export default function Index({
         <Card className="mt-6 border-indigo-200 bg-linear-to-b from-white to-slate-50/50 shadow-md">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-extrabold text-lg shadow-sm">
+              <div className="w-12 h-12 rounded-xl bg-brand-primary text-white flex items-center justify-center font-extrabold text-lg shadow-sm">
                 {selectedFaculty.name.charAt(0)}
               </div>
               <div>
@@ -404,7 +406,7 @@ export default function Index({
               <div className="h-8 w-px bg-slate-200" />
               <div className="text-right">
                 <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Total Responses</p>
-                <p className="text-lg font-black text-indigo-600 font-mono">{details.totalResponses}</p>
+                <p className="text-lg font-black text-brand-primary font-mono">{details.totalResponses}</p>
               </div>
             </div>
           </div>
@@ -414,7 +416,7 @@ export default function Index({
             <div className="bg-white border border-slate-200/90 rounded-xl p-4 shadow-2xs">
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                  <BarChart3 className="w-3.5 h-3.5 text-indigo-600" />
+                  <BarChart3 className="w-3.5 h-3.5 text-brand-primary" />
                   Evaluation Parameters
                 </h4>
                 <span className="text-[10px] text-slate-400 font-medium">Avg Score (Max 5.0)</span>

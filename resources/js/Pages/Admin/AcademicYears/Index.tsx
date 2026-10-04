@@ -1,3 +1,4 @@
+import { isAdministratorRole } from '../../../utils/permissions';
 import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../../../Layouts/AdminLayout';
 import { AcademicYearsIndexProps, AcademicYearItem, AcademicYearCohort } from '../../../types';
@@ -20,6 +21,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { api } from '../../../lib/api';
+import { useAuth } from '../../../context/AuthContext';
 
 const ACADEMIC_YEARS_DEPARTMENT_OPTIONS = [
   { code: 'ALL', name: 'All Departments' },
@@ -30,12 +32,12 @@ const ACADEMIC_YEARS_DEPARTMENT_OPTIONS = [
   { code: 'ME', name: 'Mechanical Engineering' },
 ];
 
-export default function Index({
-  userRole = 'admin',
-  assignedDepartmentCode = null,
-}: AcademicYearsIndexProps) {
-  const isAdministrator = userRole === 'admin';
+export default function Index() {
+  const { user } = useAuth();
+  const isAdministrator = isAdministratorRole(user?.role);
+  const assignedDepartmentCode = user?.role === 'HOD' ? user?.hod_department_code : null;
 
+  
   const [academicYearsList, setAcademicYearsList] = useState<AcademicYearItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState('');
@@ -221,8 +223,8 @@ export default function Index({
     <AdminLayout
       title="Academic Years"
       currentPath="#Admin/AcademicYears/Index"
-      userRole={userRole}
-      departmentScope={currentDeptName}
+      
+      
     >
       <div className="space-y-6">
         {fetchError && (
@@ -238,7 +240,7 @@ export default function Index({
             {/* Header Banner */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-indigo-50 border border-indigo-200 rounded-full text-indigo-700 text-[11px] font-bold uppercase tracking-wider mb-1">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-brand-50 border border-indigo-200 rounded-full text-brand-navy text-[11px] font-bold uppercase tracking-wider mb-1">
                   {isAdministrator ? 'ADMINISTRATOR SCOPE' : 'HOD SCOPE'} &bull; {currentDeptName}
                 </div>
                 <h2 className="text-xl font-extrabold text-slate-900">Academic Years</h2>
@@ -289,7 +291,7 @@ export default function Index({
                     onClick={() => setSelectedYearId(ay.id)}
                     className={`bg-white border-2 rounded-2xl p-6 space-y-5 cursor-pointer transition-all duration-200 hover:shadow-lg group ${
                       isOdd
-                        ? 'border-blue-200 hover:border-blue-500 hover:bg-blue-50/20'
+                        ? 'border-blue-200 hover:border-brand-primary hover:bg-brand-50/20'
                         : 'border-emerald-200 hover:border-emerald-500 hover:bg-emerald-50/20'
                     }`}
                   >
@@ -298,13 +300,13 @@ export default function Index({
                         <span
                           className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider border ${
                             isOdd
-                              ? 'bg-blue-50 text-blue-700 border-blue-200'
+                              ? 'bg-brand-50 text-brand-navy border-blue-200'
                               : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                           }`}
                         >
                           {ay.semesterType.toUpperCase()} SEMESTERS
                         </span>
-                        <h3 className="text-2xl font-black text-slate-900 tracking-tight group-hover:text-indigo-600 transition-colors">
+                        <h3 className="text-2xl font-black text-slate-900 tracking-tight group-hover:text-brand-primary transition-colors">
                           Academic Year {ay.academicYear}
                         </h3>
                       </div>
@@ -312,7 +314,7 @@ export default function Index({
                       <div
                         className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg shrink-0 ${
                           isOdd
-                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                            ? 'bg-brand-50 text-brand-navy border border-blue-200'
                             : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                         }`}
                       >
@@ -379,7 +381,7 @@ export default function Index({
             <div className="flex items-center justify-between">
               <button
                 onClick={() => setSelectedYearId(null)}
-                className="inline-flex items-center text-xs font-bold text-slate-600 hover:text-indigo-600 bg-white border border-slate-200 hover:border-indigo-300 px-3.5 py-2 rounded-xl transition-all shadow-2xs cursor-pointer"
+                className="inline-flex items-center text-xs font-bold text-slate-600 hover:text-brand-primary bg-white border border-slate-200 hover:border-indigo-300 px-3.5 py-2 rounded-xl transition-all shadow-2xs cursor-pointer"
               >
                 <ArrowLeft className="w-4 h-4 mr-1.5 text-slate-400" />
                 <span>Back to All Academic Years</span>
@@ -408,13 +410,13 @@ export default function Index({
               <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-6 text-white shadow-md border border-slate-800 space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <span className="inline-block px-2.5 py-0.5 bg-white/15 backdrop-blur-md text-blue-100 rounded-full text-[10px] font-bold uppercase tracking-wider mb-2 border border-white/20">
+                    <span className="inline-block px-2.5 py-0.5 bg-white/15 backdrop-blur-md text-brand-100 rounded-full text-[10px] font-bold uppercase tracking-wider mb-2 border border-white/20">
                       ACADEMIC YEAR {activeYearObj.academicYear} &bull; {activeYearObj.semesterType.toUpperCase()} SEMESTERS
                     </span>
                     <h1 className="text-2xl font-black text-white">
                       Academic Year {activeYearObj.academicYear} Records
                     </h1>
-                    <p className="text-xs text-blue-100 font-medium mt-0.5">
+                    <p className="text-xs text-brand-100 font-medium mt-0.5">
                       Showing student cohorts for Semesters {activeYearObj.semesters.join(', ')} ({currentDeptName})
                     </p>
                   </div>
@@ -441,7 +443,7 @@ export default function Index({
                     return (
                       <div key={semNum} className="space-y-3">
                         <div className="flex items-center gap-3">
-                          <span className="font-mono text-xs font-extrabold text-indigo-700 bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-200">
+                          <span className="font-mono text-xs font-extrabold text-brand-navy bg-brand-50 px-3 py-1 rounded-lg border border-indigo-200">
                             SEMESTER {semNum}
                           </span>
                           <div className="h-px bg-slate-200 flex-1"></div>
@@ -460,7 +462,7 @@ export default function Index({
                               <Card key={cohort.id} className="p-5 bg-white border-slate-200 shadow-2xs space-y-4">
                                 <div className="flex items-start justify-between gap-3">
                                   <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs shrink-0">
+                                    <div className="w-10 h-10 rounded-xl bg-brand-50 border border-indigo-100 text-brand-navy flex items-center justify-center font-bold text-xs shrink-0">
                                       <GraduationCap className="w-5 h-5" />
                                     </div>
                                     <div>
@@ -471,7 +473,7 @@ export default function Index({
                                     </div>
                                   </div>
 
-                                  <span className="px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded font-mono text-[11px] font-bold">
+                                  <span className="px-2 py-0.5 bg-brand-50 text-brand-navy border border-blue-200 rounded font-mono text-[11px] font-bold">
                                     Sem {cohort.semester}
                                   </span>
                                 </div>
@@ -518,10 +520,10 @@ export default function Index({
                   <div>
                     <h4 className="text-sm font-extrabold text-slate-900">{selectedCohort.department}</h4>
                     <p className="text-xs text-slate-500 font-medium">
-                      Academic Year: <strong className="text-slate-800">{activeYearObj?.academicYear}</strong> &bull; Current Semester: <strong className="text-indigo-700">Semester {selectedCohort.semester}</strong>
+                      Academic Year: <strong className="text-slate-800">{activeYearObj?.academicYear}</strong> &bull; Current Semester: <strong className="text-brand-navy">Semester {selectedCohort.semester}</strong>
                     </p>
                   </div>
-                  <span className="px-2.5 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-full text-xs font-extrabold">
+                  <span className="px-2.5 py-1 bg-brand-50 border border-indigo-200 text-brand-navy rounded-full text-xs font-extrabold">
                     {selectedCohort.studentCount} Students
                   </span>
                 </div>
@@ -543,7 +545,7 @@ export default function Index({
                     selectedCohort.students.map((student, sIdx) => (
                       <div key={sIdx} className="px-4 py-3 flex items-center justify-between gap-3 hover:bg-slate-50 text-xs">
                         <div className="flex items-center gap-3">
-                          <span className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                          <span className="font-mono text-xs font-bold text-brand-navy bg-brand-50 px-2 py-0.5 rounded border border-indigo-100">
                             {student.rollNo}
                           </span>
                           <div>

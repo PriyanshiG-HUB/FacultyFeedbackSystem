@@ -9,7 +9,7 @@ import {
   SYSTEM_QUESTIONS,
   calculateFacultyOverallScore,
   calculateQuestionDistribution,
-} from '../../../utils/feedbackExclusionStore';
+} from '../../../utils/feedbackCalculations';
 import {
   AlertTriangle,
   Star,
@@ -277,7 +277,7 @@ export default function Index({
           type="checkbox"
           checked={selectedSubmissionIds.includes(row.id)}
           onChange={() => handleToggleSelect(row.id)}
-          className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+          className="w-4 h-4 text-brand-primary rounded border-slate-300 focus:ring-brand-primary cursor-pointer"
         />
       ),
     },
@@ -305,7 +305,7 @@ export default function Index({
       accessor: (row) => (
         <div className="text-xs">
           <p className="font-semibold text-slate-800">{row.division}</p>
-          <p className="text-indigo-700 font-mono font-bold">Sec: {row.section || 'A1'}</p>
+          <p className="text-brand-navy font-mono font-bold">Sec: {row.section || 'A1'}</p>
         </div>
       ),
       sortable: true,
@@ -381,7 +381,7 @@ export default function Index({
         {/* Header Title Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-blue-50 border border-blue-200 rounded-full text-blue-700 text-[11px] font-bold uppercase tracking-wider mb-1.5">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-brand-50 border border-blue-200 rounded-full text-brand-navy text-[11px] font-bold uppercase tracking-wider mb-1.5">
               <Building2 className="w-3.5 h-3.5" />
               {roleBadgeText}
             </div>
@@ -397,7 +397,7 @@ export default function Index({
         {/* 1. HOD FACULTY & COURSE SELECTION TOOLBAR */}
         <Card className="bg-white border-slate-200">
           <div className="flex items-center gap-2 mb-3 text-xs font-bold text-slate-700 uppercase tracking-wider border-b border-slate-100 pb-2">
-            <Filter className="w-4 h-4 text-indigo-600" />
+            <Filter className="w-4 h-4 text-brand-primary" />
             <span>Select Faculty & Evaluation Scope</span>
           </div>
 
@@ -408,7 +408,7 @@ export default function Index({
               <select
                 value={selectedFaculty}
                 onChange={(e) => setSelectedFaculty(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer"
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 font-bold focus:ring-2 focus:ring-brand-primary focus:outline-none cursor-pointer"
               >
                 {facultyOptions.map((fName) => (
                   <option key={fName} value={fName}>
@@ -424,7 +424,7 @@ export default function Index({
               <select
                 value={selectedSubject}
                 onChange={(e) => setSelectedSubject(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-semibold focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer"
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-semibold focus:ring-2 focus:ring-brand-primary focus:outline-none cursor-pointer"
               >
                 <option value="ALL">All Subjects</option>
                 {subjectOptions.map((subj) => (
@@ -441,7 +441,7 @@ export default function Index({
               <select
                 value={selectedAcademicYear}
                 onChange={(e) => setSelectedAcademicYear(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-semibold focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer"
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-semibold focus:ring-2 focus:ring-brand-primary focus:outline-none cursor-pointer"
               >
                 <option value="ALL">All Academic Years</option>
                 <option value="2025-26">2025-26</option>
@@ -455,7 +455,7 @@ export default function Index({
               <select
                 value={selectedSemester}
                 onChange={(e) => setSelectedSemester(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-semibold focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer"
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-semibold focus:ring-2 focus:ring-brand-primary focus:outline-none cursor-pointer"
               >
                 <option value="ALL">All Semesters</option>
                 <option value="7">Semester 7</option>
@@ -471,7 +471,7 @@ export default function Index({
               <select
                 value={selectedBatch}
                 onChange={(e) => setSelectedBatch(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-semibold focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer"
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-semibold focus:ring-2 focus:ring-brand-primary focus:outline-none cursor-pointer"
               >
                 <option value="ALL">All Batches</option>
                 <option value="2022-26">Batch 2022-26</option>
@@ -486,7 +486,7 @@ export default function Index({
               <select
                 value={selectedDivision}
                 onChange={(e) => setSelectedDivision(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-semibold focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer"
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-semibold focus:ring-2 focus:ring-brand-primary focus:outline-none cursor-pointer"
               >
                 <option value="ALL">All Divisions</option>
                 <option value="Division 1">Division 1</option>
@@ -500,7 +500,7 @@ export default function Index({
               <select
                 value={selectedSection}
                 onChange={(e) => setSelectedSection(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-semibold focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer"
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-semibold focus:ring-2 focus:ring-brand-primary focus:outline-none cursor-pointer"
               >
                 <option value="ALL">All Sections</option>
                 <option value="A1">Section A1</option>
@@ -556,7 +556,7 @@ export default function Index({
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <ListFilter className="w-4 h-4 text-indigo-600" />
+              <ListFilter className="w-4 h-4 text-brand-primary" />
               Question-Wise Response Distribution (INCLUDED Submissions Only)
             </h3>
             <span className="text-xs text-slate-500 font-medium">
@@ -575,13 +575,13 @@ export default function Index({
                   key={q.id}
                   className={`transition-all border ${
                     isSelectedQ
-                      ? 'border-indigo-500 ring-2 ring-indigo-500/20 bg-indigo-50/10'
+                      ? 'border-brand-primary ring-2 ring-brand-primary/20 bg-brand-50/10'
                       : 'border-slate-200 hover:border-slate-300'
                   }`}
                 >
                   <div className="space-y-3">
                     <div className="flex items-start justify-between gap-2">
-                      <span className="font-mono text-xs font-extrabold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                      <span className="font-mono text-xs font-extrabold text-brand-navy bg-brand-50 px-2 py-0.5 rounded border border-indigo-200">
                         Q{q.id}
                       </span>
                       <div className="flex items-center gap-1 font-bold text-xs text-slate-800 bg-slate-100 px-2 py-0.5 rounded">
@@ -650,7 +650,7 @@ export default function Index({
                           setSelectedQuestionFilter(q.id);
                           setSelectedRatingFilter('ALL');
                         }}
-                        className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline"
+                        className="text-[11px] font-bold text-brand-primary hover:text-indigo-800 hover:underline"
                       >
                         All Responses &rarr;
                       </button>
@@ -669,7 +669,7 @@ export default function Index({
               <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                 Student Feedback Submissions Queue
                 {selectedQuestionFilter !== 'ALL' && (
-                  <span className="text-xs font-extrabold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                  <span className="text-xs font-extrabold text-brand-navy bg-brand-50 px-2 py-0.5 rounded border border-indigo-200">
                     Question {selectedQuestionFilter}
                   </span>
                 )}
@@ -692,7 +692,7 @@ export default function Index({
                 className="bg-slate-50 border border-slate-300 rounded-lg px-2 py-1 text-xs text-slate-800 font-semibold focus:outline-none cursor-pointer"
               >
                 <option value="ALL">All Questions (Q1-Q5)</option>
-                {SYSTEM_QUESTIONS.map((q) => (
+                {SYSTEM_QUESTIONS.map((q: any) => (
                   <option key={q.id} value={q.id}>
                     Question {q.id}
                   </option>
@@ -769,7 +769,7 @@ export default function Index({
                   variant="outline"
                   size="sm"
                   onClick={() => setFullFeedbackSubmission(row)}
-                  className="hover:border-indigo-500 hover:text-indigo-600"
+                  className="hover:border-brand-primary hover:text-brand-primary"
                 >
                   <Eye className="w-3.5 h-3.5 mr-1 text-slate-500" />
                   View Full Feedback
@@ -845,7 +845,7 @@ export default function Index({
 
               <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
                 <span className="text-[10px] font-bold text-slate-400 uppercase">Student Identity</span>
-                <p className="text-xs font-bold font-mono text-indigo-700 mt-0.5">
+                <p className="text-xs font-bold font-mono text-brand-navy mt-0.5">
                   Roll No: {fullFeedbackSubmission.studentRoll}
                 </p>
               </div>

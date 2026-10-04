@@ -62,7 +62,7 @@ export default function Index({ settings: initialSettings }: SettingsIndexProps)
   return (
     <AdminLayout title="System Settings" currentPath="#Admin/Settings/Index">
       <div>
-        <h2 className="text-xl font-bold text-slate-900">Feedback System Configuration</h2>
+        <h2 className="text-xl font-bold font-heading text-slate-900">Feedback System Configuration</h2>
         <p className="text-xs text-slate-500">Configure global evaluation parameters, active dates, and privacy thresholds</p>
       </div>
 
@@ -129,7 +129,7 @@ export default function Index({ settings: initialSettings }: SettingsIndexProps)
                 type="checkbox"
                 checked={allowAnonymous}
                 onChange={(e) => setAllowAnonymous(e.target.checked)}
-                className="mt-0.5 rounded bg-white border-slate-300 text-blue-600 focus:ring-blue-500"
+                className="mt-0.5 rounded bg-white border-slate-300 text-brand-primary focus:ring-brand-primary"
               />
               <div>
                 <span className="font-bold text-sm text-slate-900 block">Enforce Anonymous Feedback Submissions</span>
@@ -142,7 +142,7 @@ export default function Index({ settings: initialSettings }: SettingsIndexProps)
                 type="checkbox"
                 checked={autoPublishReports}
                 onChange={(e) => setAutoPublishReports(e.target.checked)}
-                className="mt-0.5 rounded bg-white border-slate-300 text-blue-600 focus:ring-blue-500"
+                className="mt-0.5 rounded bg-white border-slate-300 text-brand-primary focus:ring-brand-primary"
               />
               <div>
                 <span className="font-bold text-sm text-slate-900 block">Auto-Publish Aggregated Reports on Window Expiry</span>

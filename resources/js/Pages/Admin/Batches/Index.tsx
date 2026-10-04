@@ -1,3 +1,4 @@
+import { isAdministratorRole } from '../../../utils/permissions';
 import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../../../Layouts/AdminLayout';
 import { BatchesIndexProps, BatchItem } from '../../../types';
@@ -8,6 +9,7 @@ import { Modal } from '../../../Components/ui/Modal';
 import { Input, Select } from '../../../Components/ui/Input';
 import { Plus, RefreshCw, AlertCircle, Trash2 } from 'lucide-react';
 import { api } from '../../../lib/api';
+import { useAuth } from '../../../context/AuthContext';
 
 interface DepartmentOption {
   id: number;
@@ -15,10 +17,11 @@ interface DepartmentOption {
   name: string;
 }
 
-export default function Index({
-  userRole = 'admin',
-  assignedDepartmentCode = null,
-}: BatchesIndexProps & { userRole?: 'admin' | 'hod'; assignedDepartmentCode?: string | null }) {
+export default function Index() {
+  const { user } = useAuth();
+  const isAdministrator = isAdministratorRole(user?.role);
+  const assignedDepartmentCode = user?.role === 'HOD' ? user?.hod_department_code : null;
+
   const [batchesList, setBatchesList] = useState<BatchItem[]>([]);
   const [departments, setDepartments] = useState<DepartmentOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -168,7 +171,7 @@ export default function Index({
     {
       header: 'Current Semester',
       accessor: (row) => (
-        <span className="font-mono text-xs font-bold px-2 py-0.5 bg-blue-50 border border-blue-200 rounded text-blue-700">
+        <span className="font-mono text-xs font-bold px-2 py-0.5 bg-brand-50 border border-blue-200 rounded text-brand-navy">
           Semester {row.currentSemester}
         </span>
       ),
@@ -202,12 +205,12 @@ export default function Index({
     <AdminLayout
       title="Student Batches"
       currentPath="#Admin/Batches/Index"
-      userRole={userRole}
-      departmentScope={userRole === 'admin' ? 'All Departments' : undefined}
+      
+      
     >
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Graduation Batches & Cohorts</h2>
+          <h2 className="text-xl font-bold font-heading text-slate-900">Graduation Batches & Cohorts</h2>
           <p className="text-xs text-slate-500">Track active student graduation cohorts and current semester progress</p>
         </div>
         <div className="flex items-center gap-2">

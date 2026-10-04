@@ -14,17 +14,42 @@ import {
   Tooltip,
   CartesianGrid,
 } from 'recharts';
-import {
-  getMergedSubmissions,
-  calculateFacultyOverallScore,
-} from '../../../utils/feedbackExclusionStore';
+import { calculateFacultyOverallScore } from '../../../utils/feedbackCalculations';
 
-export default function Show({ report }: FacultyReportShowProps) {
-  const [submissions, setSubmissions] = useState(() => getMergedSubmissions());
+const getQueryParamsFromHash = () => {
+  const hash = window.location.hash;
+  const queryStringIndex = hash.indexOf('?');
+  if (queryStringIndex !== -1) {
+    const queryString = hash.substring(queryStringIndex + 1);
+    return new URLSearchParams(queryString);
+  }
+  return new URLSearchParams();
+};
+
+export default function Show() {
+  const params = getQueryParamsFromHash();
+  const subjectCode = params.get('subjectCode') || 'SUB';
+  const subjectName = params.get('subjectName') || 'Subject Name';
+  const overallScoreStr = params.get('overallScore') || '0';
+  const overallScore = parseFloat(overallScoreStr);
+
+  const report = {
+    subjectCode,
+    subjectName,
+    overallScore,
+    status: 'Published',
+    batchName: params.get('batchName') || 'N/A',
+    semester: params.get('semester') || 'N/A',
+    academicYear: params.get('academicYear') || 'N/A',
+    totalStudents: parseInt(params.get('totalStudents') || '60', 10),
+    metrics: [],
+    comments: [],
+  };
+  const [submissions, setSubmissions] = useState<any[]>([]);
 
   useEffect(() => {
     const handleUpdate = () => {
-      setSubmissions(getMergedSubmissions());
+      setSubmissions([]);
     };
     window.addEventListener('feedback_exclusion_updated', handleUpdate);
     return () => window.removeEventListener('feedback_exclusion_updated', handleUpdate);
@@ -32,7 +57,7 @@ export default function Show({ report }: FacultyReportShowProps) {
 
   const courseSubmissions = useMemo(() => {
     return submissions.filter(
-      (s) => s.subjectCode === report.subjectCode || s.subjectName.toLowerCase() === report.subjectName.toLowerCase()
+      (s: any) => s.subjectCode === report.subjectCode || s.subjectName.toLowerCase() === report.subjectName.toLowerCase()
     );
   }, [submissions, report]);
 
@@ -62,7 +87,7 @@ export default function Show({ report }: FacultyReportShowProps) {
               <span className="font-mono text-xs font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
                 {report.subjectCode}
               </span>
-              <h2 className="text-xl font-bold text-slate-900">{report.subjectName}</h2>
+              <h2 className="text-xl font-bold font-heading text-slate-900">{report.subjectName}</h2>
             </div>
             <p className="text-xs text-slate-500">
               {report.batchName} &bull; Semester {report.semester} &bull; {report.academicYear}
@@ -141,7 +166,7 @@ export default function Show({ report }: FacultyReportShowProps) {
       {/* Student Qualitative Comments */}
       <Card title="Qualitative Student Feedback & Remarks" subtitle="Anonymous student comments and suggestions">
         <div className="divide-y divide-slate-100 space-y-3">
-          {report.comments.map((c, i) => (
+          {report.comments.map((c: any, i: number) => (
             <div key={i} className="pt-3 first:pt-0 space-y-1.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1 text-xs font-bold text-amber-700">

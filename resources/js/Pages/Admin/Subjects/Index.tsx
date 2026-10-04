@@ -1,3 +1,4 @@
+import { isAdministratorRole } from '../../../utils/permissions';
 import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../../../Layouts/AdminLayout';
 import { SubjectsIndexProps, SubjectItem } from '../../../types';
@@ -9,6 +10,7 @@ import { Input, Select } from '../../../Components/ui/Input';
 import { Plus, Filter, AlertCircle, RefreshCw, Trash2 } from 'lucide-react';
 import { getDepartmentName } from '../../../utils/departmentScope';
 import { api } from '../../../lib/api';
+import { useAuth } from '../../../context/AuthContext';
 
 interface DepartmentOption {
   id: number;
@@ -16,12 +18,12 @@ interface DepartmentOption {
   name: string;
 }
 
-export default function Index({
-  userRole = 'admin',
-  assignedDepartmentCode = null,
-}: SubjectsIndexProps & { userRole?: 'admin' | 'hod'; assignedDepartmentCode?: string | null }) {
-  const isAdministrator = userRole === 'admin';
-  const initialDeptFilter = !isAdministrator && assignedDepartmentCode ? assignedDepartmentCode.toUpperCase() : 'ALL';
+export default function Index() {
+  const { user } = useAuth();
+  const isAdministrator = isAdministratorRole(user?.role);
+  const assignedDepartmentCode = user?.role === 'HOD' ? user?.hod_department_code : null;
+
+    const initialDeptFilter = !isAdministrator && assignedDepartmentCode ? assignedDepartmentCode.toUpperCase() : 'ALL';
   const [deptFilter, setDeptFilter] = useState<string>(initialDeptFilter);
 
   const [subjectList, setSubjectList] = useState<SubjectItem[]>([]);
@@ -215,7 +217,7 @@ export default function Index({
     {
       header: 'Subject Code',
       accessor: (row) => (
-        <span className="font-mono text-xs font-bold px-2 py-1 bg-blue-50 border border-blue-200 rounded text-blue-700">
+        <span className="font-mono text-xs font-bold px-2 py-1 bg-brand-50 border border-blue-200 rounded text-brand-navy">
           {row.code}
         </span>
       ),
@@ -269,12 +271,12 @@ export default function Index({
     <AdminLayout
       title="Course Subjects Catalog"
       currentPath="#Admin/Subjects/Index"
-      userRole={userRole}
-      departmentScope={isAdministrator ? 'All Departments' : getDepartmentName(assignedDepartmentCode)}
+      
+      
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Subjects Directory</h2>
+          <h2 className="text-xl font-bold font-heading text-slate-900">Subjects Directory</h2>
           <p className="text-xs text-slate-500">
             {isAdministrator
               ? 'Core and Elective academic subjects assigned across semesters'
@@ -300,7 +302,7 @@ export default function Index({
               </select>
             </div>
           ) : (
-            <span className="px-3 py-1 bg-blue-50 text-blue-800 font-extrabold text-xs rounded-lg border border-blue-200">
+            <span className="px-3 py-1 bg-brand-50 text-blue-800 font-extrabold text-xs rounded-lg border border-blue-200">
               Scope: {getDepartmentName(assignedDepartmentCode)} Only
             </span>
           )}

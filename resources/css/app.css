@@ -2,29 +2,79 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
 @layer base {
   body {
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-sans);
     background-color: #f8fafc;
-    color: #1e293b;
+    color: #0D1C42;
   }
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'Outfit', sans-serif;
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "Outfit", sans-serif;
   }
 }
 
-/* Custom scrollbar for light theme */
+/* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: #f1f5f9;
 }
+
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 3px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* Login Page Specific Background */
+.login-page {
+    position: relative;
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+.login-page::before {
+    content: "";
+    position: absolute;
+    inset: -12px;
+    background-image: url("/charusat-campus-bg.png");
+    background-size: cover;
+    background-position: center;
+    filter: blur(8px);
+    transform: scale(1.03);
+    z-index: 0;
+}
+
+.login-page::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        135deg,
+        rgba(1, 7, 54, 0.35),
+        rgba(13, 28, 66, 0.25),
+        rgba(34, 57, 111, 0.30)
+    );
+    z-index: 1;
+}
+
+.login-content {
+    position: relative;
+    z-index: 2;
 }

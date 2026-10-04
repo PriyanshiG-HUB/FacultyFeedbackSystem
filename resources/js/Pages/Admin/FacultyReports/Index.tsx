@@ -238,16 +238,16 @@ export default function Index() {
     <AdminLayout>
       <style>{`
         :root {
-          --blue: #2f6fd3;
-          --blue-dark: #1f5bb5;
+          --blue: #22396F;
+          --blue-dark: #0D1C42;
           --green: #15956f;
           --green-light: #e8f7f1;
+          --cream: #FCF1D0;
           --orange: #f2b66d;
-          --orange-bg: #fff8ee;
           --border: #d9dee7;
-          --text: #26313d;
+          --text: #010736;
           --muted: #687384;
-          --bg: #f5f7fa;
+          --bg: #f8fafc;
           --white: #fff;
         }
 
@@ -269,106 +269,126 @@ export default function Index() {
           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
           border-radius: 4px;
           box-sizing: border-box;
-          color: #1e293b;
-          font-family: Arial, Helvetica, sans-serif;
+          color: var(--text);
+          font-family: 'Inter', Arial, sans-serif;
           font-size: 11.5px;
           line-height: 1.4;
           position: relative;
         }
 
         .top-header {
-          padding: 0 0 12px;
+          padding: 0 0 16px;
           text-align: center;
+          position: relative;
+        }
+
+        .charusat-report-logo {
+          height: 50px;
+          object-fit: contain;
+          margin-bottom: 8px;
         }
 
         .department-title {
           margin: 0;
           font-size: 18px;
           font-weight: 800;
-          color: #0f172a;
+          color: var(--blue-dark);
           text-transform: uppercase;
-          letter-spacing: 0.01em;
+          letter-spacing: 0.02em;
         }
 
         .report-main-title {
-          margin: 4px 0 10px;
-          color: #2563eb;
+          margin: 4px 0 14px;
+          color: var(--blue);
           font-size: 16px;
           font-weight: 800;
+          font-family: 'Outfit', sans-serif;
         }
 
         .faculty-box {
-          background: #eff6ff;
-          border: 1px solid #bfdbfe;
-          border-radius: 6px;
-          padding: 8px 14px;
-          text-align: center;
-          margin-bottom: 10px;
+          background: var(--bg);
+          border: 1px solid var(--border);
+          border-left: 6px solid var(--blue);
+          border-radius: 4px;
+          padding: 10px 16px;
+          text-align: left;
+          margin-bottom: 12px;
           page-break-inside: avoid;
           break-inside: avoid;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
         }
 
-        .faculty-box h2 {
+        .faculty-box-left h2 {
           margin: 0;
-          font-size: 15px;
-          color: #1e293b;
+          font-size: 16px;
+          color: var(--blue-dark);
           font-weight: 800;
+          font-family: 'Outfit', sans-serif;
         }
 
-        .faculty-box .dept {
-          margin-top: 2px;
-          color: #475569;
+        .faculty-box-left .dept {
+          margin-top: 4px;
+          color: var(--blue);
           font-weight: 700;
           font-size: 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.02em;
         }
 
         .meta-info {
-          margin: 0 0 10px;
           font-size: 11px;
-          color: #475569;
+          color: var(--muted);
           font-weight: 600;
-          text-align: center;
-          line-height: 1.4;
+          text-align: right;
+          line-height: 1.5;
+        }
+
+        .meta-info strong {
+          color: var(--blue-dark);
         }
 
         .blue-divider {
-          height: 3px;
-          background: #2563eb;
-          margin-bottom: 12px;
+          height: 4px;
+          background: linear-gradient(90deg, var(--blue-dark) 0%, var(--blue) 50%, var(--cream) 100%);
+          margin-bottom: 16px;
           border-radius: 2px;
         }
 
         .subject-card {
-          border: 1px solid #cbd5e1;
-          border-left: 5px solid #10b981;
-          border-radius: 6px;
+          border: 1px solid var(--border);
+          border-radius: 4px;
           overflow: hidden;
-          margin-bottom: 12px;
+          margin-bottom: 16px;
           page-break-inside: auto;
           break-inside: auto;
         }
 
         .subject-head {
-          background: #ecfdf5;
-          color: #047857;
-          padding: 8px 12px;
+          background: var(--blue-dark);
+          color: var(--cream);
+          padding: 10px 14px;
           font-size: 12px;
           font-weight: 800;
           line-height: 1.4;
-          border-bottom: 1px solid #a7f3d0;
+          text-transform: uppercase;
+          letter-spacing: 0.02em;
         }
 
         .section-inner {
-          padding: 10px 12px;
+          padding: 12px 14px;
         }
 
         .section-title {
-          margin: 10px 0 8px;
-          padding: 5px 8px;
-          background: #f8fafc;
-          border-left: 3px solid #3b82f6;
+          margin: 12px 0 10px;
+          padding: 6px 10px;
+          background: var(--cream);
+          color: var(--blue-dark);
+          border-left: 4px solid var(--blue);
           font-size: 12px;
           font-weight: 800;
+          text-transform: uppercase;
           border-radius: 0 4px 4px 0;
         }
 
@@ -590,10 +610,10 @@ export default function Index() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <span className="p-1.5 rounded-lg bg-blue-100 text-blue-800">
+              <span className="p-1.5 rounded-lg bg-brand-100 text-blue-800">
                 <UserCheck className="w-5 h-5" />
               </span>
-              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Faculty Reports</h1>
+              <h1 className="text-2xl font-bold font-heading text-slate-900 tracking-tight">Faculty Reports</h1>
             </div>
             <p className="text-sm text-slate-500 mt-1">
               Search and view dynamic Teacher Performance Evaluation Reports for faculty members based on actual student feedback responses.
@@ -615,7 +635,7 @@ export default function Index() {
               size="sm"
               onClick={handleDownloadPDF}
               disabled={isDownloadingPdf || !reportData}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-brand-primary hover:bg-brand-navy"
             >
               {isDownloadingPdf ? (
                 <RefreshCw className="w-4 h-4 mr-1.5 animate-spin" />
@@ -628,7 +648,7 @@ export default function Index() {
         </div>
 
         {/* Filter & Selection Card */}
-        <Card className="border-blue-100 bg-slate-50/50">
+        <Card className="border-brand-100 bg-slate-50/50">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Search / Select Faculty */}
             <div>
@@ -689,7 +709,7 @@ export default function Index() {
           {selectedFacultyObj && (
             <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-600">
               <div className="flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-blue-600" />
+                <Building2 className="w-4 h-4 text-brand-primary" />
                 <span>
                   <strong>Department:</strong> {selectedFacultyObj.department_name} ({selectedFacultyObj.department_code})
                 </span>
@@ -698,7 +718,7 @@ export default function Index() {
                   <strong>Designation:</strong> {selectedFacultyObj.designation_name}
                 </span>
               </div>
-              <span className="font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+              <span className="font-semibold text-brand-navy bg-brand-50 px-2 py-0.5 rounded border border-blue-200">
                 Active Faculty DB Profile
               </span>
             </div>
@@ -716,7 +736,7 @@ export default function Index() {
       {/* Report Template View Container */}
       {isLoadingReport ? (
         <div className="py-20 text-center">
-          <RefreshCw className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-3" />
+          <RefreshCw className="w-8 h-8 text-brand-primary animate-spin mx-auto mb-3" />
           <p className="text-slate-600 font-semibold text-sm">Calculating feedback statistics from database...</p>
         </div>
       ) : reportData ? (
@@ -724,17 +744,19 @@ export default function Index() {
           <div className="a4-preview-wrapper">
             <div className="a4-document" id="faculty-report-printable-area">
               <header className="top-header">
+                <img src="/charusat-logo.jpg" alt="CHARUSAT" className="charusat-report-logo" />
                 <p className="department-title">{reportData.faculty.department_full_name}</p>
-                <h1 className="report-main-title">Teacher Performance Report</h1>
+                <h1 className="report-main-title">Faculty Performance Evaluation Report</h1>
 
                 <div className="faculty-box">
-                  <h2>{reportData.faculty.full_name}</h2>
-                  <div className="dept">Department: {reportData.faculty.department_code}</div>
-                </div>
-
-                <div className="meta-info">
-                  Subject: {reportData.subject.subject_name} | Academic Year: {reportData.subject.academic_year} | Report
-                  Generated: {reportData.generated_date} | Total Responses: {reportData.total_responses}
+                  <div className="faculty-box-left">
+                    <h2>{reportData.faculty.full_name}</h2>
+                    <div className="dept">{reportData.faculty.department_code} • {reportData.faculty.designation_name}</div>
+                  </div>
+                  <div className="meta-info">
+                    Report Generated: <strong>{reportData.generated_date}</strong><br/>
+                    Total Responses: <strong>{reportData.total_responses}</strong>
+                  </div>
                 </div>
               </header>
 

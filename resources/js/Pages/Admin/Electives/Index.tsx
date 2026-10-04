@@ -1,3 +1,4 @@
+import { isAdministratorRole } from '../../../utils/permissions';
 import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../../../Layouts/AdminLayout';
 import { ElectivesIndexProps, ElectiveItem } from '../../../types';
@@ -9,6 +10,7 @@ import Link from '../../../Components/shared/Link';
 import { Users, Plus, ArrowRight, RefreshCw, AlertCircle, Sparkles, Trash2 } from 'lucide-react';
 import { getDepartmentName } from '../../../utils/departmentScope';
 import { api } from '../../../lib/api';
+import { useAuth } from '../../../context/AuthContext';
 
 interface BatchOption {
   id: number;
@@ -30,12 +32,12 @@ interface DepartmentOption {
   name: string;
 }
 
-export default function Index({
-  userRole = 'admin',
-  assignedDepartmentCode = null,
-}: ElectivesIndexProps & { userRole?: 'admin' | 'hod'; assignedDepartmentCode?: string | null }) {
-  const isAdministrator = userRole === 'admin';
-  const initialDeptFilter = !isAdministrator && assignedDepartmentCode ? assignedDepartmentCode.toUpperCase() : 'ALL';
+export default function Index() {
+  const { user } = useAuth();
+  const isAdministrator = isAdministratorRole(user?.role);
+  const assignedDepartmentCode = user?.role === 'HOD' ? user?.hod_department_code : null;
+
+    const initialDeptFilter = !isAdministrator && assignedDepartmentCode ? assignedDepartmentCode.toUpperCase() : 'ALL';
   const [deptFilter, setDeptFilter] = useState<string>(initialDeptFilter);
 
   const [electiveList, setElectiveList] = useState<ElectiveItem[]>([]);
@@ -217,7 +219,7 @@ export default function Index({
     {
       header: 'Code',
       accessor: (row) => (
-        <span className="font-mono text-xs font-bold px-2 py-1 bg-blue-50 border border-blue-200 rounded text-blue-700">
+        <span className="font-mono text-xs font-bold px-2 py-1 bg-brand-50 border border-blue-200 rounded text-brand-navy">
           {row.subjectCode}
         </span>
       ),
@@ -258,7 +260,7 @@ export default function Index({
               variant="outline"
               size="sm"
               onClick={() => handleOpenOfferingModal(row.subjectId)}
-              className="text-indigo-600 border-indigo-200 hover:bg-indigo-50 text-xs font-semibold"
+              className="text-brand-primary border-indigo-200 hover:bg-brand-50 text-xs font-semibold"
             >
               <Plus className="w-3 h-3 mr-1" />
               Configure Offering
@@ -277,7 +279,7 @@ export default function Index({
             </div>
             <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
               <div
-                className="bg-blue-600 h-full rounded-full transition-all"
+                className="bg-brand-primary h-full rounded-full transition-all"
                 style={{ width: `${percentage}%` }}
               />
             </div>
@@ -310,12 +312,12 @@ export default function Index({
     <AdminLayout
       title="Elective Courses Catalog"
       currentPath="#Admin/Electives/Index"
-      userRole={userRole}
-      departmentScope={isAdministrator ? 'All Departments' : getDepartmentName(assignedDepartmentCode)}
+      
+      
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Elective Subject Management</h2>
+          <h2 className="text-xl font-bold font-heading text-slate-900">Elective Subject Management</h2>
           <p className="text-xs text-slate-500">
             {isAdministrator
               ? 'Manage elective subjects, target batch offerings, and student enrollment cohorts'
@@ -340,7 +342,7 @@ export default function Index({
               </select>
             </div>
           ) : (
-            <span className="px-3 py-1 bg-blue-50 text-blue-800 font-extrabold text-xs rounded-lg border border-blue-200">
+            <span className="px-3 py-1 bg-brand-50 text-blue-800 font-extrabold text-xs rounded-lg border border-blue-200">
               Scope: {getDepartmentName(assignedDepartmentCode)} Only
             </span>
           )}

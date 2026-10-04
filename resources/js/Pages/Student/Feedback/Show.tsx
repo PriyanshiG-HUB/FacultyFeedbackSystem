@@ -60,20 +60,19 @@ const getQueryParamsFromHash = () => {
   }
   return new URLSearchParams();
 };
-import { getStoredUserInfo } from '../../../lib/api';
-
-export default function Show({ student, subjects: propSubjects, feedbackItems, parameters: propParameters }: StudentFeedbackShowProps) {
-  const authUser = getStoredUserInfo();
-  const activeStudent = authUser?.student;
+import { useAuth } from '../../../context/AuthContext';
+export default function Show() {
+  const { user } = useAuth();
+  const activeStudent = user?.student;
 
   // Student Information
-  const studentRoll = activeStudent?.roll_no || student?.rollNumber || '22IT045';
-  const studentName = activeStudent?.full_name || student?.name || 'Alex Turner';
-  const studentDept = (activeStudent?.department?.department_code || student?.departmentCode || student?.department || 'IT').toUpperCase();
-  const studentDivision = activeStudent?.division?.division_code || student?.division || 'Division 1';
-  const studentSection = activeStudent?.section?.section_code || (student as any)?.section || 'A1';
-  const studentBatch = activeStudent?.batch?.batch_title || student?.batch || '2022-26';
-  const studentSem = activeStudent?.division?.semester_id || activeStudent?.semester?.semester_no || activeStudent?.semester_id || student?.semester || 7;
+  const studentRoll = activeStudent?.roll_no || user?.email || 'N/A';
+  const studentName = activeStudent?.full_name || user?.full_name || 'N/A';
+  const studentDept = (activeStudent?.department?.department_code || 'IT').toUpperCase();
+  const studentDivision = activeStudent?.division?.division_code || 'N/A';
+  const studentSection = activeStudent?.section?.section_code || 'N/A';
+  const studentBatch = activeStudent?.batch?.batch_title || 'N/A';
+  const studentSem = activeStudent?.division?.semester_id || activeStudent?.semester?.semester_no || activeStudent?.semester_id || 'N/A';
 
   // Published Forms state from MySQL API
   const [publishedForms, setPublishedForms] = useState<PublishedFormItem[]>([]);
@@ -293,37 +292,43 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
     // =========================================================================
     if (!activeFormId) {
       return (
-        <StudentLayout studentInfo={{ rollNumber: studentRoll, division: studentDivision }}>
+        <StudentLayout>
           <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
             {/* Header Banner */}
-            <div className="relative overflow-hidden rounded-[2rem] bg-indigo-950 p-8 sm:p-10 text-white shadow-xl mb-8 border border-indigo-900/50">
-              <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 rounded-full bg-white/5 blur-3xl pointer-events-none"></div>
+            <div className="relative overflow-hidden rounded-sm bg-brand-dark p-8 sm:p-10 text-white shadow-md mb-8 border-l-4 border-l-brand-primary">
+              <div className="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#FCF1D0 1px, transparent 1px)', backgroundSize: '32px 32px' }}></div>
+              <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 rounded-full bg-brand-primary/20 blur-3xl pointer-events-none"></div>
               <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-8">
                 <div className="space-y-4 max-w-xl">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-white text-[10px] font-bold uppercase tracking-widest shadow-sm">
-                    <BookOpen className="w-3.5 h-3.5 text-blue-200" /> Student Evaluation Portal
+                  <div className="inline-flex items-center gap-3">
+                     <div className="bg-white p-1.5 rounded-sm shadow-md">
+                        <img src="/charusat-logo.jpg" alt="CHARUSAT" className="h-10 object-contain" />
+                     </div>
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-brand-navy/60 backdrop-blur-md border border-brand-primary/40 rounded-sm text-brand-accent text-[10px] font-bold uppercase tracking-widest shadow-sm">
+                      <BookOpen className="w-3.5 h-3.5 text-brand-accent" /> Student Evaluation Portal
+                    </div>
                   </div>
-                  <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight drop-shadow-sm">Faculty Feedback</h1>
-                  <p className="text-blue-100 font-medium text-sm leading-relaxed">
+                  <h1 className="text-3xl sm:text-4xl font-black font-heading tracking-tight drop-shadow-sm text-white">Faculty Feedback</h1>
+                  <p className="text-brand-accent/80 font-medium text-sm leading-relaxed">
                     View and submit feedback for active evaluation forms published by your Head of Department. Your responses shape the future of our academic excellence.
                   </p>
                 </div>
 
                 {/* Student Identity Badge */}
-                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-5 shadow-xl text-xs space-y-3 shrink-0 sm:min-w-[240px] transition-transform hover:scale-[1.02] duration-300">
+                <div className="bg-brand-navy/60 backdrop-blur-md border border-brand-primary/40 rounded-sm p-5 shadow-xl text-xs space-y-3 shrink-0 sm:min-w-[240px] transition-transform hover:scale-[1.02] duration-300">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-emerald-400/20 flex items-center justify-center border border-emerald-400/30 shrink-0">
-                      <UserCheck className="w-5 h-5 text-emerald-300" />
+                    <div className="w-10 h-10 rounded-full bg-brand-primary/30 flex items-center justify-center border border-brand-primary shrink-0">
+                      <UserCheck className="w-5 h-5 text-brand-accent" />
                     </div>
                     <div>
                       <span className="font-extrabold text-white block text-sm">{studentName}</span>
-                      <span className="font-mono text-[10px] text-blue-200 uppercase tracking-widest">
+                      <span className="font-mono text-[10px] text-brand-accent uppercase tracking-widest">
                         Roll: {studentRoll}
                       </span>
                     </div>
                   </div>
-                  <div className="pt-3 border-t border-white/10">
-                    <p className="text-[11px] text-blue-100 font-semibold leading-tight">
+                  <div className="pt-3 border-t border-brand-primary/30">
+                    <p className="text-[11px] text-brand-accent/90 font-bold leading-tight uppercase tracking-wider">
                       {studentDept} &bull; Sem {studentSem} &bull; {studentDivision}
                     </p>
                   </div>
@@ -342,8 +347,8 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
             {/* MAIN CHECK: IF NO PUBLISHED FORMS AVAILABLE FOR STUDENT */}
             {eligiblePublishedForms.length === 0 ? (
               <Card className="p-8 sm:p-12 text-center max-w-xl mx-auto space-y-4 my-8 bg-white border-slate-200 shadow-sm rounded-2xl">
-                <div className="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center mx-auto shadow-2xs">
-                  <FileCheck className="w-8 h-8 text-indigo-600" />
+                <div className="w-16 h-16 rounded-2xl bg-brand-50 border border-indigo-100 text-brand-primary flex items-center justify-center mx-auto shadow-2xs">
+                  <FileCheck className="w-8 h-8 text-brand-primary" />
                 </div>
                 <div className="space-y-2">
                   <h3 className="text-xl font-extrabold text-slate-900">
@@ -387,17 +392,17 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
                       >
                         {/* Decorative background glow for pending */}
                         {!isSubmitted && (
-                          <div className="absolute top-0 right-0 -mt-10 -mr-10 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl group-hover:bg-indigo-500/10 transition-colors pointer-events-none"></div>
+                          <div className="absolute top-0 right-0 -mt-10 -mr-10 w-32 h-32 bg-brand-primary/5 rounded-full blur-2xl group-hover:bg-brand-primary/10 transition-colors pointer-events-none"></div>
                         )}
 
                         {/* Top Form Header */}
                         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
                           <div className="flex items-center gap-4">
-                            <span className="font-mono text-[11px] font-bold text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-md border border-indigo-200/60 shadow-xs">
+                            <span className="font-mono text-[11px] font-bold text-brand-navy bg-brand-50 px-3 py-1.5 rounded-md border border-indigo-200/60 shadow-xs">
                               {form.subjectCode}
                             </span>
                             <div>
-                              <h3 className="text-lg font-black text-slate-900 leading-tight group-hover:text-indigo-700 transition-colors">
+                              <h3 className="text-lg font-black text-slate-900 leading-tight group-hover:text-brand-navy transition-colors">
                                 {form.subjectName}
                               </h3>
                               <p className="text-xs text-slate-500 font-medium mt-0.5">
@@ -428,7 +433,7 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
                             <div
                               className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-lg shrink-0 shadow-sm ${isSubmitted
                                   ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-                                  : 'bg-gradient-to-br from-indigo-100 to-purple-100 text-indigo-700 border border-indigo-200/60'
+                                  : 'bg-gradient-to-br from-indigo-100 to-purple-100 text-brand-navy border border-indigo-200/60'
                                 }`}
                             >
                               {form.facultyName.charAt(0)}
@@ -483,7 +488,7 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
     // =========================================================================
     if (!activeForm) {
       return (
-        <StudentLayout studentInfo={{ rollNumber: studentRoll, division: studentDivision }}>
+        <StudentLayout>
           <div className="w-full max-w-xl mx-auto px-4 py-12 text-center space-y-4">
             <Card className="p-8 space-y-4 bg-white border-slate-200 shadow-lg">
               <AlertCircle className="w-10 h-10 text-amber-500 mx-auto" />
@@ -503,7 +508,7 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
 
     if (isCurrentFormSubmitted) {
       return (
-        <StudentLayout studentInfo={{ rollNumber: studentRoll, division: studentDivision }}>
+        <StudentLayout>
           <div className="w-full max-w-xl mx-auto px-4 py-12 text-center space-y-4">
             <Card className="p-8 space-y-5 bg-white border-emerald-200 shadow-xl rounded-2xl">
               <CheckCircle2 className="w-12 h-12 text-emerald-600 mx-auto" />
@@ -513,7 +518,7 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
                   You have already completed the evaluation for <strong className="text-slate-900">{activeForm.facultyName}</strong> ({activeForm.subjectName}).
                 </p>
               </div>
-              <Button variant="primary" onClick={handleBackToList} className="bg-indigo-600 hover:bg-indigo-700">
+              <Button variant="primary" onClick={handleBackToList} className="bg-brand-primary hover:bg-brand-navy">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Return to Active Forms
               </Button>
@@ -558,48 +563,49 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
     }).length;
 
     return (
-      <StudentLayout studentInfo={{ rollNumber: studentRoll, division: studentDivision }}>
+      <StudentLayout>
         <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-6">
           {/* Navigation & Title Header */}
           <div className="flex items-center justify-between gap-4 border-b border-slate-200 pb-4">
             <button
               onClick={handleBackToList}
-              className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-indigo-600 transition-colors group"
+              className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-brand-primary transition-colors group"
             >
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
               <span>Back to Active Forms</span>
             </button>
 
-            <span className="text-xs font-black text-indigo-700 bg-indigo-50 px-3.5 py-1.5 rounded-full border border-indigo-200 shadow-xs">
+            <span className="text-xs font-black text-brand-navy bg-brand-50 px-3.5 py-1.5 rounded-full border border-indigo-200 shadow-xs">
               Progress: <span className="text-indigo-900">{answeredCount} / {totalQuestions}</span> Answered
             </span>
           </div>
 
           {/* Target Form Summary Header Card */}
-          <Card className="relative overflow-hidden p-8 bg-indigo-950 text-white border-indigo-900/50 shadow-xl rounded-3xl space-y-4">
-            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 rounded-full bg-white/5 blur-3xl pointer-events-none"></div>
+          <Card className="relative overflow-hidden p-8 bg-brand-dark text-white border border-brand-primary/20 shadow-md rounded-sm space-y-4 border-l-4 border-l-brand-primary">
+            <div className="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#FCF1D0 1px, transparent 1px)', backgroundSize: '32px 32px' }}></div>
+            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 rounded-full bg-brand-primary/20 blur-3xl pointer-events-none"></div>
             <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-sm text-white flex items-center justify-center font-black text-2xl border border-white/20 shadow-inner">
+                <div className="w-14 h-14 rounded-sm bg-white text-brand-dark flex items-center justify-center font-black text-2xl shadow-sm">
                   {activeForm.facultyName.charAt(0)}
                 </div>
                 <div>
-                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-300 drop-shadow-sm">
+                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-brand-accent drop-shadow-sm">
                     Evaluating Faculty Member
                   </span>
-                  <h1 className="text-2xl font-black tracking-tight text-white">{activeForm.facultyName}</h1>
-                  <p className="text-xs text-indigo-200 font-medium mt-0.5">
+                  <h1 className="text-2xl font-black font-heading tracking-tight text-white">{activeForm.facultyName}</h1>
+                  <p className="text-xs text-brand-accent/80 font-medium mt-0.5">
                     {activeForm.facultyDesignation || 'Professor'} &bull; {activeForm.departmentName}
                   </p>
                 </div>
               </div>
 
               <div className="sm:text-right space-y-1.5 border-t sm:border-t-0 border-white/10 pt-4 sm:pt-0">
-                <span className="font-mono text-[11px] font-black text-amber-300 bg-amber-950/60 px-3 py-1.5 rounded-lg border border-amber-500/50 shadow-inner inline-block">
+                <span className="font-mono text-[11px] font-black text-brand-dark bg-brand-accent px-3 py-1.5 rounded-sm shadow-inner inline-block">
                   {activeForm.subjectCode}
                 </span>
                 <h2 className="text-base font-extrabold text-white leading-tight">{activeForm.subjectName}</h2>
-                <p className="text-[11px] text-indigo-300 font-medium">
+                <p className="text-[11px] text-brand-accent/70 font-medium uppercase tracking-widest">
                   Semester {activeForm.semester} &bull; Academic Year {activeForm.academicYear}
                 </p>
               </div>
@@ -638,7 +644,7 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
                   {/* Question Title */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-black text-indigo-600 uppercase tracking-widest">
+                      <span className="text-[11px] font-black text-brand-primary uppercase tracking-widest">
                         Question {index + 1} of {totalQuestions}
                       </span>
                       <span className="text-[10px] font-bold px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 border border-slate-200/60">
@@ -665,7 +671,7 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
                               type="button"
                               onClick={() => handleRatingSelect(qKey, option.value)}
                               className={`p-3 rounded-xl border text-center flex flex-col items-center justify-center gap-1 transition-all ${isSelected
-                                  ? 'bg-indigo-600 text-white font-extrabold border-indigo-600 shadow-md shadow-indigo-600/30 ring-2 ring-indigo-600/20'
+                                  ? 'bg-brand-primary text-white font-extrabold border-brand-primary shadow-md shadow-brand-primary/30 ring-2 ring-brand-primary/20'
                                   : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 font-semibold'
                                 }`}
                             >
@@ -697,7 +703,7 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
                         }
                         value={questionComments[qKey] || ''}
                         onChange={(e) => handleCommentChange(qKey, e.target.value)}
-                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary"
                       />
                     </div>
                   )}
@@ -714,7 +720,7 @@ export default function Show({ student, subjects: propSubjects, feedbackItems, p
                 type="submit"
                 variant="primary"
                 size="lg"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold shadow-lg shadow-indigo-600/30 px-8"
+                className="bg-brand-primary hover:bg-brand-navy text-white font-extrabold shadow-lg shadow-brand-primary/30 px-8"
               >
                 <Send className="w-4 h-4 mr-2" />
                 <span>Submit Evaluation Feedback</span>

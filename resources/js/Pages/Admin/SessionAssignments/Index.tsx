@@ -1,3 +1,4 @@
+import { isAdministratorRole } from '../../../utils/permissions';
 import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../../../Layouts/AdminLayout';
 import { SessionAssignmentsIndexProps, SessionAssignmentItem } from '../../../types';
@@ -8,12 +9,14 @@ import { Select } from '../../../Components/ui/Input';
 import { Plus, RefreshCw, AlertCircle, Trash2, Filter } from 'lucide-react';
 import { getDepartmentName } from '../../../utils/departmentScope';
 import { api } from '../../../lib/api';
+import { useAuth } from '../../../context/AuthContext';
 
-export default function Index({
-  userRole = 'admin',
-  assignedDepartmentCode = null,
-}: Partial<SessionAssignmentsIndexProps> & { userRole?: 'admin' | 'hod'; assignedDepartmentCode?: string | null }) {
-  const isAdministrator = userRole === 'admin';
+export default function Index() {
+  const { user } = useAuth();
+  const isAdministrator = isAdministratorRole(user?.role);
+  const assignedDepartmentCode = user?.role === 'HOD' ? user?.hod_department_code : null;
+
+  
   const initialDeptFilter = !isAdministrator && assignedDepartmentCode ? assignedDepartmentCode.toUpperCase() : 'ALL';
   const [deptFilter, setDeptFilter] = useState<string>(initialDeptFilter);
 
@@ -233,7 +236,7 @@ export default function Index({
       header: 'Subject Code & Title',
       accessor: (row) => (
         <div>
-          <span className="font-mono text-xs font-bold px-2 py-0.5 bg-blue-50 border border-blue-200 rounded text-blue-700 mr-2">
+          <span className="font-mono text-xs font-bold px-2 py-0.5 bg-brand-50 border border-blue-200 rounded text-brand-navy mr-2">
             {row.subjectCode}
           </span>
           <span className="text-slate-800 font-medium">{row.subjectName}</span>
@@ -293,12 +296,12 @@ export default function Index({
     <AdminLayout
       title="Session Allocations"
       currentPath="#Admin/SessionAssignments/Index"
-      userRole={userRole}
-      departmentScope={isAdministrator ? 'All Departments' : getDepartmentName(assignedDepartmentCode)}
+      
+      
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Faculty Session Allocations</h2>
+          <h2 className="text-xl font-bold font-heading text-slate-900">Faculty Session Allocations</h2>
           <p className="text-xs text-slate-500">Map faculty members to subjects, graduation batches, divisions, and sections</p>
         </div>
 
@@ -320,7 +323,7 @@ export default function Index({
               </select>
             </div>
           ) : (
-            <span className="px-3 py-1 bg-blue-50 text-blue-800 font-extrabold text-xs rounded-lg border border-blue-200">
+            <span className="px-3 py-1 bg-brand-50 text-blue-800 font-extrabold text-xs rounded-lg border border-blue-200">
               Scope: {getDepartmentName(assignedDepartmentCode)} Only
             </span>
           )}

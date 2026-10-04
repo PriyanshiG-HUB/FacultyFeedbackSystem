@@ -41,6 +41,8 @@ class FeedbackPublishingService
                 'published_at' => $shouldPublish ? now() : null,
                 'status' => $shouldPublish ? 'PUBLISHED' : 'DRAFT',
                 'created_by_user_account_id' => $userAccount->id,
+                'question_source' => $questionSource,
+                'response_type' => $responseType,
             ]);
 
             if (!empty($data['questions']) && is_array($data['questions'])) {

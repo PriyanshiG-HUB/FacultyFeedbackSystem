@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { mockPropsMap } from './mockProps';
 import { getAuthToken, setAuthToken, api, setStoredUserInfo, getStoredUserInfo, removeAuthToken } from '../lib/api';
 
 // Admin Page Imports
@@ -191,73 +190,10 @@ export const DevPageRenderer: React.FC = () => {
   const PageComponent = (!currentToken && !isCurrentPublic)
     ? (activePage.startsWith('Student/') ? StudentIdentify : FacultyLogin)
     : (componentRegistry[activePage] || (currentToken ? AdminDashboard : FacultyLogin));
-  const baseProps = mockPropsMap[activePage] || mockPropsMap[currentToken ? 'Admin/Dashboard' : 'Faculty/Login'];
 
-  // Role Scope Mock Props Generation
-  const isHodRole = devRoleMode.startsWith('hod_');
-  const userRole = isHodRole ? 'hod' : 'admin';
-  
-  let assignedDepartmentCode: string | null = null;
-  let hodInfo = {
-    name: 'Administrator',
-    role: 'System Administrator',
-    department: 'All Departments',
-    departmentCode: 'ALL',
-  };
+  const activeProps = {};
 
-  if (devRoleMode === 'hod_ce') {
-    assignedDepartmentCode = 'CE';
-    hodInfo = {
-      name: 'Dr. Robert Vance',
-      role: 'Head of Department',
-      department: 'Computer Engineering',
-      departmentCode: 'CE',
-    };
-  } else if (devRoleMode === 'hod_it') {
-    assignedDepartmentCode = 'IT';
-    hodInfo = {
-      name: 'Dr. Sarah Jenkins',
-      role: 'Head of Department',
-      department: 'Information Technology',
-      departmentCode: 'IT',
-    };
-  } else if (devRoleMode === 'hod_cse') {
-    assignedDepartmentCode = 'CSE';
-    hodInfo = {
-      name: 'Dr. Vikram Shah',
-      role: 'Head of Department',
-      department: 'Computer Science & Engineering',
-      departmentCode: 'CSE',
-    };
-  } else if (devRoleMode === 'hod_aiml') {
-    assignedDepartmentCode = 'AIML';
-    hodInfo = {
-      name: 'Dr. Anita Roy',
-      role: 'Head of Department',
-      department: 'Artificial Intelligence & Machine Learning',
-      departmentCode: 'AIML',
-    };
-  }
 
-  const studentProp = baseProps?.student
-    ? {
-        ...baseProps.student,
-        division: studentDivisionMode,
-        divisionCode: studentDivisionMode === 'Division A' ? 'IT-1' : 'IT-2',
-      }
-    : undefined;
-
-  const activeProps = {
-    ...baseProps,
-    ...(studentProp ? { student: studentProp } : {}),
-    userRole,
-    assignedDepartmentCode,
-    hodInfo,
-    departmentName: hodInfo.department,
-    ...(authUser && activePage.startsWith('Faculty/') ? {
-      facultyName: authUser.faculty?.full_name || authUser.faculty?.name || authUser.name || authUser.email
-    } : {}),
-  };
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col relative">
@@ -266,7 +202,7 @@ export const DevPageRenderer: React.FC = () => {
         <div className="px-4 py-2 flex flex-wrap items-center justify-between gap-3 text-xs">
           {/* Brand & Active Inertia Route */}
           <div className="flex items-center gap-2.5">
-            <div className="p-1.5 rounded-lg bg-indigo-600 text-white">
+            <div className="p-1.5 rounded-lg bg-brand-primary text-white">
               <Monitor className="w-4 h-4" />
             </div>
             <div>
@@ -285,7 +221,7 @@ export const DevPageRenderer: React.FC = () => {
             <select
               value={activePage}
               onChange={(e) => changePage(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 hover:border-indigo-500 rounded-lg px-2.5 py-1 text-xs text-slate-100 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer transition-all"
+              className="w-full bg-slate-800 border border-slate-700 hover:border-brand-primary rounded-lg px-2.5 py-1 text-xs text-slate-100 font-semibold focus:outline-none focus:ring-2 focus:ring-brand-primary cursor-pointer transition-all"
             >
               <optgroup label="ADMIN CONTROLLERS">
                 <option value="Admin/Dashboard">Admin &rarr; Dashboard</option>
@@ -354,8 +290,8 @@ export const DevPageRenderer: React.FC = () => {
                 }
               }}
               className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all ${
-                userRole === 'admin'
-                  ? 'bg-indigo-600 text-white shadow-xs'
+                authUser?.role === 'ADMIN'
+                  ? 'bg-brand-primary text-white shadow-xs'
                   : 'bg-slate-800 text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -419,7 +355,7 @@ export const DevPageRenderer: React.FC = () => {
         <PageComponent key={`${activePage}-${devRoleMode}`} {...activeProps} />
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center min-h-[450px] gap-3 text-slate-500">
-          <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-3 border-brand-primary border-t-transparent rounded-full animate-spin" />
           <span className="text-xs font-semibold tracking-wide">Connecting to Academic Database...</span>
         </div>
       )}
