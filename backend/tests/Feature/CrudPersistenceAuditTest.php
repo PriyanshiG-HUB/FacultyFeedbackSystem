@@ -255,7 +255,7 @@ class CrudPersistenceAuditTest extends TestCase
         $this->assertDatabaseHas('student', [
             'id' => $createdId,
             'roll_no' => $uniqueRoll,
-            'email' => $uniqueEmail,
+            'email' => strtolower($uniqueRoll) . '@college.edu',
         ]);
 
         // PUT (Update)

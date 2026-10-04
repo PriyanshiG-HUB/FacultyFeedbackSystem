@@ -9,12 +9,12 @@ use App\Models\StudentElectiveEnrollment;
 use App\Models\Subject;
 use App\Models\SubjectOffering;
 use App\Models\UserAccount;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+
 use Tests\TestCase;
 
 class ElectivesPersistenceTest extends TestCase
 {
-    use DatabaseTransactions;
+    
 
     protected string $token;
     protected UserAccount $admin;

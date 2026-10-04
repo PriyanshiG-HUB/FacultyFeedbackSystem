@@ -85,7 +85,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Admin & HOD Scope Routes
-    Route::middleware(CheckRole::class . ':ADMIN,SUPER_ADMIN')->group(function () {
+    Route::middleware(CheckRole::class . ':ADMIN,SUPER_ADMIN,HOD')->group(function () {
         // Dashboard
         Route::get('/admin/dashboard', [AdminDashboardController::class, 'dashboard']);
 
@@ -119,23 +119,25 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('teaching-assignments', TeachingAssignmentController::class);
         Route::apiResource('timetables', TimetableController::class);
 
-        // Feedback Question Categories & Forms Lifecycle
+        // Feedback Forms Lifecycle & Reporting
+        Route::apiResource('feedback-forms', FeedbackFormController::class);
+        Route::post('/feedback-forms/{feedbackForm}/publish', [FeedbackFormController::class, 'publish']);
+        Route::post('/feedback-forms/{feedbackForm}/unpublish', [FeedbackFormController::class, 'unpublish']);
+        Route::apiResource('reports', ReportController::class);
+
+        // Question Bank & Categories
         Route::apiResource('feedback-question-categories', FeedbackQuestionCategoryController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::get('/custom-feedback-questions/template', [\App\Http\Controllers\Api\CustomFeedbackQuestionController::class, 'template']);
         Route::post('/custom-feedback-questions/validate', [\App\Http\Controllers\Api\CustomFeedbackQuestionController::class, 'validateImport']);
         Route::post('/custom-feedback-questions/import', [\App\Http\Controllers\Api\CustomFeedbackQuestionController::class, 'import']);
         Route::apiResource('custom-feedback-questions', \App\Http\Controllers\Api\CustomFeedbackQuestionController::class)->only(['index', 'store', 'destroy']);
-        Route::apiResource('feedback-forms', FeedbackFormController::class);
-        Route::post('/feedback-forms/{feedbackForm}/publish', [FeedbackFormController::class, 'publish']);
-        Route::post('/feedback-forms/{feedbackForm}/unpublish', [FeedbackFormController::class, 'unpublish']);
 
-        // Feedback Moderation / Exclusion
+        // Feedback Moderation / Exclusion (Accessible to ADMIN, SUPER_ADMIN, HOD)
         Route::get('/feedback/moderation', [FeedbackModerationController::class, 'index']);
         Route::post('/feedback/responses/{response}/exclude', [FeedbackModerationController::class, 'exclude']);
         Route::post('/feedback/responses/{response}/restore', [FeedbackModerationController::class, 'restore']);
 
-        // Reporting, System Settings & Import Logging
-        Route::apiResource('reports', ReportController::class);
+        // System Settings & Data Imports (Accessible to ADMIN, SUPER_ADMIN, HOD)
         Route::get('/system-settings', [SystemSettingsController::class, 'show']);
         Route::put('/system-settings/{systemSettings}', [SystemSettingsController::class, 'update']);
         Route::put('/system-settings', [SystemSettingsController::class, 'update']);

@@ -15,10 +15,10 @@ class UserAccountResource extends JsonResource
     public function toArray(Request $request): array
     {
         $hodDept = method_exists($this->resource, 'isHod') && $this->resource->isHod() ? $this->resource->getHodDepartment() : null;
-        $effectiveRole = $this->role;
-        if ($this->role === 'FACULTY' && $hodDept) {
-            $effectiveRole = 'HOD';
+        if (!$hodDept && (strtoupper($this->role) === 'HOD')) {
+            $hodDept = $this->faculty?->department ?? null;
         }
+        $effectiveRole = (strtoupper($this->role) === 'HOD' || $hodDept !== null) ? 'HOD' : $this->role;
 
         return [
             'id' => $this->id,

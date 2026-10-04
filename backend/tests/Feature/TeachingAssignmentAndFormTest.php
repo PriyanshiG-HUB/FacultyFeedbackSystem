@@ -99,4 +99,24 @@ class TeachingAssignmentAndFormTest extends TestCase
         $unpublishResponse->assertStatus(200)
             ->assertJsonPath('data.is_published', false);
     }
+
+    public function test_bulk_feedback_form_creation_by_teaching_assignment_ids(): void
+    {
+        $token = $this->getAdminToken();
+        $tas = TeachingAssignment::take(3)->get();
+        $taIds = $tas->pluck('id')->toArray();
+
+        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->postJson('/api/feedback-forms', [
+                'teaching_assignment_ids' => $taIds,
+                'title' => 'Bulk Division Feedback',
+                'window_start_date' => '2026-08-01',
+                'window_end_date' => '2026-12-31',
+                'is_anonymous' => true,
+                'is_published' => true,
+            ]);
+
+        $response->assertStatus(201);
+        $this->assertCount(count($taIds), $response->json('data'));
+    }
 }

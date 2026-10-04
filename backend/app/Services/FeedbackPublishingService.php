@@ -16,6 +16,49 @@ use Exception;
 class FeedbackPublishingService
 {
     /**
+     * Bulk create FeedbackForms for multiple teaching assignments inside a DB transaction.
+     *
+     * @return FeedbackForm[]
+     */
+    public function createFormsBulk(array $data, UserAccount $userAccount): array
+    {
+        $createdForms = [];
+        $assignmentIds = array_unique($data['teaching_assignment_ids'] ?? []);
+
+        foreach ($assignmentIds as $taId) {
+            // Prevent duplicate form creation for the same teaching assignment if one already exists
+            $existing = FeedbackForm::where('teaching_assignment_id', $taId)->first();
+            if ($existing) {
+                $createdForms[] = $existing->load(['teachingAssignment.subject', 'teachingAssignment.faculty', 'questions.options', 'questions.category']);
+                continue;
+            }
+
+            $singleData = $data;
+            $singleData['teaching_assignment_id'] = $taId;
+            unset($singleData['teaching_assignment_ids']);
+
+            $assignment = TeachingAssignment::with(['subject', 'faculty', 'division', 'section'])->find($taId);
+            if ($assignment && $assignment->subject) {
+                $divSecLabel = '';
+                if ($assignment->division) {
+                    $divSecLabel .= ' [Div ' . ($assignment->division->division_code ?? $assignment->division_id);
+                    if ($assignment->section) {
+                        $divSecLabel .= ' Sec ' . ($assignment->section->section_code ?? $assignment->section_id);
+                    }
+                    $divSecLabel .= ']';
+                }
+                $baseTitle = !empty($data['title']) ? trim($data['title']) : 'Faculty Feedback';
+                $singleData['title'] = $baseTitle . ' — ' . $assignment->subject->subject_name . ' (' . ($assignment->faculty?->full_name ?? 'Faculty') . ')' . $divSecLabel;
+            }
+
+            $form = $this->createForm($singleData, $userAccount);
+            $createdForms[] = $form;
+        }
+
+        return $createdForms;
+    }
+
+    /**
      * Create a new FeedbackForm with questions and options inside a DB transaction.
      */
     public function createForm(array $data, UserAccount $userAccount): FeedbackForm

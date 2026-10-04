@@ -5,17 +5,26 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ReportResource;
 use App\Models\Report;
+use App\Traits\AuthorizesDepartmentScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class ReportController extends Controller
 {
+    use AuthorizesDepartmentScope;
+
     public function index(Request $request): JsonResponse
     {
         $query = Report::with(['department', 'academicYear', 'generatedByUserAccount']);
 
-        if ($request->has('department_id')) {
+        $hodDeptId = $this->getAuthorizedDepartmentId($request);
+        if ($hodDeptId !== null) {
+            $query->where(function ($q) use ($hodDeptId) {
+                $q->where('department_id', $hodDeptId)
+                  ->orWhereNull('department_id');
+            });
+        } elseif ($request->has('department_id')) {
             $query->where('department_id', $request->get('department_id'));
         }
         if ($request->has('academic_year_id')) {

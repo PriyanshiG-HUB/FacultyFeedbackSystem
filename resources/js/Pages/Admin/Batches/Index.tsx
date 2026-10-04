@@ -66,7 +66,7 @@ export default function Index() {
         const mapped: BatchItem[] = batchesRes.data.map((b: any) => ({
           id: b.id,
           name: b.batch_title,
-          department: b.department?.department_name || b.department?.department_code || 'Information Technology',
+          department: b.department?.department_name || b.department?.department_code || 'Department Scope',
           academicYear: `${b.admission_year}-${b.graduation_year}`,
           currentSemester: b.current_semester?.semester_no || b.current_semester_id || 1,
           status: b.status === 'GRADUATED' ? 'Graduated' : 'Active',

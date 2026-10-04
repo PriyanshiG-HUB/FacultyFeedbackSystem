@@ -17,7 +17,8 @@ class FeedbackModerationAndIsolationTest extends TestCase
 
     protected function getFacultyToken(): string
     {
-        $user = UserAccount::where('email', 'dr.smith@college.edu')->first();
+        $user = UserAccount::where('email', 'prof.jones@college.edu')->first()
+            ?? UserAccount::where('role', 'FACULTY')->get()->first(fn($u) => !$u->isHod());
         return $user->createToken('test_token')->plainTextToken;
     }
 

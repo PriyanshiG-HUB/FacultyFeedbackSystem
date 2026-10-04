@@ -47,6 +47,7 @@ export default function Index() {
           name: d.department_name,
           hod_faculty_id: d.hod_faculty_id,
           hod: d.hod_faculty?.full_name || 'Not Appointed',
+          hod_email: d.hod_faculty?.email || '',
           studentCount: d.students_count || 0,
           facultyCount: d.faculty_count || 0,
           avgRating: d.avg_rating || 4.65,
@@ -73,9 +74,18 @@ export default function Index() {
           dept.code.toUpperCase() === (assignedDepartmentCode || 'CE').toUpperCase()
       );
 
+  const [hodMode, setHodMode] = useState<'existing' | 'new'>('existing');
+  const [newHodName, setNewHodName] = useState('');
+  const [newHodEmail, setNewHodEmail] = useState('');
+  const [newHodMobile, setNewHodMobile] = useState('');
+
   const handleOpenEdit = async (dept: any) => {
     setSelectedDept(dept);
     setErrorMessage('');
+    setHodMode('existing');
+    setNewHodName('');
+    setNewHodEmail('');
+    setNewHodMobile('');
     editForm.setData({
       name: dept.name,
       code: dept.code,
@@ -101,11 +111,22 @@ export default function Index() {
     setErrorMessage('');
     if (!selectedDept) return;
     try {
-      await api.put(`/departments/${selectedDept.id}`, {
+      const payload: any = {
         department_name: editForm.data.name.trim(),
         department_code: editForm.data.code.trim().toUpperCase(),
-        hod_faculty_id: editForm.data.hodId ? Number(editForm.data.hodId) : null,
-      });
+      };
+
+      if (hodMode === 'new' && newHodName.trim() && newHodEmail.trim()) {
+        payload.hod_full_name = newHodName.trim();
+        payload.hod_email = newHodEmail.trim();
+        if (newHodMobile.trim()) {
+          payload.hod_mobile = newHodMobile.trim();
+        }
+      } else {
+        payload.hod_faculty_id = editForm.data.hodId ? Number(editForm.data.hodId) : null;
+      }
+
+      await api.put(`/departments/${selectedDept.id}`, payload);
       await fetchDepartments();
       setIsEditOpen(false);
     } catch (err: any) {
@@ -152,7 +173,14 @@ export default function Index() {
     },
     {
       header: 'Head of Department (HOD)',
-      accessor: (row) => <span className="font-semibold text-slate-800">{row.hod}</span>,
+      accessor: (row) => (
+        <div className="flex flex-col">
+          <span className="font-semibold text-slate-800">{row.hod}</span>
+          {(row as any).hod_email ? (
+            <span className="text-[11px] text-slate-500 font-normal">{(row as any).hod_email}</span>
+          ) : null}
+        </div>
+      ),
       sortable: true,
     },
     {
@@ -320,18 +348,74 @@ export default function Index() {
             required
           />
 
-          <Select
-            label="Appoint Head of Department (HOD)"
-            value={editForm.data.hodId}
-            onChange={(e) => editForm.setData('hodId', e.target.value)}
-          >
-            <option value="">Select HOD Candidate (Optional)...</option>
-            {deptFaculty.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.name}
-              </option>
-            ))}
-          </Select>
+          <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                Head of Department (HOD) Assignment
+              </label>
+              <div className="flex items-center gap-3 text-xs font-medium text-slate-600">
+                <label className="flex items-center gap-1 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="hodMode"
+                    checked={hodMode === 'existing'}
+                    onChange={() => setHodMode('existing')}
+                    className="text-blue-600 focus:ring-blue-500"
+                  />
+                  Select Existing
+                </label>
+                <label className="flex items-center gap-1 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="hodMode"
+                    checked={hodMode === 'new'}
+                    onChange={() => setHodMode('new')}
+                    className="text-blue-600 focus:ring-blue-500"
+                  />
+                  Register New HOD
+                </label>
+              </div>
+            </div>
+
+            {hodMode === 'existing' ? (
+              <Select
+                label="Appoint Existing Faculty Member as HOD"
+                value={editForm.data.hodId}
+                onChange={(e) => editForm.setData('hodId', e.target.value)}
+              >
+                <option value="">No Active HOD (Clear Assignment)</option>
+                {deptFaculty.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name}
+                  </option>
+                ))}
+              </Select>
+            ) : (
+              <div className="space-y-3 pt-1">
+                <Input
+                  label="HOD Full Name *"
+                  placeholder="e.g. Dr. Jane Doe"
+                  value={newHodName}
+                  onChange={(e) => setNewHodName(e.target.value)}
+                  required={hodMode === 'new'}
+                />
+                <Input
+                  label="HOD Email Address *"
+                  type="email"
+                  placeholder="e.g. jane.doe@college.edu"
+                  value={newHodEmail}
+                  onChange={(e) => setNewHodEmail(e.target.value)}
+                  required={hodMode === 'new'}
+                />
+                <Input
+                  label="HOD Mobile Number"
+                  placeholder="e.g. 9876543210"
+                  value={newHodMobile}
+                  onChange={(e) => setNewHodMobile(e.target.value)}
+                />
+              </div>
+            )}
+          </div>
 
           <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
             <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>

@@ -6,12 +6,12 @@ use App\Models\TeachingAssignment;
 use App\Models\Timetable;
 use App\Models\UserAccount;
 use App\Models\Faculty;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+
 use Tests\TestCase;
 
 class TimetablePersistenceTest extends TestCase
 {
-    use DatabaseTransactions;
+    
 
     protected function setUp(): void
     {

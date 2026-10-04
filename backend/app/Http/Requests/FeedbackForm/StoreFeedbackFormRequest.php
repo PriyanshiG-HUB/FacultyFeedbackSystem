@@ -14,9 +14,11 @@ class StoreFeedbackFormRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'teaching_assignment_id' => ['required', 'integer', 'exists:teaching_assignment,id'],
+            'teaching_assignment_id' => ['required_without:teaching_assignment_ids', 'nullable', 'integer', 'exists:teaching_assignment,id'],
+            'teaching_assignment_ids' => ['required_without:teaching_assignment_id', 'nullable', 'array'],
+            'teaching_assignment_ids.*' => ['integer', 'exists:teaching_assignment,id'],
             'title' => ['nullable', 'string', 'max:200'],
-            'form_code' => ['nullable', 'string', 'max:50', 'unique:feedback_form,form_code'],
+            'form_code' => ['nullable', 'string', 'max:50'],
             'academic_year_id' => ['nullable', 'integer', 'exists:academic_year,id'],
             'window_start_date' => ['nullable', 'date'],
             'window_end_date' => ['nullable', 'date', 'after_or_equal:window_start_date'],

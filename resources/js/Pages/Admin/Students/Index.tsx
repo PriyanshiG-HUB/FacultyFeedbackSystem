@@ -113,7 +113,7 @@ export default function Index() {
           rollNumber: s.roll_no,
           name: s.full_name,
           email: s.email,
-          department: s.department?.department_name || s.department?.department_code || 'Information Technology',
+          department: s.department?.department_name || s.department?.department_code || 'Department Scope',
           departmentCode: s.department?.department_code || 'IT',
           batch: s.batch?.batch_title || '2022-26',
           currentSemester: s.batch?.current_semester?.semester_no || s.batch?.current_semester_id || 7,

@@ -15,9 +15,11 @@ import { useAuth } from '../../../context/AuthContext';
 export default function Index() {
   const { user } = useAuth();
   const isAdministrator = isAdministratorRole(user?.role);
-  const assignedDepartmentCode = user?.role === 'HOD' ? user?.hod_department_code : null;
+  
+  const effectiveDeptCode = user?.hod_department_code || user?.faculty?.department?.department_code || null;
+  const currentDeptName = user?.faculty?.department?.department_name || getDepartmentName(effectiveDeptCode) || 'Department Scope';
 
-    const initialDeptFilter = !isAdministrator && assignedDepartmentCode ? assignedDepartmentCode.toUpperCase() : 'ALL';
+  const initialDeptFilter = !isAdministrator && effectiveDeptCode ? effectiveDeptCode.toUpperCase() : 'ALL';
   const [deptFilter, setDeptFilter] = useState<string>(initialDeptFilter);
 
   const [reports, setReports] = useState<ReportItem[]>([]);
@@ -131,8 +133,8 @@ export default function Index() {
 
   const filteredReports = reports.filter((r) => {
     const rDeptCode = (r.departmentCode || '').toUpperCase();
-    if (!isAdministrator && assignedDepartmentCode) {
-      if (rDeptCode !== 'ALL' && rDeptCode !== assignedDepartmentCode.toUpperCase()) return false;
+    if (!isAdministrator && effectiveDeptCode) {
+      if (rDeptCode !== 'ALL' && rDeptCode !== effectiveDeptCode.toUpperCase()) return false;
     }
     if (isAdministrator && deptFilter !== 'ALL') {
       if (rDeptCode !== 'ALL' && rDeptCode !== deptFilter.toUpperCase()) return false;
@@ -185,8 +187,8 @@ export default function Index() {
     <AdminLayout
       title="Department Evaluation Reports"
       currentPath="#Admin/Reports/Index"
-      
-      
+      userRoleType={isAdministrator ? 'admin' : 'hod'}
+      departmentScope={isAdministrator ? 'All Departments' : currentDeptName}
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -215,7 +217,7 @@ export default function Index() {
             </div>
           ) : (
             <span className="px-3 py-1 bg-brand-50 text-blue-800 font-extrabold text-xs rounded-lg border border-blue-200">
-              Scope: {getDepartmentName(assignedDepartmentCode)} Only
+              Scope: {currentDeptName} Only
             </span>
           )}
 

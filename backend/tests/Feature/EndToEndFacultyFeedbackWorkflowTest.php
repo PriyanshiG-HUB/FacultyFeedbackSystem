@@ -119,7 +119,7 @@ class EndToEndFacultyFeedbackWorkflowTest extends TestCase
         // STEP 6: Create Student & User Account
         // -------------------------------------------------------------
         $studentRoll = "E2E{$uniqueSuffix}";
-        $studentEmail = "e2e_student_{$uniqueSuffix}@college.edu";
+        $studentEmail = strtolower($studentRoll) . "@college.edu";
 
         $stuRes = $this->withHeader('Accept', 'application/json')
             ->postJson('/api/students', [

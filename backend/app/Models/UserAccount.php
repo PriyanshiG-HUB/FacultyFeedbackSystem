@@ -102,7 +102,7 @@ class UserAccount extends Authenticatable
      */
     public function isHod(): bool
     {
-        return $this->getHodDepartment() !== null;
+        return strtoupper($this->role) === 'HOD' || $this->getHodDepartment() !== null;
     }
 
     /**

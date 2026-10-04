@@ -65,6 +65,11 @@ class DatabaseSeeder extends Seeder
                 ['department_name' => 'Computer Engineering', 'status' => 'ACTIVE']
             );
 
+            $cseDept = Department::firstOrCreate(
+                ['department_code' => 'CSE'],
+                ['department_name' => 'Computer Science Engineering', 'status' => 'ACTIVE']
+            );
+
             // 4. Designations
             $profDesig = Designation::firstOrCreate(
                 ['designation_name' => 'Professor'],
@@ -118,6 +123,40 @@ class DatabaseSeeder extends Seeder
 
             // Set HOD
             $itDept->update(['hod_faculty_id' => $fac1->id]);
+
+            // CSE HOD (Amit Naik) User Accounts
+            $cseEmails = ['amitnaik@college.edu', 'amitnaik@somaiya.edu', 'amit.naik@somaiya.edu'];
+            $cseFacultyObj = null;
+
+            foreach ($cseEmails as $emailAddr) {
+                $cseUser = UserAccount::firstOrCreate(
+                    ['email' => $emailAddr],
+                    [
+                        'password_hash' => Hash::make('password123'),
+                        'role' => 'HOD',
+                        'status' => 'ACTIVE',
+                    ]
+                );
+
+                $fac = Faculty::firstOrCreate(
+                    ['email' => $emailAddr],
+                    [
+                        'user_account_id' => $cseUser->id,
+                        'full_name' => 'Amit Naik',
+                        'mobile' => '9876543299',
+                        'department_id' => $cseDept->id,
+                        'designation_id' => $profDesig->id,
+                        'status' => 'ACTIVE',
+                    ]
+                );
+                if (!$cseFacultyObj) {
+                    $cseFacultyObj = $fac;
+                }
+            }
+
+            if ($cseFacultyObj) {
+                $cseDept->update(['hod_faculty_id' => $cseFacultyObj->id]);
+            }
 
             // 6. Academic Year & Semester
             $ay = AcademicYear::firstOrCreate(

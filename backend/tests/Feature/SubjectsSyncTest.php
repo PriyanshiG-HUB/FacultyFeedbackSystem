@@ -4,12 +4,12 @@ namespace Tests\Feature;
 
 use App\Models\Subject;
 use App\Models\UserAccount;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+
 use Tests\TestCase;
 
 class SubjectsSyncTest extends TestCase
 {
-    use DatabaseTransactions;
+    
 
     protected string $token;
 

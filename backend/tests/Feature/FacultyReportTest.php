@@ -15,12 +15,12 @@ use App\Models\Semester;
 use App\Models\Subject;
 use App\Models\TeachingAssignment;
 use App\Models\UserAccount;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+
 use Tests\TestCase;
 
 class FacultyReportTest extends TestCase
 {
-    use DatabaseTransactions;
+    
 
     protected UserAccount $adminUser;
     protected UserAccount $hodUser;

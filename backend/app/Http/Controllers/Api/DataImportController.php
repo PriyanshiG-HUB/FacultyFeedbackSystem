@@ -45,6 +45,9 @@ class DataImportController extends Controller
      */
     public function validateFile(Request $request): JsonResponse
     {
+        @set_time_limit(300);
+        @ini_set('memory_limit', '512M');
+
         if ($request->isMethod('get')) {
             return response()->json([
                 'success' => false,
@@ -103,6 +106,9 @@ class DataImportController extends Controller
      */
     public function executeImport(Request $request): JsonResponse
     {
+        @set_time_limit(300);
+        @ini_set('memory_limit', '512M');
+
         if ($request->isMethod('get')) {
             return response()->json([
                 'success' => false,
@@ -151,9 +157,10 @@ class DataImportController extends Controller
                 return [];
             }
 
-            // Sanitize headers
+            // Sanitize headers: convert spaces/dashes to underscores first
             $headers = array_map(function ($h) {
-                return strtolower(trim(preg_replace('/[^a-zA-Z0-9_]/', '', $h)));
+                $h = preg_replace('/[\s-]+/', '_', trim($h));
+                return strtolower(trim(preg_replace('/[^a-zA-Z0-9_]/', '', $h), '_'));
             }, $headers);
 
             while (($data = fgetcsv($handle, 2048, ',')) !== false) {

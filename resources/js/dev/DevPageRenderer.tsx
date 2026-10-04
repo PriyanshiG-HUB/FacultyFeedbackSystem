@@ -193,8 +193,6 @@ export const DevPageRenderer: React.FC = () => {
 
   const activeProps = {};
 
-
-
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col relative">
       {/* Dev Harness Header Bar - Embedded at the top header */}

@@ -65,6 +65,14 @@ class FeedbackFormController extends Controller
         $user = $request->user();
         $validated = $request->validated();
 
+        if (!empty($validated['teaching_assignment_ids']) && is_array($validated['teaching_assignment_ids'])) {
+            $forms = $this->publishingService->createFormsBulk($validated, $user);
+            return response()->json([
+                'message' => count($forms) . ' Feedback Form(s) created successfully',
+                'data' => FeedbackFormResource::collection($forms)
+            ], Response::HTTP_CREATED);
+        }
+
         $ta = TeachingAssignment::with('subject')->findOrFail($validated['teaching_assignment_id']);
         if ($ta->subject) {
             $this->validateDepartmentAccess($request, $ta->subject->department_id);

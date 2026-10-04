@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('email', 150)->unique();
             $table->string('password_hash', 255);
-            $table->enum('role', ['SUPER_ADMIN', 'ADMIN', 'FACULTY', 'STUDENT'])->default('STUDENT');
+            $table->enum('role', ['SUPER_ADMIN', 'ADMIN', 'FACULTY', 'HOD', 'STUDENT'])->default('STUDENT');
             $table->enum('status', ['ACTIVE', 'INACTIVE', 'LOCKED'])->default('ACTIVE');
             $table->timestamp('last_login_at')->nullable();
             $table->timestamps();

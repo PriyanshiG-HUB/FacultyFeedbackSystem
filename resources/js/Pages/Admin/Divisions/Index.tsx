@@ -78,7 +78,7 @@ export default function Index() {
         const mapped: DivisionItem[] = divsRes.data.map((d: any) => ({
           id: d.id,
           name: d.division_code,
-          department: d.department?.department_name || d.department?.department_code || 'Information Technology',
+          department: d.department?.department_name || d.department?.department_code || 'Department Scope',
           batch: d.batch?.batch_title || '2022-26',
           currentSemester: d.semester?.semester_no || d.semester_id || 7,
           studentCount: d.students_count || 0,
