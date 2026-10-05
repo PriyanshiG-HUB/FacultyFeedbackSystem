@@ -4,6 +4,8 @@ import { useAuth } from '../../context/AuthContext';
 import { getStoredUserInfo } from '../../lib/api';
 import { getDepartmentName } from '../../utils/departmentScope';
 
+import Link from './Link';
+
 interface TopbarProps {
   pageTitle?: string;
   userName?: string;
@@ -110,13 +112,17 @@ export const Topbar: React.FC<TopbarProps> = ({
 
         {/* User Info & Logout */}
         <div className="flex items-center gap-4 pl-6 border-l border-slate-200">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-brand-navy text-white flex items-center justify-center font-bold text-sm shadow-sm">
+          <Link
+            href="#Admin/Profile"
+            title="Manage Profile & Password Settings"
+            className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-slate-100/80 transition-all border border-transparent hover:border-slate-200 group cursor-pointer"
+          >
+            <div className="w-10 h-10 rounded-full bg-brand-navy group-hover:bg-brand-primary text-white flex items-center justify-center font-bold text-sm shadow-sm transition-colors">
               <User className="w-4 h-4 text-brand-accent" />
             </div>
 
             <div className="hidden md:flex flex-col text-left leading-tight">
-              <p className="text-sm font-bold text-brand-dark font-heading">
+              <p className="text-sm font-bold text-brand-dark group-hover:text-brand-primary font-heading transition-colors">
                 {resolvedUserName}
               </p>
 
@@ -124,7 +130,7 @@ export const Topbar: React.FC<TopbarProps> = ({
                 {roleBadgeText}
               </p>
             </div>
-          </div>
+          </Link>
 
           <button
             type="button"

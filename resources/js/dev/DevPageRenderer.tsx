@@ -23,6 +23,7 @@ import AdminCriticalCommentsIndex from '../Pages/Admin/CriticalComments/Index';
 import AdminSettingsIndex from '../Pages/Admin/Settings/Index';
 import AdminPublishForm from '../Pages/Admin/Feedback/PublishForm';
 import AdminTimetablesIndex from '../Pages/Admin/Timetables/Index';
+import AdminProfileIndex from '../Pages/Admin/Profile/Index';
 
 // Faculty Page Imports
 import FacultyLogin from '../Pages/Faculty/Login';
@@ -57,6 +58,7 @@ const componentRegistry: Record<string, React.ComponentType<any>> = {
   'Admin/Settings/Index': AdminSettingsIndex,
   'Admin/Feedback/PublishForm': AdminPublishForm,
   'Admin/Timetables/Index': AdminTimetablesIndex,
+  'Admin/Profile': AdminProfileIndex,
   'Faculty/Login': FacultyLogin,
   'Faculty/MyReports/Index': FacultyReportsIndex,
   'Faculty/MyReports/Show': FacultyReportShow,
@@ -243,6 +245,7 @@ export const DevPageRenderer: React.FC = () => {
                 <option value="Admin/Feedback/PublishForm">Admin &rarr; Feedback/PublishForm</option>
                 <option value="Admin/Timetables/Index">Admin &rarr; Timetables/Index</option>
                 <option value="Admin/Settings/Index">Admin &rarr; Settings/Index</option>
+                <option value="Admin/Profile">Admin &rarr; Profile & Account Settings</option>
               </optgroup>
               <optgroup label="FACULTY CONTROLLERS">
                 <option value="Faculty/Login">Faculty &rarr; Login</option>

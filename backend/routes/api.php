@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\FacultyReportController;
 use App\Http\Controllers\Api\FeedbackFormController;
 use App\Http\Controllers\Api\FeedbackModerationController;
 use App\Http\Controllers\Api\FeedbackQuestionCategoryController;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\SectionController;
 use App\Http\Controllers\Api\SemesterController;
@@ -61,6 +62,9 @@ Route::post('/auth/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
+    Route::get('/profile', [ProfileController::class, 'show']);
+    Route::put('/profile', [ProfileController::class, 'update']);
+    Route::put('/profile/password', [ProfileController::class, 'changePassword']);
 
     // Faculty Reports (Accessible to ADMIN, SUPER_ADMIN, FACULTY, HOD)
     Route::middleware(CheckRole::class . ':ADMIN,SUPER_ADMIN,FACULTY,HOD')->group(function () {
