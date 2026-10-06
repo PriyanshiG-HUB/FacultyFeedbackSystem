@@ -7,9 +7,11 @@ interface User {
   role: string;
   canonical_role: string;
   full_name?: string;
+  mobile?: string;
   is_hod?: boolean;
   hod_department_id?: number | string;
   hod_department_code?: string;
+  last_login_at?: string | null;
   faculty?: any;
   student?: any;
 }

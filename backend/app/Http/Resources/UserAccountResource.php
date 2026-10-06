@@ -23,6 +23,8 @@ class UserAccountResource extends JsonResource
         return [
             'id' => $this->id,
             'email' => $this->email,
+            'full_name' => $this->faculty?->full_name ?? $this->student?->full_name ?? null,
+            'mobile' => $this->faculty?->mobile ?? $this->student?->mobile ?? null,
             'role' => $effectiveRole,
             'canonical_role' => $this->role,
             'is_hod' => $hodDept !== null,

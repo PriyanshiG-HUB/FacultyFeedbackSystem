@@ -218,6 +218,8 @@ export default function PublishForm({
 
   const [bulkDivisionId, setBulkDivisionId] = useState<number | 'ALL'>('ALL');
 
+  const [bulkSubjectId, setBulkSubjectId] = useState<number | 'ALL'>('ALL');
+
   const [selectedSectionIds, setSelectedSectionIds] = useState<number[]>([]);
 
   const [selectedBulkAssignmentIds, setSelectedBulkAssignmentIds] = useState<number[]>([]);
@@ -444,196 +446,144 @@ export default function PublishForm({
 
 
 
-  // Filtered sections based on Academic Year, Semester & Division selection
-
-  const availableSections = React.useMemo(() => {
-
-    const map = new Map<number, { id: number; code: string }>();
-
+  // Filtered subjects based on Academic Year, Semester & Division selection
+  const availableSubjects = React.useMemo(() => {
+    const map = new Map<number, { id: number; code: string; name: string }>();
     availableTeachingAssignments.forEach((ta) => {
-
       if (bulkAcademicYearId !== 'ALL' && ta.academic_year_id !== Number(bulkAcademicYearId) && ta.academic_year?.id !== Number(bulkAcademicYearId)) {
-
         return;
-
       }
-
       if (bulkSemesterNo !== 'ALL' && String(ta.semester?.semester_no || ta.semester_id) !== String(bulkSemesterNo)) {
-
         return;
-
       }
-
       if (bulkDivisionId !== 'ALL' && Number(ta.division_id || ta.division?.id) !== Number(bulkDivisionId)) {
-
         return;
-
       }
-
-      if (ta.section && ta.section.id) {
-
-        map.set(ta.section.id, { id: ta.section.id, code: ta.section.section_code || `Section ${ta.section.id}` });
-
+      if (ta.subject && ta.subject.id) {
+        map.set(ta.subject.id, {
+          id: ta.subject.id,
+          code: ta.subject.subject_code || `SUB${ta.subject.id}`,
+          name: ta.subject.subject_name || 'Subject',
+        });
       }
-
     });
-
     return Array.from(map.values());
-
   }, [availableTeachingAssignments, bulkAcademicYearId, bulkSemesterNo, bulkDivisionId]);
 
-
-
-  // Auto-fetched Teaching Assignments matching current Division / Section filters
-
-  const autoFetchedAssignments = React.useMemo(() => {
-
-    return availableTeachingAssignments.filter((ta) => {
-
+  // Filtered sections based on Academic Year, Semester, Division & Subject selection
+  const availableSections = React.useMemo(() => {
+    const map = new Map<number, { id: number; code: string }>();
+    availableTeachingAssignments.forEach((ta) => {
       if (bulkAcademicYearId !== 'ALL' && ta.academic_year_id !== Number(bulkAcademicYearId) && ta.academic_year?.id !== Number(bulkAcademicYearId)) {
-
-        return false;
-
+        return;
       }
-
       if (bulkSemesterNo !== 'ALL' && String(ta.semester?.semester_no || ta.semester_id) !== String(bulkSemesterNo)) {
-
-        return false;
-
+        return;
       }
-
       if (bulkDivisionId !== 'ALL' && Number(ta.division_id || ta.division?.id) !== Number(bulkDivisionId)) {
-
-        return false;
-
+        return;
       }
-
-      if (selectedSectionIds.length > 0 && ta.section) {
-
-        if (!selectedSectionIds.includes(ta.section.id)) {
-
-          return false;
-
-        }
-
+      if (bulkSubjectId !== 'ALL' && Number(ta.subject_id || ta.subject?.id) !== Number(bulkSubjectId)) {
+        return;
       }
-
-      return true;
-
+      if (ta.section && ta.section.id) {
+        map.set(ta.section.id, { id: ta.section.id, code: ta.section.section_code || `Section ${ta.section.id}` });
+      }
     });
+    return Array.from(map.values());
+  }, [availableTeachingAssignments, bulkAcademicYearId, bulkSemesterNo, bulkDivisionId, bulkSubjectId]);
 
-  }, [availableTeachingAssignments, bulkAcademicYearId, bulkSemesterNo, bulkDivisionId, selectedSectionIds]);
+  // Auto-fetched Teaching Assignments matching current Division, Subject & Section filters
+  const autoFetchedAssignments = React.useMemo(() => {
+    return availableTeachingAssignments.filter((ta) => {
+      if (bulkAcademicYearId !== 'ALL' && ta.academic_year_id !== Number(bulkAcademicYearId) && ta.academic_year?.id !== Number(bulkAcademicYearId)) {
+        return false;
+      }
+      if (bulkSemesterNo !== 'ALL' && String(ta.semester?.semester_no || ta.semester_id) !== String(bulkSemesterNo)) {
+        return false;
+      }
+      if (bulkDivisionId !== 'ALL' && Number(ta.division_id || ta.division?.id) !== Number(bulkDivisionId)) {
+        return false;
+      }
+      if (bulkSubjectId !== 'ALL' && Number(ta.subject_id || ta.subject?.id) !== Number(bulkSubjectId)) {
+        return false;
+      }
+      if (selectedSectionIds.length > 0 && ta.section) {
+        if (!selectedSectionIds.includes(ta.section.id)) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [availableTeachingAssignments, bulkAcademicYearId, bulkSemesterNo, bulkDivisionId, bulkSubjectId, selectedSectionIds]);
 
+  // Unique filter signature to track dropdown/section filter context changes
+  const filterContextSignature = React.useMemo(() => {
+    return `${bulkAcademicYearId}-${bulkSemesterNo}-${bulkDivisionId}-${bulkSubjectId}-${[...selectedSectionIds].sort().join(',')}`;
+  }, [bulkAcademicYearId, bulkSemesterNo, bulkDivisionId, bulkSubjectId, selectedSectionIds]);
 
-
-  // Sync selected assignments whenever autoFetchedAssignments changes in DIVISION_SECTION mode
-
+  // Initialize selected assignments ONLY when the filter context changes or modal opens
   useEffect(() => {
-
-    if (selectionMode === 'DIVISION_SECTION') {
-
+    if (selectionMode === 'DIVISION_SECTION' && isModalOpen) {
       setSelectedBulkAssignmentIds(autoFetchedAssignments.map((a) => a.id));
-
     }
-
-  }, [autoFetchedAssignments, selectionMode]);
-
-
+  }, [filterContextSignature, isModalOpen, selectionMode]);
 
   const handleToggleSection = (secId: number) => {
-
     setSelectedSectionIds((prev) =>
-
       prev.includes(secId) ? prev.filter((id) => id !== secId) : [...prev, secId]
-
     );
-
   };
-
-
 
   const handleSelectAllSections = () => {
-
     if (selectedSectionIds.length === availableSections.length) {
-
       setSelectedSectionIds([]);
-
     } else {
-
       setSelectedSectionIds(availableSections.map((s) => s.id));
-
     }
-
   };
-
-
 
   const handleToggleBulkAssignment = (aId: number) => {
-
     setSelectedBulkAssignmentIds((prev) =>
-
       prev.includes(aId) ? prev.filter((id) => id !== aId) : [...prev, aId]
-
     );
-
   };
-
-
 
   const handleSelectAllBulkAssignments = () => {
+    const autoFetchedIds = autoFetchedAssignments.map((a) => a.id);
+    const allFilteredAreSelected =
+      autoFetchedIds.length > 0 &&
+      autoFetchedIds.every((id) => selectedBulkAssignmentIds.includes(id));
 
-    if (selectedBulkAssignmentIds.length === autoFetchedAssignments.length) {
-
-      setSelectedBulkAssignmentIds([]);
-
+    if (allFilteredAreSelected) {
+      // Deselect all currently filtered assignments
+      setSelectedBulkAssignmentIds((prev) => prev.filter((id) => !autoFetchedIds.includes(id)));
     } else {
-
-      setSelectedBulkAssignmentIds(autoFetchedAssignments.map((a) => a.id));
-
+      // Select all currently filtered assignments without duplicates
+      setSelectedBulkAssignmentIds((prev) => Array.from(new Set([...prev, ...autoFetchedIds])));
     }
-
   };
 
-
-
   const handleOpenAddModal = () => {
-
     setFormError('');
-
     setFieldErrors({});
-
     setSelectionMode('DIVISION_SECTION');
-
     setQuestionSource('EXISTING');
-
     setResponseType('RATING');
-
     setImportFile(null);
-
     setImportValidationReport(null);
-
     setCustomQuestionsList([]);
 
-
-
     const firstAssignment = availableTeachingAssignments[0] || teachingAssignments[0];
-
     setSelectedAssignmentId(firstAssignment?.id || '');
-
     setFormTitle('Faculty Feedback Survey');
 
-
-
     const firstAyId = academicYears[0]?.id || 'ALL';
-
     setSelectedAcademicYearId(academicYears[0]?.id || '');
-
     setBulkAcademicYearId(firstAyId);
-
     setBulkSemesterNo('ALL');
-
     setBulkDivisionId('ALL');
-
+    setBulkSubjectId('ALL');
     setSelectedSectionIds([]);
 
 
@@ -1628,218 +1578,135 @@ export default function PublishForm({
 
         <div className="space-y-3 p-4 bg-slate-50 border border-slate-200 rounded-xl">
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Select
-
               label="Academic Year *"
-
               value={bulkAcademicYearId}
-
               onChange={(e) => setBulkAcademicYearId(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
-
             >
-
               <option value="ALL">All Academic Years</option>
-
               {academicYears.map((ay) => (
-
                 <option key={ay.id} value={ay.id}>
-
                   {ay.year_code}
-
                 </option>
-
               ))}
-
             </Select>
 
-
-
             <Select
-
               label="Semester"
-
               value={bulkSemesterNo}
-
               onChange={(e) => setBulkSemesterNo(e.target.value)}
-
             >
-
               <option value="ALL">All Semesters</option>
-
               {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
-
                 <option key={s} value={String(s)}>
-
                   Semester {s}
-
                 </option>
-
               ))}
-
             </Select>
-
-
 
             <Select
-
-              label="Division"
-
+              label="Division *"
               value={bulkDivisionId}
-
-              onChange={(e) => setBulkDivisionId(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
-
+              onChange={(e) => {
+                const val = e.target.value === 'ALL' ? 'ALL' : Number(e.target.value);
+                setBulkDivisionId(val);
+                setBulkSubjectId('ALL');
+                setSelectedSectionIds([]);
+              }}
             >
-
               <option value="ALL">All Divisions</option>
-
               {availableDivisions.map((div) => (
-
                 <option key={div.id} value={div.id}>
-
                   Division {div.code}
-
                 </option>
-
               ))}
-
             </Select>
 
+            <Select
+              label="Subject (Filtered by Division)"
+              value={bulkSubjectId}
+              onChange={(e) => {
+                const val = e.target.value === 'ALL' ? 'ALL' : Number(e.target.value);
+                setBulkSubjectId(val);
+                setSelectedSectionIds([]);
+              }}
+            >
+              <option value="ALL">All Subjects ({availableSubjects.length})</option>
+              {availableSubjects.map((sub) => (
+                <option key={sub.id} value={sub.id}>
+                  {sub.code} &mdash; {sub.name}
+                </option>
+              ))}
+            </Select>
           </div>
 
-
-
           {/* Sections Checkboxes (Optional section filter) */}
-
           {availableSections.length > 0 && (
-
             <div className="space-y-2 pt-2 border-t border-slate-200">
-
               <div className="flex items-center justify-between">
-
                 <label className="text-xs font-bold text-slate-800">
-
                   Sections ({availableSections.length})
-
                 </label>
-
                 <button
-
                   type="button"
-
                   onClick={handleSelectAllSections}
-
                   className="text-[11px] text-blue-600 hover:underline font-bold"
-
                 >
-
                   {selectedSectionIds.length === availableSections.length ? 'Deselect All Sections' : 'Select All Sections'}
-
                 </button>
-
               </div>
-
-
 
               <div className="flex flex-wrap items-center gap-2">
-
                 {availableSections.map((sec) => {
-
                   const isChecked = selectedSectionIds.length === 0 || selectedSectionIds.includes(sec.id);
-
                   return (
-
                     <label
-
                       key={sec.id}
-
-                      className={`px-3 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer flex items-center gap-1.5 transition-all ${isChecked
-
+                      className={`px-3 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer flex items-center gap-1.5 transition-all ${
+                        isChecked
                           ? 'bg-blue-50 border-blue-300 text-blue-800'
-
                           : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
-
-                        }`}
-
+                      }`}
                     >
-
                       <input
-
                         type="checkbox"
-
                         checked={isChecked}
-
                         onChange={() => handleToggleSection(sec.id)}
-
                         className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-3.5 w-3.5"
-
                       />
-
                       <span>Section {sec.code}</span>
-
                     </label>
-
                   );
-
                 })}
-
               </div>
-
             </div>
-
           )}
 
-
-
           {/* Auto-fetched Teaching Assignments preview */}
-
           <div className="space-y-2 pt-3 border-t border-slate-200">
-
             <div className="flex items-center justify-between">
-
               <div>
-
                 <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-
                   <BookOpen className="w-4 h-4 text-blue-600" />
-
                   Auto-Fetched Teaching Assignments ({autoFetchedAssignments.length})
-
                 </h4>
-
                 <p className="text-[11px] text-slate-500">
-
-                  {selectedBulkAssignmentIds.length} of {autoFetchedAssignments.length} selected for feedback form creation
-
+                  {autoFetchedAssignments.filter((a) => selectedBulkAssignmentIds.includes(a.id)).length} of {autoFetchedAssignments.length} selected for feedback form creation
                 </p>
-
               </div>
 
-
-
               {autoFetchedAssignments.length > 0 && (
-
                 <Button
-
                   type="button"
-
                   variant="outline"
-
                   size="sm"
-
                   onClick={handleSelectAllBulkAssignments}
-
                   className="text-xs"
-
                 >
-
-                  {selectedBulkAssignmentIds.length === autoFetchedAssignments.length ? 'Deselect All' : 'Select All Assignments'}
-
+                  {autoFetchedAssignments.length > 0 && autoFetchedAssignments.every((a) => selectedBulkAssignmentIds.includes(a.id)) ? 'Deselect All Filtered' : 'Select All Filtered Assignments'}
                 </Button>
-
               )}
-
             </div>
 
 

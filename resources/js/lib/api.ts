@@ -13,12 +13,15 @@ export interface ApiResponse<T = any> {
 export interface UserAccountInfo {
   id: number;
   email: string;
+  full_name?: string;
+  mobile?: string;
   role: 'SUPER_ADMIN' | 'ADMIN' | 'FACULTY' | 'HOD' | 'STUDENT';
   canonical_role?: string;
   is_hod?: boolean;
   hod_department_id?: number | null;
   hod_department_code?: string | null;
   status: string;
+  last_login_at?: string | null;
   faculty?: any;
   student?: any;
 }
