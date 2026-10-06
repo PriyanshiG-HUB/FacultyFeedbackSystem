@@ -44,30 +44,35 @@ class AuthController extends Controller
         $passwordMatches = false;
         if ($user) {
             $inputPassword = $credentials['password'];
+            
+            // Fast paths first to avoid expensive Hash::check calls
             if ($inputPassword === $user->password_hash) {
                 $passwordMatches = true;
-            } else {
+            } elseif ($user->role === 'STUDENT') {
+                $rollNo = $user->student?->roll_no;
+                if (
+                    strtolower($inputPassword) === 'studentit' || 
+                    ($rollNo && strtoupper($inputPassword) === strtoupper($rollNo))
+                ) {
+                    $passwordMatches = true;
+                }
+            }
+
+            // If not matched by fast paths, try Hash::check
+            if (!$passwordMatches) {
                 try {
                     if (Hash::check($inputPassword, $user->password_hash)) {
                         $passwordMatches = true;
                     } elseif ($user->role === 'STUDENT') {
-                        $rollNo = $user->student?->roll_no;
                         if (
                             Hash::check(strtolower($inputPassword), $user->password_hash) ||
-                            Hash::check(strtoupper($inputPassword), $user->password_hash) ||
-                            (strtolower($inputPassword) === 'studentit') ||
-                            ($rollNo && (strtoupper($inputPassword) === strtoupper($rollNo)))
+                            Hash::check(strtoupper($inputPassword), $user->password_hash)
                         ) {
                             $passwordMatches = true;
                         }
                     }
                 } catch (\Exception $e) {
-                    if ($user->role === 'STUDENT') {
-                        $rollNo = $user->student?->roll_no;
-                        if (strtolower($inputPassword) === 'studentit' || ($rollNo && strtoupper($inputPassword) === strtoupper($rollNo))) {
-                            $passwordMatches = true;
-                        }
-                    }
+                    // Ignore exception if the password_hash field is not a valid hash
                 }
             }
         }

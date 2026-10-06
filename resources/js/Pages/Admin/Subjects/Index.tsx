@@ -7,7 +7,7 @@ import { StatusBadge } from '../../../Components/ui/StatusBadge';
 import { Button } from '../../../Components/ui/Button';
 import { Modal } from '../../../Components/ui/Modal';
 import { Input, Select } from '../../../Components/ui/Input';
-import { Plus, Filter, AlertCircle, RefreshCw, Trash2 } from 'lucide-react';
+import { Plus, Filter, AlertCircle, RefreshCw, Trash2, Edit2 } from 'lucide-react';
 import { getDepartmentName } from '../../../utils/departmentScope';
 import { api } from '../../../lib/api';
 import { useAuth } from '../../../context/AuthContext';
@@ -33,6 +33,7 @@ export default function Index() {
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingSubjectId, setEditingSubjectId] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
@@ -97,6 +98,7 @@ export default function Index() {
   }, [fetchSubjectsAndMetadata]);
 
   const handleOpenAddModal = () => {
+    setEditingSubjectId(null);
     setFormError('');
     setFieldErrors({});
     setSubjectCode('');
@@ -113,6 +115,26 @@ export default function Index() {
       } else {
         setSelectedDeptId(departments[0].id);
       }
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditModal = (subject: SubjectItem) => {
+    setEditingSubjectId(subject.id);
+    setFormError('');
+    setFieldErrors({});
+    setSubjectCode(subject.code);
+    setSubjectName(subject.name);
+    setCourseType(subject.type.toUpperCase() as 'CORE' | 'ELECTIVE');
+    setCredits(String(subject.credits));
+    setSelectedSemesterId(subject.semester);
+    const matchingDept = departments.find(d => d.name === subject.department || d.code === subject.departmentCode);
+    if (matchingDept) {
+        setSelectedDeptId(matchingDept.id);
+    } else if (departments.length > 0) {
+        setSelectedDeptId(departments[0].id);
+    } else {
+        setSelectedDeptId('');
     }
     setIsModalOpen(true);
   };
@@ -136,22 +158,9 @@ export default function Index() {
         status: 'ACTIVE',
       };
 
-      const res = await api.post('/subjects', payload);
-
-      if (res.data) {
-        const createdSubject: SubjectItem = {
-          id: res.data.id,
-          code: res.data.subject_code,
-          name: res.data.subject_name,
-          department: res.data.department?.department_name || departments.find((d) => d.id === Number(selectedDeptId))?.name || '',
-          departmentCode: res.data.department?.department_code || departments.find((d) => d.id === Number(selectedDeptId))?.code || '',
-          type: res.data.course_type?.toLowerCase() === 'elective' ? 'Elective' : 'Core',
-          semester: res.data.semester?.semester_no || Number(selectedSemesterId),
-          credits: Number(res.data.credits) || parseFloat(credits) || 0,
-          status: res.data.status || 'ACTIVE',
-        };
-        setSubjectList((prev) => [createdSubject, ...prev.filter((s) => s.id !== createdSubject.id)]);
-      }
+      const res = editingSubjectId 
+        ? await api.put(`/subjects/${editingSubjectId}`, payload)
+        : await api.post('/subjects', payload);
 
       await fetchSubjectsAndMetadata();
       setIsModalOpen(false);
@@ -249,19 +258,18 @@ export default function Index() {
       sortable: true,
     },
     {
-      header: 'Action',
+      header: 'Edit',
       accessor: (row) => (
         <Button
           size="sm"
           variant="outline"
           onClick={(e) => {
             e.stopPropagation();
-            handleDeleteSubject(row.id, row.name);
-          }}
-          className="text-rose-600 hover:bg-rose-50 border-rose-200 p-1.5"
-          title="Delete Subject"
+            handleOpenEditModal(row); }}
+          className="text-blue-600 hover:bg-blue-50 border-blue-200 p-1.5"
+          title="Edit Subject"
         >
-          <Trash2 className="w-3.5 h-3.5" />
+          <Edit2 className="w-3.5 h-3.5" />
         </Button>
       ),
     },
@@ -348,7 +356,7 @@ export default function Index() {
       />
 
       {/* Add Subject Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New Course Subject">
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingSubjectId ? "Edit Course Subject" : "Add New Course Subject"}>
         <form onSubmit={handleCreateSubject} className="space-y-4">
           {formError && (
             <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs font-semibold flex items-center gap-2">
@@ -444,3 +452,8 @@ export default function Index() {
     </AdminLayout>
   );
 }
+
+
+
+
+

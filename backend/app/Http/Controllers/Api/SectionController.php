@@ -18,7 +18,7 @@ class SectionController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = Section::with(['division.department', 'division.batch', 'division.semester']);
+        $query = Section::with(['division.department', 'division.batch', 'division.semester'])->withCount('students');
 
         $hodDeptId = $this->getAuthorizedDepartmentId($request);
         if ($hodDeptId !== null) {

@@ -18,7 +18,7 @@ class DivisionController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = Division::with(['department', 'batch', 'semester']);
+        $query = Division::with(['department', 'batch', 'semester'])->withCount('students');
 
         $hodDeptId = $this->getAuthorizedDepartmentId($request);
         if ($hodDeptId !== null) {

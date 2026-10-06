@@ -19,6 +19,7 @@ import {
   ADMIN_DEPARTMENT_OPTIONS,
 } from '../../../utils/departmentScope';
 import { isAdministratorRole } from '../../../utils/permissions';
+import { api } from '../../../lib/api';
 import { useAuth } from '../../../context/AuthContext';
 import { getStoredUserInfo } from '../../../lib/api';
 
@@ -26,9 +27,6 @@ export default function Index({
   userRole,
   assignedDepartmentCode = null,
   departmentName,
-  departmentRatings,
-  topFaculty,
-  scoreDistribution,
 }: AnalyticsIndexProps & {
   userRole?: 'admin' | 'hod';
   assignedDepartmentCode?: string | null;
@@ -69,9 +67,18 @@ export default function Index({
     storedUser?.faculty?.department?.department_name ||
     getDepartmentName(resolvedDepartmentCode);
 
-  const [selectedDeptCode, setSelectedDeptCode] = React.useState<string>(
-    resolvedDepartmentCode || 'ALL'
-  );
+  const [selectedDeptCode, setSelectedDeptCode] = React.useState<string>(resolvedDepartmentCode || 'ALL');
+  const [fetchedData, setFetchedData] = React.useState<any>({});
+
+  React.useEffect(() => {
+    api.get('/analytics?department_id=' + (selectedDeptCode === 'ALL' ? '' : selectedDeptCode)).then(res => setFetchedData(res.data)).catch(console.error);
+  }, [selectedDeptCode]);
+
+  const departmentRatings = fetchedData.departmentRatings || [];
+  const topFaculty = fetchedData.topFaculty || [];
+  const scoreDistribution = fetchedData.scoreDistribution || [];
+
+
 
   const currentDeptName =
     effectiveRole === 'admin'
@@ -369,3 +376,6 @@ export default function Index({
     </AdminLayout>
   );
 }
+
+
+

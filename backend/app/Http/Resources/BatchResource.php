@@ -18,6 +18,7 @@ class BatchResource extends JsonResource
             'graduation_year' => $this->graduation_year,
             'current_semester_id' => $this->current_semester_id,
             'status' => $this->status,
+            'students_count' => $this->whenCounted('students'),
             'department' => new DepartmentResource($this->whenLoaded('department')),
             'current_semester' => new SemesterResource($this->whenLoaded('currentSemester')),
         ];

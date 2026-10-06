@@ -16,6 +16,7 @@ class DivisionResource extends JsonResource
             'semester_id' => $this->semester_id,
             'division_code' => $this->division_code,
             'status' => $this->status,
+            'students_count' => $this->whenCounted('students'),
             'department' => new DepartmentResource($this->whenLoaded('department')),
             'batch' => new BatchResource($this->whenLoaded('batch')),
             'semester' => new SemesterResource($this->whenLoaded('semester')),

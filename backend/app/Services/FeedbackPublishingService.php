@@ -205,6 +205,8 @@ class FeedbackPublishingService
             'published_at' => now(),
             'status' => 'PUBLISHED',
         ]);
+        
+        \App\Jobs\SendFeedbackCampaignJob::dispatch($form);
 
         return $form->fresh(['teachingAssignment', 'questions.options']);
     }

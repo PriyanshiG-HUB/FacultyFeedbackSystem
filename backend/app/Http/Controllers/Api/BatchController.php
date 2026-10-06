@@ -18,7 +18,7 @@ class BatchController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = Batch::with(['department', 'currentSemester']);
+        $query = Batch::with(['department', 'currentSemester'])->withCount('students');
 
         $hodDeptId = $this->getAuthorizedDepartmentId($request);
         if ($hodDeptId !== null) {

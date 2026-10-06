@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AcademicYearController;
 use App\Http\Controllers\Api\AdminDashboardController;
+use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BatchController;
 use App\Http\Controllers\Api\DataImportController;
@@ -88,6 +89,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware(CheckRole::class . ':ADMIN,SUPER_ADMIN,HOD')->group(function () {
         // Dashboard
         Route::get('/admin/dashboard', [AdminDashboardController::class, 'dashboard']);
+        Route::get('/analytics', [AnalyticsController::class, 'index']);
 
         // Academic Hierarchy CRUD
         Route::apiResource('departments', DepartmentController::class);
@@ -148,3 +150,5 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::match(['get', 'post'], '/data-imports/execute', [DataImportController::class, 'executeImport']);
     });
 });
+
+

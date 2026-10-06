@@ -14,6 +14,7 @@ class SectionResource extends JsonResource
             'division_id' => $this->division_id,
             'section_code' => $this->section_code,
             'status' => $this->status,
+            'students_count' => $this->whenCounted('students'),
             'division' => new DivisionResource($this->whenLoaded('division')),
         ];
     }
