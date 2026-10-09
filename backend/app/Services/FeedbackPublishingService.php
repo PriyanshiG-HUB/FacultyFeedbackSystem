@@ -212,6 +212,49 @@ class FeedbackPublishingService
     }
 
     /**
+     * Publish multiple feedback forms at once, sending a single bulk email.
+     */
+    public function publishFormsBulk($forms): array
+    {
+        $publishedForms = [];
+        $formsToEmail = collect();
+
+        foreach ($forms as $form) {
+            if ($form->is_published) {
+                $publishedForms[] = $form->fresh(['teachingAssignment', 'questions.options']);
+                continue;
+            }
+
+            if ($form->questions()->count() === 0) {
+                throw ValidationException::withMessages([
+                    'questions' => ['Cannot publish form ID '.$form->id.' without questions.']
+                ]);
+            }
+
+            if (!$form->teaching_assignment_id) {
+                throw ValidationException::withMessages([
+                    'teaching_assignment_id' => ['Form ID '.$form->id.' must be associated with a valid Teaching Assignment.']
+                ]);
+            }
+
+            $form->update([
+                'is_published' => true,
+                'published_at' => now(),
+                'status' => 'PUBLISHED',
+            ]);
+            
+            $formsToEmail->push($form);
+            $publishedForms[] = $form->fresh(['teachingAssignment', 'questions.options']);
+        }
+
+        if ($formsToEmail->isNotEmpty()) {
+            \App\Jobs\SendBulkFeedbackCampaignJob::dispatch($formsToEmail);
+        }
+
+        return $publishedForms;
+    }
+
+    /**
      * Unpublish / close a feedback form.
      */
     public function unpublishForm(FeedbackForm $form): FeedbackForm

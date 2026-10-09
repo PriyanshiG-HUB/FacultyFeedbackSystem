@@ -159,8 +159,8 @@ export default function PublishForm({
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   const [selectedSemFilter, setSelectedSemFilter] = useState<string>('ALL');
-
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('ALL');
+  const [selectedDraftFormIds, setSelectedDraftFormIds] = useState<string[]>([]);
 
 
 
@@ -561,6 +561,25 @@ export default function PublishForm({
     } else {
       // Select all currently filtered assignments without duplicates
       setSelectedBulkAssignmentIds((prev) => Array.from(new Set([...prev, ...autoFetchedIds])));
+    }
+  };
+
+  const handleBulkPublish = async () => {
+    if (selectedDraftFormIds.length === 0) return;
+    if (!window.confirm(`Are you sure you want to publish ${selectedDraftFormIds.length} forms and send a single bulk email to the students?`)) return;
+    
+    try {
+      setIsLoading(true);
+      const res = await api.post('/feedback-forms/bulk-publish', {
+        form_ids: selectedDraftFormIds
+      });
+      alert(res.message || 'Bulk publish successful');
+      setSelectedDraftFormIds([]);
+      await fetchFormsAndMetadata();
+    } catch (err: any) {
+      alert(err.message || 'Bulk publish failed');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -1219,6 +1238,11 @@ export default function PublishForm({
 
 
       <div className="flex items-center gap-2">
+        {selectedDraftFormIds.length > 0 && (
+          <Button variant="primary" size="sm" onClick={handleBulkPublish} className="mr-2">
+            Bulk Publish {selectedDraftFormIds.length} Selected
+          </Button>
+        )}
 
         <Select
 
@@ -1284,6 +1308,21 @@ export default function PublishForm({
 
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
 
+            <div className="flex items-center gap-3">
+              {form.status === 'Draft' && (
+                <input 
+                  type="checkbox" 
+                  className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
+                  checked={selectedDraftFormIds.includes(form.id)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedDraftFormIds(prev => [...prev, form.id]);
+                    } else {
+                      setSelectedDraftFormIds(prev => prev.filter(id => id !== form.id));
+                    }
+                  }}
+                />
+              )}
             <div className="space-y-2">
 
               <div className="flex items-center gap-2">
@@ -1335,11 +1374,9 @@ export default function PublishForm({
               </div>
 
             </div>
-
-
+            </div>
 
             <div className="flex items-center gap-2 shrink-0">
-
               <Button
 
                 variant="outline"

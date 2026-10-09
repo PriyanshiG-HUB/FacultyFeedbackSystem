@@ -165,7 +165,7 @@ export default function Index() {
         if (element) {
           const opt = {
             margin: 10,
-            filename: `${row.department.replace(/[^a-zA-Z0-9]/g, '_')}_Report.pdf`,
+            filename: `${(row.department || row.title || 'Department').replace(/[^a-zA-Z0-9]/g, '_')}_Report.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { scale: 2, useCORS: true },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }

@@ -128,6 +128,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Feedback Forms Lifecycle & Reporting
         Route::apiResource('feedback-forms', FeedbackFormController::class);
+        Route::post('/feedback-forms/bulk-publish', [FeedbackFormController::class, 'bulkPublish']);
         Route::post('/feedback-forms/{feedbackForm}/publish', [FeedbackFormController::class, 'publish']);
         Route::post('/feedback-forms/{feedbackForm}/unpublish', [FeedbackFormController::class, 'unpublish']);
         Route::apiResource('reports', ReportController::class);

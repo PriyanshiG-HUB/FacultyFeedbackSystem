@@ -72,7 +72,7 @@ class DepartmentController extends Controller
                 $userAccount = \App\Models\UserAccount::create([
                     'email' => $hodEmail,
                     'password_hash' => \Illuminate\Support\Facades\Hash::make($password),
-                    'role' => 'HOD',
+                    'role' => 'FACULTY',
                     'status' => 'ACTIVE',
                 ]);
 
@@ -103,7 +103,7 @@ class DepartmentController extends Controller
                 if ($faculty) {
                     $faculty->update(['department_id' => $dept->id]);
                     if ($faculty->userAccount) {
-                        $faculty->userAccount->update(['role' => 'HOD']);
+                        // $faculty->userAccount->update(['role' => 'HOD']);
                     }
                     $dept->update(['hod_faculty_id' => $faculty->id]);
                 }
@@ -145,7 +145,7 @@ class DepartmentController extends Controller
                 $userAccount = \App\Models\UserAccount::create([
                     'email' => $hodEmail,
                     'password_hash' => \Illuminate\Support\Facades\Hash::make($password),
-                    'role' => 'HOD',
+                    'role' => 'FACULTY',
                     'status' => 'ACTIVE',
                 ]);
 
@@ -179,7 +179,7 @@ class DepartmentController extends Controller
                     if ($faculty) {
                         $faculty->update(['department_id' => $department->id]);
                         if ($faculty->userAccount) {
-                            $faculty->userAccount->update(['role' => 'HOD']);
+                        // $faculty->userAccount->update(['role' => 'HOD']);
                         }
                     }
                 }

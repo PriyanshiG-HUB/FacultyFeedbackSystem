@@ -166,6 +166,30 @@ class FeedbackFormController extends Controller
         ], Response::HTTP_OK);
     }
 
+    public function bulkPublish(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'form_ids' => ['required', 'array', 'min:1'],
+            'form_ids.*' => ['integer', 'exists:feedback_form,id'],
+        ]);
+
+        $forms = FeedbackForm::whereIn('id', $validated['form_ids'])->get();
+
+        foreach ($forms as $f) {
+            $f->loadMissing('teachingAssignment.subject');
+            if ($f->teachingAssignment?->subject) {
+                $this->validateDepartmentAccess($request, $f->teachingAssignment->subject->department_id);
+            }
+        }
+
+        $publishedForms = $this->publishingService->publishFormsBulk($forms);
+
+        return response()->json([
+            'message' => count($publishedForms) . ' Feedback forms published successfully',
+            'data' => FeedbackFormResource::collection($publishedForms)
+        ], Response::HTTP_OK);
+    }
+
     public function unpublish(Request $request, FeedbackForm $feedbackForm): JsonResponse
     {
         $feedbackForm->loadMissing('teachingAssignment.subject');
