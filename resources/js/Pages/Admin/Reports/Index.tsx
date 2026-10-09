@@ -397,7 +397,7 @@ export default function Index() {
         <div style={{ display: 'none' }}>
           <div id="department-report-printable-area" style={{ padding: '20px', fontFamily: 'sans-serif', color: '#000', width: '100%', boxSizing: 'border-box' }}>
             <div style={{ textAlign: 'center', marginBottom: '30px', borderBottom: '2px solid #eee', paddingBottom: '20px' }}>
-              <img src="/charusat_logo.png" alt="CHARUSAT" style={{ height: '60px', objectFit: 'contain' }} />
+              <img src="/main_logo.png" alt="CHARUSAT" style={{ height: '60px', objectFit: 'contain' }} />
               <h1 style={{ fontSize: '24px', margin: '15px 0 5px' }}>{printData.title}</h1>
               <p style={{ margin: 0, fontSize: '14px', color: '#666' }}>{printData.department} • Academic Year {printData.academicYear} ({printData.term} Term)</p>
             </div>

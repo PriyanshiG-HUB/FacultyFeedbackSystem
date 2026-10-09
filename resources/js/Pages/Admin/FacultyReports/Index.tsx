@@ -753,7 +753,7 @@ export default function Index() {
           <div className="a4-preview-wrapper">
             <div className="a4-document" id="faculty-report-printable-area">
               <header className="top-header">
-                <img src="/charusat_logo.png" alt="CHARUSAT" className="charusat-report-logo" />
+                <img src="/main_logo.png" alt="CHARUSAT" className="charusat-report-logo" />
                 <div className="header-text-container">
                   <p className="department-title">{reportData.faculty.department_full_name}</p>
                   <h1 className="report-main-title">Faculty Performance Evaluation Report</h1>

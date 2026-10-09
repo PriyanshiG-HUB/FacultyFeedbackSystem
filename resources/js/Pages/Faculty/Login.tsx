@@ -88,7 +88,7 @@ export default function Login({ status }: FacultyLoginProps) {
           {/* Official Logo */}
           <div className="w-24 h-24 mx-auto bg-white rounded-full flex items-center justify-center shadow-sm border border-slate-100 mb-5 overflow-hidden">
              <img 
-              src="/charusat_logo.png" 
+              src="/main_logo.png" 
               alt="CHARUSAT Logo" 
               className="w-[120%] h-[120%] object-contain" 
              />

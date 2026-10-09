@@ -303,7 +303,7 @@ export default function Show() {
               <div className="space-y-4 max-w-xl">
                 <div className="inline-flex items-center gap-3">
                   <div className="bg-white p-1.5 rounded-sm shadow-md">
-                    <img src="/charusat_logo.png" alt="CHARUSAT" className="h-10 object-contain" />
+                    <img src="/main_logo.png" alt="CHARUSAT" className="h-10 object-contain" />
                   </div>
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-brand-navy/60 backdrop-blur-md border border-brand-primary/40 rounded-sm text-brand-accent text-[10px] font-bold uppercase tracking-widest shadow-sm">
                     <BookOpen className="w-3.5 h-3.5 text-brand-accent" /> Student Evaluation Portal

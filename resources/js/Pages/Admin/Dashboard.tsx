@@ -131,7 +131,7 @@ export default function Dashboard() {
         
         <div className="relative z-10 flex-1 flex items-start sm:items-center gap-5">
           <div className="hidden sm:flex shrink-0 bg-white p-2 rounded-sm shadow-lg">
-            <img src="/charusat_logo.png" alt="CHARUSAT" className="w-16 object-contain" />
+            <img src="/main_logo.png" alt="CHARUSAT" className="w-16 object-contain" />
           </div>
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand-navy/60 backdrop-blur-md rounded-sm text-brand-accent text-[10px] font-bold uppercase tracking-widest mb-3 border border-brand-primary/40 shadow-sm">

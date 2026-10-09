@@ -35,12 +35,18 @@ import {
   Settings,
 } from 'lucide-react';
 
+interface UIErrorBoundaryProps {
+  children: React.ReactNode;
+}
+
+interface UIErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
 // Error Boundary Fallback Wrapper to ensure the UI NEVER goes blank
-class UIErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean; error: Error | null }
-  > {
-    constructor(props: { children: React.ReactNode }) {
+class UIErrorBoundary extends React.Component<UIErrorBoundaryProps, UIErrorBoundaryState> {
+    constructor(props: UIErrorBoundaryProps) {
       super(props);
       this.state = { hasError: false, error: null };
     }
