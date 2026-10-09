@@ -4,11 +4,27 @@ $app = require_once 'bootstrap/app.php';
 $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 $kernel->bootstrap();
 
-$faculties = App\Models\Faculty::where('full_name', 'like', '%Purvi%')->get();
-echo "Found " . count($faculties) . " faculties matching 'Purvi'.\n";
+$student = \App\Models\Student::where('email', '24it019@charusat.edu.in')->first();
+$service = app(\App\Services\StudentEligibilityService::class);
+$eligible = $service->getEligibleFormsForStudent($student);
 
-foreach ($faculties as $faculty) {
-    echo "Faculty ID: " . $faculty->id . ", Name: " . $faculty->full_name . "\n";
-    $user = App\Models\UserAccount::where('faculty_id', $faculty->id)->first();
-    echo "  Email: " . ($user ? $user->email : 'null') . "\n";
+echo "Eligible forms count: " . $eligible->count() . "\n";
+foreach($eligible as $f) {
+    echo "Form {$f->id}\n";
 }
+
+$today = now()->format('Y-m-d');
+echo "Today: $today\n";
+
+$forms = \App\Models\FeedbackForm::where('is_published', true)
+        ->where(function ($query) use ($today) {
+            $query->whereNull('window_start_date')
+                ->orWhere('window_start_date', '<=', $today);
+        })
+        ->where(function ($query) use ($today) {
+            $query->whereNull('window_end_date')
+                ->orWhere('window_end_date', '>=', $today);
+        })
+        ->get();
+
+echo "Raw query matching forms count: " . $forms->count() . "\n";

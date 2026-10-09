@@ -5,120 +5,140 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use App\Models\FeedbackResponse;
 use Illuminate\Support\Facades\DB;
+use App\Models\UserAccount;
 
 class AnalyticsController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $departmentId = $request->query('department_id');
+        $user = $request->user();
+        $role = $user->role;
         
-        $query = FeedbackResponse::query()
-            ->join('feedback_form', 'feedback_response.feedback_form_id', '=', 'feedback_form.id')
-            ->join('teaching_assignment', 'feedback_form.teaching_assignment_id', '=', 'teaching_assignment.id')
-            ->join('subject', 'teaching_assignment.subject_id', '=', 'subject.id')
-            ->join('department', 'subject.department_id', '=', 'department.id')
-            ->join('faculty', 'teaching_assignment.faculty_id', '=', 'faculty.id');
+        $departmentId = $request->query('department_id');
+        $departmentCode = $request->query('department_code', $departmentId); // fallback
 
-        if ($departmentId && $departmentId !== 'ALL') {
-            $query->where('department.department_code', $departmentId);
+        // RBAC / Scope Enforcement
+        if ($role === 'HOD') {
+            $faculty = DB::table('faculty')->where('user_account_id', $user->id)->first();
+            $dept = DB::table('department')->where('id', $faculty->department_id)->first();
+            $departmentCode = $dept->department_code; // Force HOD to their own department
+        } elseif ($role === 'STUDENT' || $role === 'FACULTY') {
+            return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        $responses = $query->select(
-            'department.department_name',
-            'faculty.id as faculty_id',
-            'faculty.full_name as faculty_name',
-            'feedback_response.question_scores'
-        )->get();
+        // Base query for forms
+        $baseForms = DB::table('feedback_form as ff')
+            ->join('teaching_assignment as ta', 'ff.teaching_assignment_id', '=', 'ta.id')
+            ->join('subject as sub', 'ta.subject_id', '=', 'sub.id')
+            ->join('department as d', 'sub.department_id', '=', 'd.id')
+            ->join('faculty as fac', 'ta.faculty_id', '=', 'fac.id');
 
-        if ($responses->isEmpty()) {
-            return response()->json([
-                'departmentRatings' => [],
-                'topFaculty' => [],
-                'scoreDistribution' => [],
-            ]);
+        if ($departmentCode && $departmentCode !== 'ALL') {
+            $baseForms->where('d.department_code', $departmentCode);
         }
 
-        // Aggregate Department Ratings
-        $deptAgg = [];
-        $facultyAgg = [];
-        $scoresList = [];
+        // 1. Department Ratings (Subject Category Scores aggregated by Department)
+        $categoryScoresQuery = DB::table('feedback_answer as fa')
+            ->join('feedback_response as fr', 'fa.response_id', '=', 'fr.id')
+            ->join('feedback_form as ff', 'fr.feedback_form_id', '=', 'ff.id')
+            ->join('teaching_assignment as ta', 'ff.teaching_assignment_id', '=', 'ta.id')
+            ->join('subject as sub', 'ta.subject_id', '=', 'sub.id')
+            ->join('department as d', 'sub.department_id', '=', 'd.id')
+            ->join('feedback_question as fq', 'fa.question_id', '=', 'fq.id')
+            ->leftJoin('feedback_question_category as fqc', 'fq.category_id', '=', 'fqc.id')
+            ->where('fr.is_excluded', false);
 
-        foreach ($responses as $response) {
-            $scores = is_string($response->question_scores) ? json_decode($response->question_scores, true) : $response->question_scores;
-            if (!$scores) continue;
+        if ($departmentCode && $departmentCode !== 'ALL') {
+            $categoryScoresQuery->where('d.department_code', $departmentCode);
+        }
 
-            $totalScore = 0;
-            $count = 0;
-            $punctuality = 0;
-            $knowledge = 0;
-            $clarity = 0;
-            $material = 0;
+        $rawScores = $categoryScoresQuery->select(
+            'd.department_name',
+            'fqc.category_name',
+            'fq.question_text',
+            DB::raw('AVG(fa.rating_value) as avg_rating')
+        )->groupBy('d.department_name', 'fqc.category_name', 'fq.question_text')->get();
+
+        $deptAggTemp = [];
+        foreach ($rawScores as $row) {
+            $deptName = $row->department_name;
+            if (!isset($deptAggTemp[$deptName])) {
+                $deptAggTemp[$deptName] = ['punctuality' => [], 'knowledge' => [], 'clarity' => [], 'material' => []];
+            }
+            $cat = strtolower($row->category_name ?? '');
+            $qText = strtolower($row->question_text ?? '');
+            $val = floatval($row->avg_rating);
             
-            // Dummy logic to map questions to categories. Since we don't know exactly which questions are which,
-            // we will just average the scores for the overall.
-            foreach ($scores as $qId => $score) {
-                $score = floatval($score);
-                $totalScore += $score;
-                $count++;
-                $scoresList[] = $score;
-                // Distribute evenly for dummy categories if not available
-                $punctuality += $score;
-                $knowledge += $score;
-                $clarity += $score;
-                $material += $score;
-            }
-
-            if ($count > 0) {
-                $avg = $totalScore / $count;
-                $deptName = $response->department_name;
-                
-                if (!isset($deptAgg[$deptName])) {
-                    $deptAgg[$deptName] = ['punctuality' => 0, 'knowledge' => 0, 'clarity' => 0, 'material' => 0, 'count' => 0];
-                }
-                $deptAgg[$deptName]['punctuality'] += $avg;
-                $deptAgg[$deptName]['knowledge'] += $avg;
-                $deptAgg[$deptName]['clarity'] += $avg;
-                $deptAgg[$deptName]['material'] += $avg;
-                $deptAgg[$deptName]['count']++;
-
-                $facId = $response->faculty_id;
-                if (!isset($facultyAgg[$facId])) {
-                    $facultyAgg[$facId] = ['name' => $response->faculty_name, 'department' => $deptName, 'total' => 0, 'count' => 0];
-                }
-                $facultyAgg[$facId]['total'] += $avg;
-                $facultyAgg[$facId]['count']++;
+            if (str_contains($cat, 'punctual') || str_contains($qText, 'time') || str_contains($qText, 'punctual')) {
+                $deptAggTemp[$deptName]['punctuality'][] = $val;
+            } elseif (str_contains($cat, 'knowledge') || str_contains($qText, 'knowledge')) {
+                $deptAggTemp[$deptName]['knowledge'][] = $val;
+            } elseif (str_contains($cat, 'clarity') || str_contains($qText, 'clarity') || str_contains($qText, 'explain')) {
+                $deptAggTemp[$deptName]['clarity'][] = $val;
+            } elseif (str_contains($cat, 'material') || str_contains($qText, 'material')) {
+                $deptAggTemp[$deptName]['material'][] = $val;
             }
         }
-
-        $departmentRatings = [];
-        foreach ($deptAgg as $dept => $data) {
-            $departmentRatings[] = [
-                'department' => $dept,
-                'punctuality' => round($data['punctuality'] / $data['count'], 1),
-                'knowledge' => round($data['knowledge'] / $data['count'], 1),
-                'clarity' => round($data['clarity'] / $data['count'], 1),
-                'material' => round($data['material'] / $data['count'], 1),
+        
+        $deptAgg = [];
+        foreach ($deptAggTemp as $deptName => $cats) {
+            $deptAgg[$deptName] = [
+                'department' => $deptName,
+                'punctuality' => count($cats['punctuality']) ? round(array_sum($cats['punctuality']) / count($cats['punctuality']), 2) : 0,
+                'knowledge' => count($cats['knowledge']) ? round(array_sum($cats['knowledge']) / count($cats['knowledge']), 2) : 0,
+                'clarity' => count($cats['clarity']) ? round(array_sum($cats['clarity']) / count($cats['clarity']), 2) : 0,
+                'material' => count($cats['material']) ? round(array_sum($cats['material']) / count($cats['material']), 2) : 0,
             ];
         }
 
-        $topFaculty = [];
-        foreach ($facultyAgg as $facId => $data) {
-            $topFaculty[] = [
-                'id' => $facId,
-                'name' => $data['name'],
-                'department' => $data['department'],
-                'avgRating' => round($data['total'] / $data['count'], 2),
-                'totalResponses' => current(array_filter($responses->toArray(), fn($r) => $r['faculty_id'] == $facId)) ? count(array_filter($responses->toArray(), fn($r) => $r['faculty_id'] == $facId)) : 1, // rough estimate
-            ];
-        }
-        usort($topFaculty, fn($a, $b) => $b['avgRating'] <=> $a['avgRating']);
-        $topFaculty = array_slice($topFaculty, 0, 5);
+        // 2. Top Faculty Leaderboard
+        $facultyScoresQuery = DB::table('feedback_answer as fa')
+            ->join('feedback_response as fr', 'fa.response_id', '=', 'fr.id')
+            ->join('feedback_form as ff', 'fr.feedback_form_id', '=', 'ff.id')
+            ->join('teaching_assignment as ta', 'ff.teaching_assignment_id', '=', 'ta.id')
+            ->join('faculty as fac', 'ta.faculty_id', '=', 'fac.id')
+            ->join('department as d', 'fac.department_id', '=', 'd.id')
+            ->where('fr.is_excluded', false);
 
-        // Score Distribution
+        if ($departmentCode && $departmentCode !== 'ALL') {
+            $facultyScoresQuery->where('d.department_code', $departmentCode);
+        }
+
+        $topFacultyRaw = $facultyScoresQuery->select(
+            'fac.id',
+            'fac.full_name as name',
+            'd.department_name as department',
+            DB::raw('COUNT(DISTINCT fr.id) as totalResponses'),
+            DB::raw('AVG(fa.rating_value) as avgRating')
+        )->groupBy('fac.id', 'fac.full_name', 'd.department_name')
+         ->orderByDesc('avgRating')
+         ->limit(5)
+         ->get();
+         
+        $topFaculty = $topFacultyRaw->map(function($f) {
+            $f->avgRating = round($f->avgRating, 2);
+            return (array) $f;
+        })->toArray();
+
+        // 3. Score Distribution
+        $distQuery = DB::table('feedback_answer as fa')
+            ->join('feedback_response as fr', 'fa.response_id', '=', 'fr.id')
+            ->join('feedback_form as ff', 'fr.feedback_form_id', '=', 'ff.id')
+            ->join('teaching_assignment as ta', 'ff.teaching_assignment_id', '=', 'ta.id')
+            ->join('subject as sub', 'ta.subject_id', '=', 'sub.id')
+            ->join('department as d', 'sub.department_id', '=', 'd.id')
+            ->where('fr.is_excluded', false)
+            ->whereNotNull('fa.rating_value');
+
+        if ($departmentCode && $departmentCode !== 'ALL') {
+            $distQuery->where('d.department_code', $departmentCode);
+        }
+
+        $ratings = $distQuery->pluck('rating_value');
         $ranges = ['0 - 1' => 0, '1 - 2' => 0, '2 - 3' => 0, '3 - 4' => 0, '4 - 5' => 0];
-        foreach ($scoresList as $s) {
+        foreach ($ratings as $s) {
+            $s = floatval($s);
             if ($s <= 1) $ranges['0 - 1']++;
             elseif ($s <= 2) $ranges['1 - 2']++;
             elseif ($s <= 3) $ranges['2 - 3']++;
@@ -131,9 +151,9 @@ class AnalyticsController extends Controller
         }
 
         return response()->json([
-            'departmentRatings' => $departmentRatings,
+            'departmentRatings' => array_values($deptAgg),
             'topFaculty' => $topFaculty,
-            'scoreDistribution' => array_reverse($scoreDistribution),
+            'scoreDistribution' => array_reverse($scoreDistribution)
         ]);
     }
 }

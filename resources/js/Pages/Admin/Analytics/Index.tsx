@@ -14,10 +14,7 @@ import {
   Legend,
 } from 'recharts';
 
-import {
-  getDepartmentName,
-  ADMIN_DEPARTMENT_OPTIONS,
-} from '../../../utils/departmentScope';
+
 import { isAdministratorRole } from '../../../utils/permissions';
 import { api } from '../../../lib/api';
 import { useAuth } from '../../../context/AuthContext';
@@ -65,13 +62,20 @@ export default function Index({
   const userHodDeptName =
     user?.faculty?.department?.department_name ||
     storedUser?.faculty?.department?.department_name ||
-    getDepartmentName(resolvedDepartmentCode);
+    resolvedDepartmentCode;
 
   const [selectedDeptCode, setSelectedDeptCode] = React.useState<string>(resolvedDepartmentCode || 'ALL');
   const [fetchedData, setFetchedData] = React.useState<any>({});
+  const [departments, setDepartments] = React.useState<any[]>([]);
 
   React.useEffect(() => {
-    api.get('/analytics?department_id=' + (selectedDeptCode === 'ALL' ? '' : selectedDeptCode)).then(res => setFetchedData(res.data)).catch(console.error);
+    api.get('/departments').then(res => {
+      if (res && res.data) setDepartments(res.data);
+    }).catch(console.error);
+  }, []);
+
+  React.useEffect(() => {
+    api.get('/analytics?department_id=' + (selectedDeptCode === 'ALL' ? '' : selectedDeptCode)).then(res => setFetchedData(res || {})).catch(console.error);
   }, [selectedDeptCode]);
 
   const departmentRatings = fetchedData.departmentRatings || [];
@@ -84,10 +88,10 @@ export default function Index({
     effectiveRole === 'admin'
       ? selectedDeptCode === 'ALL'
         ? 'All Departments'
-        : getDepartmentName(selectedDeptCode)
+        : (departments.find(d => d.department_code === selectedDeptCode)?.department_name || selectedDeptCode)
       : departmentName ||
       userHodDeptName ||
-      getDepartmentName(resolvedDepartmentCode) ||
+      (departments.find(d => d.department_code === resolvedDepartmentCode)?.department_name || resolvedDepartmentCode) ||
       'Department Scope';
 
   /*
@@ -142,9 +146,10 @@ export default function Index({
               onChange={(e) => setSelectedDeptCode(e.target.value)}
               className="bg-transparent text-brand-dark font-bold uppercase tracking-wider focus:outline-none cursor-pointer"
             >
-              {ADMIN_DEPARTMENT_OPTIONS.map((d) => (
-                <option key={d.code} value={d.code}>
-                  {d.name}
+              <option value="ALL">All Departments</option>
+              {departments.map((d) => (
+                <option key={d.id} value={d.department_code}>
+                  {d.department_name}
                 </option>
               ))}
             </select>
@@ -360,7 +365,7 @@ export default function Index({
                   <div className="text-right">
                     <div className="flex items-center justify-end gap-1 text-brand-dark font-extrabold text-sm">
                       <Star className="w-4 h-4 fill-brand-accent text-brand-accent" />
-                      <span>{f.avgRating.toFixed(2)}</span>
+                      <span>{Number(f.avgRating || 0).toFixed(2)}</span>
                     </div>
 
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
@@ -376,6 +381,7 @@ export default function Index({
     </AdminLayout>
   );
 }
+
 
 
 

@@ -57,7 +57,7 @@ class StudentEligibilityService
         ->get();
 
         // Filter forms matching scope hierarchy and attach has_submitted
-        return $forms->filter(function (FeedbackForm $form) use ($departmentId, $batchId, $currentSemesterId, $divisionId, $sectionId) {
+        return $forms->filter(function (FeedbackForm $form) use ($departmentId, $batchId, $currentSemesterId, $divisionId, $sectionId, $student) {
             $ta = $form->teachingAssignment;
             if (!$ta) {
                 return false;

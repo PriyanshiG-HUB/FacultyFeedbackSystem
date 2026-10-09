@@ -219,7 +219,7 @@ export default function Index() {
           scrollY: 0
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['css', 'legacy'], avoid: ['.summary-grid', '.table-wrap', '.comment-card', '.faculty-box', '.footer-note'] }
+        pagebreak: { mode: ['css', 'legacy'], avoid: ['.summary-grid', '.comment-card', '.faculty-box', '.footer-note', 'tr'] }
       };
 
       await (window as any).html2pdf().set(opt).from(element).save();
@@ -240,22 +240,19 @@ export default function Index() {
         :root {
           --blue: #22396F;
           --blue-dark: #0D1C42;
-          --green: #15956f;
-          --green-light: #e8f7f1;
           --cream: #FCF1D0;
-          --orange: #f2b66d;
-          --border: #d9dee7;
-          --text: #010736;
-          --muted: #687384;
-          --bg: #f8fafc;
-          --white: #fff;
+          --brand-accent: #FCF1D0;
+          --text: #1a202c;
+          --text-muted: #718096;
+          --border: #e2e8f0;
+          --bg-soft: #f8fafc;
         }
 
         .a4-preview-wrapper {
           width: 100%;
           overflow-x: auto;
-          padding: 24px 16px 40px;
-          background: #f1f5f9;
+          padding: 32px 16px 60px;
+          background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
           display: flex;
           justify-content: center;
         }
@@ -264,271 +261,293 @@ export default function Index() {
           width: 210mm;
           min-height: 297mm;
           margin: 0 auto;
-          padding: 12mm 15mm;
+          padding: 15mm 20mm;
           background: #ffffff;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-          border-radius: 4px;
+          box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.15), 0 0 10px rgba(0,0,0,0.05);
+          border-radius: 8px;
           box-sizing: border-box;
           color: var(--text);
-          font-family: 'Inter', Arial, sans-serif;
-          font-size: 11.5px;
-          line-height: 1.4;
+          font-family: 'Inter', -apple-system, sans-serif;
+          font-size: 12px;
+          line-height: 1.5;
           position: relative;
         }
 
         .top-header {
-          padding: 0 0 16px;
+          padding: 0 0 24px;
           text-align: center;
           position: relative;
+          border-bottom: 2px solid var(--bg-soft);
+          margin-bottom: 24px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          min-height: 80px;
         }
 
         .charusat-report-logo {
-          height: 50px;
+          height: 70px;
           object-fit: contain;
-          margin-bottom: 8px;
+          position: absolute;
+          left: 0;
+          top: 0;
+        }
+
+        .header-text-container {
+          width: 100%;
+          text-align: center;
         }
 
         .department-title {
           margin: 0;
-          font-size: 18px;
+          font-size: 14px;
           font-weight: 800;
-          color: var(--blue-dark);
+          color: var(--text-muted);
           text-transform: uppercase;
-          letter-spacing: 0.02em;
+          letter-spacing: 0.1em;
         }
 
         .report-main-title {
-          margin: 4px 0 14px;
-          color: var(--blue);
-          font-size: 16px;
-          font-weight: 800;
+          margin: 8px 0 20px;
+          color: var(--blue-dark);
+          font-size: 24px;
+          font-weight: 900;
           font-family: 'Outfit', sans-serif;
+          letter-spacing: -0.02em;
         }
 
         .faculty-box {
-          background: var(--bg);
-          border: 1px solid var(--border);
-          border-left: 6px solid var(--blue);
-          border-radius: 4px;
-          padding: 10px 16px;
+          background: linear-gradient(135deg, var(--blue-dark) 0%, var(--blue) 100%);
+          border-radius: 12px;
+          padding: 20px 24px;
           text-align: left;
-          margin-bottom: 12px;
-          page-break-inside: avoid;
-          break-inside: avoid;
+          color: #ffffff;
           display: flex;
           align-items: center;
           justify-content: space-between;
+          box-shadow: 0 10px 25px -5px rgba(13, 28, 66, 0.4);
+          width: 100%;
+          box-sizing: border-box;
         }
 
         .faculty-box-left h2 {
           margin: 0;
-          font-size: 16px;
-          color: var(--blue-dark);
+          font-size: 20px;
+          color: var(--cream);
           font-weight: 800;
           font-family: 'Outfit', sans-serif;
+          letter-spacing: 0.01em;
         }
 
         .faculty-box-left .dept {
-          margin-top: 4px;
-          color: var(--blue);
-          font-weight: 700;
-          font-size: 12px;
-          text-transform: uppercase;
-          letter-spacing: 0.02em;
+          margin-top: 6px;
+          color: rgba(255,255,255,0.8);
+          font-weight: 500;
+          font-size: 13px;
+          letter-spacing: 0.03em;
         }
 
         .meta-info {
-          font-size: 11px;
-          color: var(--muted);
-          font-weight: 600;
+          font-size: 12px;
+          color: rgba(255,255,255,0.7);
           text-align: right;
-          line-height: 1.5;
+          line-height: 1.6;
         }
 
         .meta-info strong {
-          color: var(--blue-dark);
-        }
-
-        .blue-divider {
-          height: 4px;
-          background: linear-gradient(90deg, var(--blue-dark) 0%, var(--blue) 50%, var(--cream) 100%);
-          margin-bottom: 16px;
-          border-radius: 2px;
+          color: #ffffff;
+          font-weight: 700;
         }
 
         .subject-card {
-          border: 1px solid var(--border);
-          border-radius: 4px;
-          overflow: hidden;
-          margin-bottom: 16px;
-          page-break-inside: auto;
-          break-inside: auto;
+          margin-bottom: 24px;
         }
 
         .subject-head {
-          background: var(--blue-dark);
-          color: var(--cream);
-          padding: 10px 14px;
-          font-size: 12px;
+          background: var(--bg-soft);
+          color: var(--blue-dark);
+          padding: 14px 20px;
+          font-size: 14px;
           font-weight: 800;
-          line-height: 1.4;
-          text-transform: uppercase;
-          letter-spacing: 0.02em;
-        }
-
-        .section-inner {
-          padding: 12px 14px;
+          border-radius: 8px;
+          border-left: 6px solid var(--blue);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 20px;
         }
 
         .section-title {
-          margin: 12px 0 10px;
-          padding: 6px 10px;
-          background: var(--cream);
+          margin: 24px 0 16px;
           color: var(--blue-dark);
-          border-left: 4px solid var(--blue);
-          font-size: 12px;
+          font-size: 16px;
           font-weight: 800;
-          text-transform: uppercase;
-          border-radius: 0 4px 4px 0;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-family: 'Outfit', sans-serif;
+          page-break-after: avoid;
+          break-after: avoid;
+        }
+        
+        .section-title::before {
+           content: '';
+           display: block;
+           width: 24px;
+           height: 4px;
+           background: var(--blue);
+           border-radius: 2px;
         }
 
         .summary-grid {
-          display: flex;
-          border: 1px solid #e2e8f0;
-          border-radius: 6px;
-          overflow: hidden;
-          margin-bottom: 10px;
-          page-break-inside: avoid;
-          break-inside: avoid;
+          display: grid;
+          grid-template-columns: 1fr 2fr;
+          gap: 16px;
+          margin-bottom: 24px;
         }
 
         .summary-box {
-          flex: 1;
-          padding: 10px 14px;
-        }
-
-        .summary-box + .summary-box {
-          border-left: 1px solid #e2e8f0;
+          background: #ffffff;
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          padding: 20px;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.02);
         }
 
         .summary-label {
-          font-weight: 800;
-          font-size: 11.5px;
-          color: #475569;
+          font-weight: 700;
+          font-size: 12px;
+          color: var(--text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
         }
 
         .average-score {
-          margin-top: 4px;
-          color: #2563eb;
-          font-size: 26px;
-          font-weight: 800;
+          margin-top: 8px;
+          color: var(--blue-dark);
+          font-size: 36px;
+          font-weight: 900;
+          font-family: 'Outfit', sans-serif;
         }
 
         .distribution-list {
-          margin-top: 4px;
+          margin-top: 12px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
         }
 
         .distribution-list div {
           display: flex;
           justify-content: space-between;
-          gap: 16px;
-          padding: 2px 0;
-          font-size: 11px;
+          align-items: center;
+          font-size: 12px;
+          padding: 8px 12px;
+          background: var(--bg-soft);
+          border-radius: 6px;
         }
 
         .distribution-list strong {
           font-weight: 800;
+          color: var(--blue-dark);
         }
 
         .table-wrap {
-          overflow-x: auto;
-          border: 1px solid #cbd5e1;
-          border-radius: 6px;
-          margin-bottom: 8px;
-          page-break-inside: avoid;
-          break-inside: avoid;
+          border-radius: 12px;
+          overflow: hidden;
+          border: 1px solid var(--border);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+          margin-bottom: 24px;
         }
 
         table.perf-table {
           width: 100%;
           border-collapse: collapse;
-          table-layout: fixed;
-          font-size: 11px;
-        }
-
-        table.perf-table th,
-        table.perf-table td {
-          border: 1px solid #cbd5e1;
-          padding: 5px 6px;
-          vertical-align: middle;
-          text-align: center;
+          font-size: 12px;
         }
 
         table.perf-table th {
-          background: #f8fafc;
-          font-weight: 800;
-          color: #334155;
+          background: var(--blue-dark);
+          color: #ffffff;
+          font-weight: 600;
+          padding: 14px 16px;
+          text-align: center;
+          font-size: 11px;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        table.perf-table td {
+          padding: 14px 16px;
+          border-bottom: 1px solid var(--border);
+          text-align: center;
+          color: var(--text);
+          font-weight: 500;
+        }
+
+        table.perf-table tr:last-child td {
+          border-bottom: none;
+        }
+
+        table.perf-table tr:nth-child(even) td {
+          background: var(--bg-soft);
         }
 
         table.perf-table th:first-child,
         table.perf-table td:first-child {
-          width: 44%;
           text-align: left;
-          padding-left: 8px;
-        }
-
-        table.perf-table tr {
-          page-break-inside: avoid;
-          break-inside: avoid;
+          width: 40%;
         }
 
         .avg-tag {
-          display: inline-block;
-          padding: 2px 5px;
-          background: #dbeafe;
-          color: #1e40af;
-          border-radius: 4px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 4px 8px;
+          background: var(--cream);
+          color: var(--blue-dark);
+          border-radius: 6px;
           font-weight: 800;
-          font-size: 10.5px;
-        }
-
-        .comments-section {
-          margin-top: 8px;
+          font-size: 11px;
         }
 
         .comment-card {
-          margin: 6px 0;
-          padding: 8px 10px;
-          background: #fffbeb;
-          border: 1px solid #fde68a;
-          border-radius: 6px;
-          page-break-inside: avoid;
-          break-inside: avoid;
+          margin: 12px 0;
+          padding: 16px 20px;
+          background: #ffffff;
+          border: 1px solid var(--border);
+          border-left: 4px solid var(--blue);
+          border-radius: 8px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.02);
         }
 
         .comment-question {
-          color: #b45309;
+          color: var(--blue-dark);
           font-weight: 800;
-          font-size: 11.5px;
+          font-size: 13px;
+          margin-bottom: 8px;
         }
 
         .comment-list {
-          margin: 3px 0 0;
-          padding-left: 14px;
-          color: #475569;
-          font-size: 11px;
-          line-height: 1.35;
+          margin: 0;
+          padding-left: 18px;
+          color: var(--text-muted);
+          font-size: 12px;
+          line-height: 1.6;
+        }
+
+        .comment-list li {
+          margin-bottom: 4px;
         }
 
         .footer-note {
-          margin-top: 14px;
-          padding-top: 10px;
-          border-top: 1px solid #e2e8f0;
+          margin-top: 40px;
+          padding-top: 20px;
+          border-top: 1px solid var(--border);
           text-align: center;
-          color: #64748b;
-          font-size: 10.5px;
-          page-break-inside: avoid;
-          break-inside: avoid;
+          color: var(--text-muted);
+          font-size: 11px;
         }
 
         .report-controls {
@@ -536,129 +555,118 @@ export default function Index() {
           bottom: 0;
           display: flex;
           justify-content: flex-end;
-          gap: 8px;
-          padding: 12px 28px;
-          background: rgba(255, 255, 255, 0.96);
-          border-top: 1px solid #d9dee7;
-          backdrop-filter: blur(8px);
+          gap: 12px;
+          padding: 16px 28px;
+          background: rgba(255, 255, 255, 0.85);
+          border-top: 1px solid rgba(255, 255, 255, 0.4);
+          backdrop-filter: blur(12px);
           z-index: 10;
+          box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
         }
 
         .report-controls button {
           border: 0;
-          border-radius: 6px;
-          padding: 9px 14px;
+          border-radius: 8px;
+          padding: 10px 20px;
           font: inherit;
           font-weight: 700;
           cursor: pointer;
+          transition: all 0.2s ease;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
         }
 
         .report-controls button.print {
-          background: #2563eb;
+          background: linear-gradient(135deg, var(--blue-dark) 0%, var(--blue) 100%);
           color: white;
+          box-shadow: 0 4px 12px rgba(13, 28, 66, 0.3);
         }
 
         .report-controls button.print:hover {
-          background: #1d4ed8;
+          transform: translateY(-1px);
+          box-shadow: 0 6px 16px rgba(13, 28, 66, 0.4);
         }
 
         .report-controls button.compact {
-          background: #e9edf3;
-          color: #374151;
+          background: #ffffff;
+          color: var(--blue-dark);
+          border: 1px solid var(--border);
+        }
+        
+        .report-controls button.compact:hover {
+          background: var(--bg-soft);
         }
 
         @media print {
-          @page {
-            size: A4 portrait;
-            margin: 0;
-          }
-          nav, header, aside, .no-print, .report-controls {
-            display: none !important;
-          }
-          body, html {
-            background: #fff !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            width: 210mm !important;
-          }
-          .a4-preview-wrapper {
-            padding: 0 !important;
-            background: #fff !important;
-            display: block !important;
-            overflow: visible !important;
-          }
-          .a4-document {
-            width: 210mm !important;
-            margin: 0 !important;
-            box-shadow: none !important;
-            border: none !important;
-            padding: 12mm 15mm !important;
-          }
-          .summary-grid, .table-wrap, .comment-card, .faculty-box, .footer-note {
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-          }
-          table.perf-table tr {
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-          }
+          @page { size: A4 portrait; margin: 0; }
+          nav, header, aside, .no-print, .report-controls { display: none !important; }
+          body, html { background: #fff !important; padding: 0 !important; margin: 0 !important; width: 210mm !important; }
+          .a4-preview-wrapper { padding: 0 !important; background: #fff !important; display: block !important; overflow: visible !important; }
+          .a4-document { width: 210mm !important; margin: 0 !important; box-shadow: none !important; border: none !important; padding: 12mm 15mm !important; }
+          .summary-grid, .comment-card, .faculty-box, .footer-note { break-inside: avoid !important; page-break-inside: avoid !important; }
+          table.perf-table tr { break-inside: avoid !important; page-break-inside: avoid !important; }
         }
       `}</style>
 
       {/* Top Header & Page Title */}
-      <div className="no-print space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="p-1.5 rounded-lg bg-brand-100 text-blue-800">
-                <UserCheck className="w-5 h-5" />
+      <div className="no-print space-y-8 mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-gradient-to-r from-brand-navy via-[#162754] to-brand-primary p-8 rounded-2xl shadow-xl text-white relative overflow-hidden">
+          <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-white opacity-5 blur-3xl pointer-events-none"></div>
+          
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="p-2.5 rounded-xl bg-white/10 backdrop-blur-md shadow-inner border border-white/10">
+                <UserCheck className="w-6 h-6 text-brand-accent" />
               </span>
-              <h1 className="text-2xl font-bold font-heading text-slate-900 tracking-tight">Faculty Reports</h1>
+              <h1 className="text-3xl font-extrabold font-heading text-white tracking-tight">Faculty Reports</h1>
             </div>
-            <p className="text-sm text-slate-500 mt-1">
-              Search and view dynamic Teacher Performance Evaluation Reports for faculty members based on actual student feedback responses.
+            <p className="text-sm text-blue-100 max-w-xl leading-relaxed">
+              Generate and analyze high-resolution Teacher Performance Evaluation Reports. Explore dynamic insights based on validated student feedback.
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4 relative z-10">
             <Button
               variant="outline"
-              size="sm"
+              size="lg"
               onClick={handleGenerateReport}
               disabled={isLoadingReport || !selectedFacultyId}
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white transition-all backdrop-blur-sm"
             >
-              <RefreshCw className={`w-4 h-4 mr-1.5 ${isLoadingReport ? 'animate-spin' : ''}`} />
-              Refresh Report
+              <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingReport ? 'animate-spin' : ''}`} />
+              Refresh
             </Button>
             <Button
               variant="primary"
-              size="sm"
+              size="lg"
               onClick={handleDownloadPDF}
               disabled={isDownloadingPdf || !reportData}
-              className="bg-brand-primary hover:bg-brand-navy"
+              className="bg-brand-accent text-brand-navy hover:bg-yellow-300 font-bold shadow-lg hover:shadow-xl transition-all border-none"
             >
               {isDownloadingPdf ? (
-                <RefreshCw className="w-4 h-4 mr-1.5 animate-spin" />
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
               ) : (
-                <Download className="w-4 h-4 mr-1.5" />
+                <Download className="w-4 h-4 mr-2" />
               )}
-              {isDownloadingPdf ? 'Generating PDF...' : 'Download PDF Report'}
+              {isDownloadingPdf ? 'Generating...' : 'Export PDF'}
             </Button>
           </div>
         </div>
 
         {/* Filter & Selection Card */}
-        <Card className="border-brand-100 bg-slate-50/50">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-6 md:p-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Search / Select Faculty */}
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                Search & Select Faculty
+            <div className="space-y-2">
+              <label className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                <UserCheck className="w-3.5 h-3.5 text-brand-primary" /> Target Faculty
               </label>
               <Select
                 value={selectedFacultyId}
                 onChange={(e) => setSelectedFacultyId(e.target.value ? Number(e.target.value) : '')}
                 disabled={isLoadingFaculty}
+                className="bg-slate-50 border-slate-200 focus:bg-white focus:border-brand-primary focus:ring-brand-primary/20 h-11 text-sm font-semibold text-brand-navy"
               >
                 <option value="">-- Select Faculty Member --</option>
                 {facultyList.map((f) => (
@@ -670,14 +678,15 @@ export default function Index() {
             </div>
 
             {/* Select Subject / Teaching Assignment */}
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                Filter Subject / Academic Year
+            <div className="space-y-2">
+              <label className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                <FileText className="w-3.5 h-3.5 text-brand-primary" /> Filter Subject / Academic Year
               </label>
               <Select
                 value={selectedAssignmentId}
                 onChange={(e) => setSelectedAssignmentId(e.target.value ? Number(e.target.value) : '')}
                 disabled={isLoadingAssignments || !selectedFacultyId}
+                className="bg-slate-50 border-slate-200 focus:bg-white focus:border-brand-primary focus:ring-brand-primary/20 h-11 text-sm font-semibold text-brand-navy"
               >
                 <option value="">All Assigned Subjects (Aggregated Report)</option>
                 {assignmentsList.map((a) => (
@@ -689,9 +698,9 @@ export default function Index() {
             </div>
 
             {/* Search By Name/Email Input */}
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                Search Query Filter
+            <div className="space-y-2">
+              <label className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                <Filter className="w-3.5 h-3.5 text-brand-primary" /> Search Query Filter
               </label>
               <div className="relative">
                 <Input
@@ -699,9 +708,9 @@ export default function Index() {
                   placeholder="Filter faculty by name..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
+                  className="pl-10 bg-slate-50 border-slate-200 focus:bg-white focus:border-brand-primary focus:ring-brand-primary/20 h-11 text-sm font-semibold text-brand-navy"
                 />
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
               </div>
             </div>
           </div>
@@ -723,7 +732,7 @@ export default function Index() {
               </span>
             </div>
           )}
-        </Card>
+        </div>
 
         {fetchError && (
           <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm font-medium flex items-center gap-2">
@@ -744,9 +753,11 @@ export default function Index() {
           <div className="a4-preview-wrapper">
             <div className="a4-document" id="faculty-report-printable-area">
               <header className="top-header">
-                <img src="/charusat-logo.jpg" alt="CHARUSAT" className="charusat-report-logo" />
-                <p className="department-title">{reportData.faculty.department_full_name}</p>
-                <h1 className="report-main-title">Faculty Performance Evaluation Report</h1>
+                <img src="/charusat_logo.png" alt="CHARUSAT" className="charusat-report-logo" />
+                <div className="header-text-container">
+                  <p className="department-title">{reportData.faculty.department_full_name}</p>
+                  <h1 className="report-main-title">Faculty Performance Evaluation Report</h1>
+                </div>
 
                 <div className="faculty-box">
                   <div className="faculty-box-left">
@@ -764,9 +775,8 @@ export default function Index() {
 
               <section className="subject-card">
                 <div className="subject-head">
-                  Subject: {reportData.subject.subject_name} ({reportData.subject.course_type}) &nbsp; | &nbsp; Responses:{' '}
-                  {reportData.total_responses} &nbsp; | &nbsp; Average: {reportData.overall_average.toFixed(2)}/5.0 (
-                  {reportData.overall_percentage}%)
+                  <span>Subject: {reportData.subject.subject_name} ({reportData.subject.course_type})</span>
+                  <span>Responses: {reportData.total_responses} &nbsp;|&nbsp; Avg: {reportData.overall_average.toFixed(2)}/5.0 ({reportData.overall_percentage}%)</span>
                 </div>
 
                 <div className="section-inner">
@@ -867,17 +877,6 @@ export default function Index() {
             </div>
           </div>
 
-          <div className="report-controls no-print" data-html2canvas-ignore="true">
-            <button
-              className="compact"
-              onClick={() => setIsCompactMode(!isCompactMode)}
-            >
-              {isCompactMode ? 'Full View' : 'Compact View'}
-            </button>
-            <button className="print" onClick={handleDownloadPDF} disabled={isDownloadingPdf}>
-              {isDownloadingPdf ? 'Generating PDF...' : 'Download PDF Report'}
-            </button>
-          </div>
         </div>
       ) : (
         <Card className="py-16 text-center text-slate-500">

@@ -7,14 +7,14 @@ import { Button } from '../../../Components/ui/Button';
 import { api } from '../../../lib/api';
 import { Save, AlertCircle, CheckCircle2 } from 'lucide-react';
 
-export default function Index({ settings: initialSettings }: SettingsIndexProps) {
+export default function Index({ settings: initialSettings = {} as any }: SettingsIndexProps) {
   const [settingsId, setSettingsId] = useState<number | null>(null);
-  const [ratingScale, setRatingScale] = useState<number>(initialSettings.ratingScale || 5);
-  const [minFeedbackThreshold, setMinFeedbackThreshold] = useState<number>(initialSettings.minFeedbackThreshold || 10);
-  const [allowAnonymous, setAllowAnonymous] = useState<boolean>(initialSettings.allowAnonymous !== false);
-  const [feedbackWindowOpen, setFeedbackWindowOpen] = useState<string>(initialSettings.feedbackWindowOpen || '2026-08-01');
-  const [feedbackWindowClose, setFeedbackWindowClose] = useState<string>(initialSettings.feedbackWindowClose || '2026-12-31');
-  const [autoPublishReports, setAutoPublishReports] = useState<boolean>(initialSettings.autoPublishReports || false);
+  const [ratingScale, setRatingScale] = useState<number>(initialSettings?.ratingScale || 5);
+  const [minFeedbackThreshold, setMinFeedbackThreshold] = useState<number>(initialSettings?.minFeedbackThreshold || 10);
+  const [allowAnonymous, setAllowAnonymous] = useState<boolean>(initialSettings?.allowAnonymous !== false);
+  const [feedbackWindowOpen, setFeedbackWindowOpen] = useState<string>(initialSettings?.feedbackWindowOpen || '2026-08-01');
+  const [feedbackWindowClose, setFeedbackWindowClose] = useState<string>(initialSettings?.feedbackWindowClose || '2026-12-31');
+  const [autoPublishReports, setAutoPublishReports] = useState<boolean>(initialSettings?.autoPublishReports || false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');

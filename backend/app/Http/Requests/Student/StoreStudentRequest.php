@@ -13,6 +13,7 @@ class StoreStudentRequest extends FormRequest
 
     public function rules(): array
     {
+        \Illuminate\Support\Facades\Log::info('StoreStudentRequest payload:', $this->all());
         return [
             'roll_no' => ['required', 'string', 'max:50', 'unique:student,roll_no'],
             'enrollment_no' => ['nullable', 'string', 'max:50', 'unique:student,enrollment_no'],

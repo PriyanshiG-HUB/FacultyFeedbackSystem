@@ -124,4 +124,34 @@ class AuthController extends Controller
             'user' => new UserAccountResource($user)
         ], Response::HTTP_OK);
     }
+
+    /**
+     * Process forgot password request.
+     */
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        $request->validate(['email' => 'required|string']);
+        
+        $email = $request->email;
+        $user = UserAccount::where('email', $email)->first();
+
+        if ($user) {
+            $token = \Illuminate\Support\Str::random(64);
+
+            \Illuminate\Support\Facades\DB::table('password_reset_tokens')->updateOrInsert(
+                ['email' => $email],
+                ['token' => $token, 'created_at' => now()]
+            );
+
+            \Illuminate\Support\Facades\Mail::to($email)->send(new \App\Mail\PasswordResetMail($token, $email));
+        } else {
+            // Wait slightly to prevent timing attacks
+            usleep(500000); 
+        }
+
+        // For security, always return the same success message regardless of whether the email exists.
+        return response()->json([
+            'message' => 'If an account with that email exists, a password reset link has been sent.'
+        ], Response::HTTP_OK);
+    }
 }

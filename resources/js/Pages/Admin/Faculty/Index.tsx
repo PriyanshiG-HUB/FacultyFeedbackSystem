@@ -1,30 +1,17 @@
 import { isAdministratorRole } from '../../../utils/permissions';
 import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../../../Layouts/AdminLayout';
-import { FacultyIndexProps, FacultyItem, FacultyFeedbackDetails } from '../../../types';
+import { FacultyItem } from '../../../types';
 import { DataTable, Column } from '../../../Components/ui/DataTable';
 import { StatusBadge } from '../../../Components/ui/StatusBadge';
 import { Button } from '../../../Components/ui/Button';
-import { Card } from '../../../Components/ui/Card';
 import { Modal } from '../../../Components/ui/Modal';
 import { Input, Select } from '../../../Components/ui/Input';
-import { Plus, Mail, Filter, Star, CheckCircle2, BarChart3, PieChart, BookOpen, UserCheck, RefreshCw, AlertCircle, Trash2 } from 'lucide-react';
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  Cell,
-} from 'recharts';
+import { Plus, Mail, Filter, RefreshCw, AlertCircle, Trash2, Edit2 } from 'lucide-react';
 
 import { getDepartmentName } from '../../../utils/departmentScope';
 import { api } from '../../../lib/api';
 import { useAuth } from '../../../context/AuthContext';
-
-const PARAMETER_COLORS = ['#0284c7', '#4f46e5', '#059669', '#d97706'];
 
 interface DepartmentOption {
   id: number;
@@ -42,13 +29,13 @@ export default function Index() {
   const isAdministrator = isAdministratorRole(user?.role);
   const assignedDepartmentCode = user?.role === 'HOD' ? user?.hod_department_code : null;
 
-    const initialFilter = !isAdministrator && assignedDepartmentCode
+  const initialFilter = !isAdministrator && assignedDepartmentCode
     ? getDepartmentName(assignedDepartmentCode)
     : 'all';
 
   const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>(initialFilter);
-  const [selectedFacultyId, setSelectedFacultyId] = useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   const [facultyList, setFacultyList] = useState<FacultyItem[]>([]);
   const [departments, setDepartments] = useState<DepartmentOption[]>([]);
@@ -65,7 +52,6 @@ export default function Index() {
   const [formError, setFormError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
-  // Synchronize filter when role/assigned department prop changes
   useEffect(() => {
     if (!isAdministrator && assignedDepartmentCode) {
       setSelectedDeptFilter(getDepartmentName(assignedDepartmentCode));
@@ -89,27 +75,16 @@ export default function Index() {
           name: d.department_name,
         }));
         setDepartments(deptOptions);
-        if (deptOptions.length > 0 && selectedDeptId === '') {
-          setSelectedDeptId(deptOptions[0].id);
-        }
       }
 
       if (Array.isArray(desigRes.data) && desigRes.data.length > 0) {
         setDesignations(desigRes.data);
-        if (selectedDesignationId === '') {
-          setSelectedDesignationId(desigRes.data[0].id);
-        }
       } else {
-        // Fallback default designations
-        const defaultDesigs = [
+        setDesignations([
           { id: 1, designation_name: 'Professor' },
           { id: 2, designation_name: 'Associate Professor' },
           { id: 3, designation_name: 'Assistant Professor' },
-        ];
-        setDesignations(defaultDesigs);
-        if (selectedDesignationId === '') {
-          setSelectedDesignationId(1);
-        }
+        ]);
       }
 
       if (Array.isArray(facRes.data)) {
@@ -118,7 +93,9 @@ export default function Index() {
           name: f.full_name,
           email: f.email,
           department: f.department?.department_name || f.department?.department_code || 'Department Scope',
+          department_id: f.department_id,
           designation: f.designation?.designation_name || 'Professor',
+          designation_id: f.designation_id,
           status: f.status === 'INACTIVE' ? 'Inactive' : 'Active',
         }));
         setFacultyList(mapped);
@@ -128,23 +105,31 @@ export default function Index() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedDeptId, selectedDesignationId]);
+  }, []);
 
   useEffect(() => {
     fetchFacultyAndMetadata();
   }, [fetchFacultyAndMetadata]);
 
   const handleOpenAddModal = () => {
+    setEditingId(null);
     setName('');
     setEmail('');
     setFormError('');
     setFieldErrors({});
-    if (departments.length > 0) {
-      setSelectedDeptId(departments[0].id);
-    }
-    if (designations.length > 0) {
-      setSelectedDesignationId(designations[0].id);
-    }
+    if (departments.length > 0) setSelectedDeptId(departments[0].id);
+    if (designations.length > 0) setSelectedDesignationId(designations[0].id);
+    setIsModalOpen(true);
+  };
+
+  const handleEditClick = (faculty: any) => {
+    setEditingId(faculty.id);
+    setName(faculty.name);
+    setEmail(faculty.email);
+    setSelectedDeptId(faculty.department_id || departments[0]?.id || '');
+    setSelectedDesignationId(faculty.designation_id || designations[0]?.id || '');
+    setFormError('');
+    setFieldErrors({});
     setIsModalOpen(true);
   };
 
@@ -165,14 +150,19 @@ export default function Index() {
         status: 'ACTIVE',
       };
 
-      await api.post('/faculty', payload);
+      if (editingId) {
+        await api.put(`/faculty/${editingId}`, payload);
+      } else {
+        await api.post('/faculty', payload);
+      }
+      
       await fetchFacultyAndMetadata();
       setIsModalOpen(false);
     } catch (err: any) {
       if (err.status === 422 && err.errors) {
         setFieldErrors(err.errors);
       } else {
-        setFormError(err.message || 'Failed to create faculty member.');
+        setFormError(err.message || (editingId ? 'Failed to update faculty member.' : 'Failed to create faculty member.'));
       }
     } finally {
       setIsSubmitting(false);
@@ -183,14 +173,12 @@ export default function Index() {
     if (!confirm(`Are you sure you want to delete faculty member "${facultyName}"?`)) return;
     try {
       await api.delete(`/faculty/${facultyId}`);
-      if (selectedFacultyId === facultyId) setSelectedFacultyId(null);
       await fetchFacultyAndMetadata();
     } catch (err: any) {
       if (err.status === 409) {
         if (confirm(`Faculty member "${facultyName}" has active teaching assignments or dependencies.\n\nDo you want to permanently delete this faculty member AND all associated assignments?`)) {
           try {
             await api.delete(`/faculty/${facultyId}?cascade=true`);
-            if (selectedFacultyId === facultyId) setSelectedFacultyId(null);
             await fetchFacultyAndMetadata();
           } catch (cascadeErr: any) {
             alert(cascadeErr.message || 'Failed to delete faculty member.');
@@ -210,8 +198,6 @@ export default function Index() {
     if (selectedDeptFilter === 'all') return true;
     return f.department.toLowerCase() === selectedDeptFilter.toLowerCase();
   });
-
-  const selectedFaculty = filteredFaculty.find((f) => f.id === selectedFacultyId) || facultyList.find((f) => f.id === selectedFacultyId) || null;
 
   const columns: Column<FacultyItem>[] = [
     {
@@ -252,32 +238,35 @@ export default function Index() {
     {
       header: 'Action',
       accessor: (row) => {
-        const isSelected = row.id === selectedFacultyId;
         return (
           <div className="flex items-center gap-1.5">
-            <Button
-              size="sm"
-              variant={isSelected ? 'primary' : 'outline'}
-              onClick={(e) => {
-                e.stopPropagation();
-                setSelectedFacultyId(isSelected ? null : row.id);
-              }}
-            >
-              {isSelected ? 'Selected' : 'Select'}
-            </Button>
             {isAdministrator && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteFaculty(row.id, row.name);
-                }}
-                className="text-rose-600 hover:bg-rose-50 border-rose-200 p-1.5"
-                title="Delete Faculty"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </Button>
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEditClick(row);
+                  }}
+                  className="p-1.5"
+                  title="Edit Faculty"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteFaculty(row.id, row.name);
+                  }}
+                  className="text-rose-600 hover:bg-rose-50 border-rose-200 p-1.5"
+                  title="Delete Faculty"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+              </>
             )}
           </div>
         );
@@ -285,50 +274,18 @@ export default function Index() {
     },
   ];
 
-  // Selected Faculty Details Data Fallback
-  const details: FacultyFeedbackDetails | null = selectedFaculty
-    ? selectedFaculty.feedbackDetails || {
-        overallScore: 4.80,
-        totalResponses: 120,
-        parameterScores: {
-          punctuality: 4.80,
-          subjectKnowledge: 4.85,
-          clarityOfTeaching: 4.75,
-          studyMaterial: 4.80,
-        },
-        scoreDistribution: [
-          { rating: '5 Stars', count: 85 },
-          { rating: '4 Stars', count: 28 },
-          { rating: '3 Stars', count: 5 },
-          { rating: '2 Stars', count: 2 },
-          { rating: '1 Star', count: 0 },
-        ],
-      }
-    : null;
-
-  const parameterChartData = details
-    ? [
-        { parameter: 'Punctuality', score: details.parameterScores.punctuality },
-        { parameter: 'Knowledge', score: details.parameterScores.subjectKnowledge },
-        { parameter: 'Clarity', score: details.parameterScores.clarityOfTeaching },
-        { parameter: 'Material', score: details.parameterScores.studyMaterial },
-      ]
-    : [];
-
   return (
     <AdminLayout
       title="Faculty Directory"
       currentPath="#Admin/Faculty/Index"
-      
-      
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold font-heading text-slate-900">Faculty Members</h2>
           <p className="text-xs text-slate-500">
             {isAdministrator
-              ? 'Complete faculty directory and individual feedback ratings across all departments'
-              : `Faculty members and feedback performance for ${getDepartmentName(assignedDepartmentCode)}`}
+              ? 'Complete faculty directory across all departments'
+              : `Faculty members for ${getDepartmentName(assignedDepartmentCode)}`}
           </p>
         </div>
 
@@ -378,102 +335,7 @@ export default function Index() {
 
       <DataTable data={filteredFaculty} columns={columns} searchPlaceholder="Search faculty by name, email, or department..." />
 
-      {/* Selected Faculty Performance Card */}
-      {selectedFaculty && details ? (
-        <Card className="mt-6 border-indigo-200 bg-linear-to-b from-white to-slate-50/50 shadow-md">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-brand-primary text-white flex items-center justify-center font-extrabold text-lg shadow-sm">
-                {selectedFaculty.name.charAt(0)}
-              </div>
-              <div>
-                <h3 className="text-base font-extrabold text-slate-900">{selectedFaculty.name}</h3>
-                <p className="text-xs text-slate-500 font-medium">
-                  {selectedFaculty.designation} &bull; {selectedFaculty.department}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Overall Score</p>
-                <div className="flex items-center gap-1.5 text-lg font-black text-slate-900">
-                  <Star className="w-5 h-5 fill-amber-400 text-amber-500" />
-                  <span>{details.overallScore.toFixed(2)}</span>
-                  <span className="text-xs font-bold text-slate-400">/ 5.0</span>
-                </div>
-              </div>
-              <div className="h-8 w-px bg-slate-200" />
-              <div className="text-right">
-                <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Total Responses</p>
-                <p className="text-lg font-black text-brand-primary font-mono">{details.totalResponses}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-5">
-            {/* Chart 1: Parameter-wise Breakdown */}
-            <div className="bg-white border border-slate-200/90 rounded-xl p-4 shadow-2xs">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                  <BarChart3 className="w-3.5 h-3.5 text-brand-primary" />
-                  Evaluation Parameters
-                </h4>
-                <span className="text-[10px] text-slate-400 font-medium">Avg Score (Max 5.0)</span>
-              </div>
-              <div className="h-48 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={parameterChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="parameter" stroke="#64748b" fontSize={10} />
-                    <YAxis domain={[0, 5]} stroke="#64748b" fontSize={10} />
-                    <Tooltip
-                      contentStyle={{ backgroundColor: '#ffffff', borderColor: '#cbd5e1', borderRadius: '8px', fontSize: '12px' }}
-                      formatter={(value: any) => [`${value} / 5.0`, 'Score']}
-                    />
-                    <Bar dataKey="score" radius={[4, 4, 0, 0]}>
-                      {parameterChartData.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={PARAMETER_COLORS[index % PARAMETER_COLORS.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Chart 2: Score Distribution */}
-            <div className="bg-white border border-slate-200/90 rounded-xl p-4 shadow-2xs">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                  <PieChart className="w-3.5 h-3.5 text-emerald-600" />
-                  Rating Distribution
-                </h4>
-                <span className="text-[10px] text-slate-400 font-medium">Student Responses</span>
-              </div>
-              <div className="h-48 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={details.scoreDistribution} layout="vertical" margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis type="number" stroke="#64748b" fontSize={10} />
-                    <YAxis dataKey="rating" type="category" stroke="#64748b" fontSize={10} width={60} />
-                    <Tooltip contentStyle={{ backgroundColor: '#ffffff', borderColor: '#cbd5e1', borderRadius: '8px', fontSize: '12px' }} />
-                    <Bar dataKey="count" name="Responses" fill="#059669" radius={[0, 4, 4, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-        </Card>
-      ) : (
-        <div className="bg-slate-50 border border-dashed border-slate-300/80 rounded-xl p-6 text-center text-slate-500 text-sm mt-6 flex flex-col items-center justify-center gap-2">
-          <UserCheck className="w-8 h-8 text-slate-400" />
-          <p className="font-medium text-slate-700">Select a faculty member to view feedback details.</p>
-          <p className="text-xs text-slate-400">Click any row in the faculty directory table above to display parameter metrics and feedback charts.</p>
-        </div>
-      )}
-
-      {/* Add Faculty Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Register Faculty Member">
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingId ? "Edit Faculty Member" : "Register Faculty Member"}>
         <form onSubmit={handleSubmit} className="space-y-4">
           {formError && (
             <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs font-semibold flex items-center gap-2">
@@ -531,7 +393,7 @@ export default function Index() {
               Cancel
             </Button>
             <Button type="submit" variant="primary" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : 'Register Faculty'}
+              {isSubmitting ? 'Saving...' : (editingId ? 'Update Faculty' : 'Register Faculty')}
             </Button>
           </div>
         </form>
@@ -539,3 +401,4 @@ export default function Index() {
     </AdminLayout>
   );
 }
+

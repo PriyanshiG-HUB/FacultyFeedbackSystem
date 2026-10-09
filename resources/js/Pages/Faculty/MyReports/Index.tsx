@@ -24,8 +24,11 @@ export default function Index() {
       }).catch(() => {});
       
       api.get('/faculty/feedback-forms').then((res) => {
-        if (res.data?.data) {
-          const apiReports = res.data.data.map((f: any) => ({
+        const rawForms = res.data?.data || res.data || res || [];
+        const formsArray = Array.isArray(rawForms) ? rawForms : (rawForms.data || []);
+        
+        if (Array.isArray(formsArray)) {
+          const apiReports = formsArray.map((f: any) => ({
             id: f.id,
             subjectName: f.teaching_assignment?.subject?.subject_name || 'Subject',
             subjectCode: f.teaching_assignment?.subject?.subject_code || 'SUB',

@@ -29,10 +29,7 @@ import {
   Loader2
 } from 'lucide-react';
 import Link from '../../Components/shared/Link';
-import {
-  ADMIN_DEPARTMENT_OPTIONS,
-  getDepartmentName,
-} from '../../utils/departmentScope';
+
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../lib/api';
 import {
@@ -68,6 +65,13 @@ export default function Dashboard() {
   // Live Backend Data State
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [departments, setDepartments] = useState<any[]>([]);
+
+  useEffect(() => {
+    api.get('/departments').then((res) => {
+      if (res && res.data) setDepartments(res.data);
+    }).catch(console.error);
+  }, []);
 
   useEffect(() => {
     setIsLoading(true);
@@ -83,11 +87,7 @@ export default function Dashboard() {
     });
   }, [selectedDeptCode]);
 
-  const currentDepartmentName = isAdministrator
-    ? selectedDeptCode === 'ALL'
-      ? 'All Departments'
-      : getDepartmentName(selectedDeptCode)
-    : getDepartmentName(assignedDepartmentCode || 'IT');
+  const currentDepartmentName = dashboardData?.department_info?.name || (selectedDeptCode === 'ALL' ? 'All Departments' : selectedDeptCode);
 
   const kpis = dashboardData?.kpis || {};
   const attentionItems = dashboardData?.requires_attention || [];
@@ -131,7 +131,7 @@ export default function Dashboard() {
         
         <div className="relative z-10 flex-1 flex items-start sm:items-center gap-5">
           <div className="hidden sm:flex shrink-0 bg-white p-2 rounded-sm shadow-lg">
-            <img src="/charusat-logo.jpg" alt="CHARUSAT" className="w-16 object-contain" />
+            <img src="/charusat_logo.png" alt="CHARUSAT" className="w-16 object-contain" />
           </div>
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand-navy/60 backdrop-blur-md rounded-sm text-brand-accent text-[10px] font-bold uppercase tracking-widest mb-3 border border-brand-primary/40 shadow-sm">
@@ -165,9 +165,10 @@ export default function Dashboard() {
                 onChange={(e) => setSelectedDeptCode(e.target.value)}
                 className="bg-brand-dark border border-brand-primary rounded-sm px-4 py-2 text-sm text-white font-bold focus:outline-none focus:ring-2 focus:ring-brand-accent cursor-pointer transition-colors shadow-sm"
               >
-                {ADMIN_DEPARTMENT_OPTIONS.map((dept) => (
-                  <option key={dept.code} value={dept.code}>
-                    {dept.name}
+                <option value="ALL">All Departments</option>
+                {departments.map((dept) => (
+                  <option key={dept.id} value={dept.department_code}>
+                    {dept.department_name}
                   </option>
                 ))}
               </select>
@@ -370,3 +371,4 @@ export default function Dashboard() {
     </AdminLayout>
   );
 }
+

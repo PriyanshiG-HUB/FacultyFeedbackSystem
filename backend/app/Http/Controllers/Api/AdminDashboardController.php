@@ -285,6 +285,26 @@ class AdminDashboardController extends Controller
             'text' => "Department average rating ({$avgRating} / 5.0) increased compared with the previous feedback cycle.",
         ];
 
+        // 8. Real Submission Volume Trends
+        $trendsQuery = FeedbackResponse::where('is_excluded', false);
+        if ($deptId) {
+            $trendsQuery->whereHas('feedbackForm.teachingAssignment.subject', function ($q) use ($deptId) {
+                $q->where('department_id', $deptId);
+            });
+        }
+        $trendData = $trendsQuery->selectRaw('DATE(submitted_at) as date, COUNT(*) as count')
+            ->groupBy('date')
+            ->orderBy('date', 'asc')
+            ->get();
+        $submissionTrends = [];
+        foreach ($trendData as $t) {
+            $submissionTrends[] = [
+                'week' => date('M d', strtotime($t->date)),
+                'submissions' => $t->count,
+                'avgRating' => $avgRating // Simplified, actual avg per day would require joining answers
+            ];
+        }
+
         return response()->json([
             'department_info' => [
                 'id' => $department ? $department->id : null,
@@ -309,13 +329,7 @@ class AdminDashboardController extends Controller
                 'pending' => $pendingStudentsCount,
                 'completion_pct' => $completionRate,
                 'target_pct' => $targetCompletion,
-                'submission_trends' => [
-                    ['week' => 'Week 1', 'submissions' => (int)round($submittedResponsesCount * 0.12), 'avgRating' => max(4.0, round($avgRating - 0.2, 2))],
-                    ['week' => 'Week 2', 'submissions' => (int)round($submittedResponsesCount * 0.28), 'avgRating' => max(4.1, round($avgRating - 0.1, 2))],
-                    ['week' => 'Week 3', 'submissions' => (int)round($submittedResponsesCount * 0.38), 'avgRating' => $avgRating],
-                    ['week' => 'Week 4', 'submissions' => (int)round($submittedResponsesCount * 0.16), 'avgRating' => min(5.0, round($avgRating + 0.1, 2))],
-                    ['week' => 'Week 5', 'submissions' => (int)round($submittedResponsesCount * 0.06), 'avgRating' => $avgRating],
-                ],
+                'submission_trends' => $submissionTrends,
             ],
             'subject_coverage' => $subjectCoverageList,
             'faculty_performance' => $facultyPerformanceList,

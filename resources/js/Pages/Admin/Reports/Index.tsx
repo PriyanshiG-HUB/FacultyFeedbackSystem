@@ -127,8 +127,63 @@ export default function Index() {
     }
   };
 
-  const handleDownload = (reportTitle: string) => {
-    window.print();
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const [printData, setPrintData] = useState<any>(null);
+
+  const handleDownload = async (row: ReportItem) => {
+    if (isDownloadingPdf) return;
+    setIsDownloadingPdf(true);
+    try {
+      const res = await api.get('/admin/dashboard?department_code=' + (row.departmentCode || 'ALL'));
+      
+      // Load html2pdf dynamically
+      if (!(window as any).html2pdf) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+          script.onload = resolve;
+          script.onerror = reject;
+          document.body.appendChild(script);
+        });
+      }
+
+      let facultyPerformance = res?.faculty_performance || [];
+      // Sort highest to lowest
+      facultyPerformance.sort((a: any, b: any) => b.avg_rating - a.avg_rating);
+      
+      setPrintData({
+        title: row.title,
+        department: row.department,
+        academicYear: row.academicYear,
+        term: row.term,
+        faculty_performance: facultyPerformance
+      });
+      
+      // Wait for React to render the printable area
+      setTimeout(() => {
+        const element = document.getElementById('department-report-printable-area');
+        if (element) {
+          const opt = {
+            margin: 10,
+            filename: `${row.department.replace(/[^a-zA-Z0-9]/g, '_')}_Report.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+          };
+          (window as any).html2pdf().set(opt).from(element).save().then(() => {
+             setIsDownloadingPdf(false);
+             setPrintData(null);
+          });
+        } else {
+             setIsDownloadingPdf(false);
+        }
+      }, 500);
+
+    } catch (err) {
+      alert("Failed to generate PDF");
+      setIsDownloadingPdf(false);
+      setPrintData(null);
+    }
   };
 
   const filteredReports = reports.filter((r) => {
@@ -255,9 +310,9 @@ export default function Index() {
             >
               {row.status === 'Published' ? 'Unpublish' : 'Publish Report'}
             </Button>
-            <Button variant="primary" size="sm" onClick={() => handleDownload(row.title)}>
-              <Download className="w-3.5 h-3.5 mr-1" />
-              Download PDF
+            <Button variant="primary" size="sm" onClick={() => handleDownload(row)} disabled={isDownloadingPdf}>
+              {isDownloadingPdf ? <RefreshCw className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Download className="w-3.5 h-3.5 mr-1" />}
+              {isDownloadingPdf ? 'Generating PDF...' : 'Download PDF'}
             </Button>
           </div>
         )}
@@ -337,6 +392,49 @@ export default function Index() {
           </div>
         </form>
       </Modal>
+      {/* Hidden Printable Area */}
+      {printData && (
+        <div style={{ display: 'none' }}>
+          <div id="department-report-printable-area" style={{ padding: '20px', fontFamily: 'sans-serif', color: '#000', width: '100%', boxSizing: 'border-box' }}>
+            <div style={{ textAlign: 'center', marginBottom: '30px', borderBottom: '2px solid #eee', paddingBottom: '20px' }}>
+              <img src="/charusat_logo.png" alt="CHARUSAT" style={{ height: '60px', objectFit: 'contain' }} />
+              <h1 style={{ fontSize: '24px', margin: '15px 0 5px' }}>{printData.title}</h1>
+              <p style={{ margin: 0, fontSize: '14px', color: '#666' }}>{printData.department} • Academic Year {printData.academicYear} ({printData.term} Term)</p>
+            </div>
+            
+            <h2 style={{ fontSize: '18px', borderBottom: '1px solid #ccc', paddingBottom: '5px', marginBottom: '15px' }}>Faculty Performance Leaderboard</h2>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f3f4f6', textAlign: 'left' }}>
+                  <th style={{ padding: '12px 10px', border: '1px solid #ddd' }}>Rank</th>
+                  <th style={{ padding: '12px 10px', border: '1px solid #ddd' }}>Faculty Member</th>
+                  <th style={{ padding: '12px 10px', border: '1px solid #ddd', textAlign: 'center' }}>Total Responses</th>
+                  <th style={{ padding: '12px 10px', border: '1px solid #ddd', textAlign: 'center' }}>Average Rating</th>
+                </tr>
+              </thead>
+              <tbody>
+                {printData.faculty_performance.map((fac: any, idx: number) => (
+                  <tr key={idx}>
+                    <td style={{ padding: '10px', border: '1px solid #ddd', fontWeight: 'bold' }}>#{idx + 1}</td>
+                    <td style={{ padding: '10px', border: '1px solid #ddd', fontWeight: 'bold' }}>{fac.faculty_name}</td>
+                    <td style={{ padding: '10px', border: '1px solid #ddd', textAlign: 'center' }}>{fac.total_responses}</td>
+                    <td style={{ padding: '10px', border: '1px solid #ddd', textAlign: 'center', fontWeight: 'bold', color: fac.avg_rating >= 4 ? '#059669' : fac.avg_rating >= 3 ? '#d97706' : '#dc2626' }}>{fac.avg_rating}/5.0</td>
+                  </tr>
+                ))}
+                {printData.faculty_performance.length === 0 && (
+                  <tr>
+                    <td colSpan={4} style={{ padding: '15px', border: '1px solid #ddd', textAlign: 'center', color: '#666' }}>No faculty data available for this department.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+            
+            <div style={{ marginTop: '40px', fontSize: '10px', color: '#999', textAlign: 'center', borderTop: '1px solid #eee', paddingTop: '10px' }}>
+              Generated on {new Date().toLocaleDateString()} • Faculty Feedback Management System
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }

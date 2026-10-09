@@ -58,6 +58,7 @@ Route::get('/health', function () {
 
 // 2. Authentication (Public)
 Route::post('/auth/login', [AuthController::class, 'login']);
+Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
 
 // 3. Authenticated Routes (Sanctum)
 Route::middleware('auth:sanctum')->group(function () {
