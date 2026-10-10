@@ -274,7 +274,7 @@ export default function Index() {
         }
 
         .top-header {
-          padding: 0 0 24px;
+          padding: 0 0 20px;
           text-align: center;
           position: relative;
           border-bottom: 2px solid var(--bg-soft);
@@ -283,20 +283,20 @@ export default function Index() {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          min-height: 80px;
         }
 
         .charusat-report-logo {
-          height: 70px;
+          height: 60px;
+          max-width: 220px;
           object-fit: contain;
-          position: absolute;
-          left: 0;
-          top: 0;
+          margin: 0 auto 16px;
+          display: block;
         }
 
         .header-text-container {
           width: 100%;
           text-align: center;
+          margin-bottom: 16px;
         }
 
         .department-title {
