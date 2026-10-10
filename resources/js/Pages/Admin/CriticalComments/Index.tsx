@@ -78,9 +78,10 @@ export default function Index({
                 questionText: a.question?.question_text || `Question ${a.question_id}`,
                 rating: a.rating_value || 5,
                 ratingLabel: a.rating_value === 5 ? 'Strongly Agree' : a.rating_value === 4 ? 'Agree' : a.rating_value === 3 ? 'Neutral' : a.rating_value === 2 ? 'Disagree' : 'Strongly Disagree',
-                comment: a.text_value || r.overall_remark || undefined,
+                comment: a.text_value || undefined,
               }))
             : [],
+          overallRemark: r.overall_remark || undefined,
         };
       });
       setSubmissions(apiSubs);
@@ -104,6 +105,7 @@ export default function Index({
   const [selectedSection, setSelectedSection] = useState<string>('ALL');
   const [selectedQuestionFilter, setSelectedQuestionFilter] = useState<number | 'ALL'>('ALL');
   const [selectedRatingFilter, setSelectedRatingFilter] = useState<number | 'ALL'>('ALL');
+  const [showStudentId, setShowStudentId] = useState<boolean>(false);
 
   // Selection state for bulk actions
   const [selectedSubmissionIds, setSelectedSubmissionIds] = useState<string[]>([]);
@@ -307,7 +309,7 @@ export default function Index({
       header: 'Student Roll',
       accessor: (row) => (
         <span className="font-mono text-xs font-bold text-slate-800 bg-slate-100 px-2 py-1 rounded border border-slate-200">
-          {row.studentRoll}
+          {showStudentId ? (row.studentRoll === 'Anonymous Student' ? (row.studentId || 'Anonymous Student') : row.studentRoll) : 'Anonymous Student'}
         </span>
       ),
       sortable: true,
@@ -362,6 +364,40 @@ export default function Index({
         );
       },
       sortable: true,
+    },
+    {
+      header: 'Student Feedback Text',
+      accessor: (row) => {
+        let texts: string[] = [];
+        if (selectedQuestionFilter !== 'ALL') {
+          const ans = row.answers.find((a) => a.questionId === selectedQuestionFilter);
+          if (ans && ans.comment) {
+            texts.push(ans.comment);
+          }
+        } else {
+          row.answers.forEach(a => {
+            if (a.comment && !texts.includes(a.comment)) {
+              texts.push(a.comment);
+            }
+          });
+          if (row.overallRemark && !texts.includes(row.overallRemark)) {
+            texts.push(`Overall: ${row.overallRemark}`);
+          }
+        }
+        
+        if (texts.length === 0) return null;
+        
+        return (
+          <div className="text-xs text-slate-700 italic max-w-xs break-words whitespace-pre-wrap">
+            {texts.map((t, i) => (
+              <div key={i} className={i > 0 ? 'mt-1 pt-1 border-t border-slate-100' : ''}>
+                "{t}"
+              </div>
+            ))}
+          </div>
+        );
+      },
+      sortable: false,
     },
     {
       header: 'Submitted Date',
@@ -750,6 +786,21 @@ export default function Index({
                   Clear Filter
                 </button>
               )}
+
+              {(isHodUser || isAdministrator) && (
+                <div className="flex items-center gap-2 ml-4 border-l border-slate-200 pl-4">
+                  <input
+                    type="checkbox"
+                    id="showStudentId"
+                    checked={showStudentId}
+                    onChange={(e) => setShowStudentId(e.target.checked)}
+                    className="w-4 h-4 text-brand-primary rounded border-slate-300 focus:ring-brand-primary cursor-pointer"
+                  />
+                  <label htmlFor="showStudentId" className="text-xs font-bold text-slate-700 cursor-pointer">
+                    Show Student ID
+                  </label>
+                </div>
+              )}
             </div>
           </div>
 
@@ -873,7 +924,7 @@ export default function Index({
               <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
                 <span className="text-[10px] font-bold text-slate-400 uppercase">Student Identity</span>
                 <p className="text-xs font-bold font-mono text-brand-navy mt-0.5">
-                  Roll No: {fullFeedbackSubmission.studentRoll}
+                  Roll No: {showStudentId ? fullFeedbackSubmission.studentRoll : 'Anonymous Student'}
                 </p>
               </div>
 
@@ -1030,7 +1081,7 @@ export default function Index({
                 <strong>Faculty:</strong> {excludeModalSubmission.facultyName} ({excludeModalSubmission.subjectCode})
               </p>
               <p>
-                <strong>Student Roll:</strong> {excludeModalSubmission.studentRoll} &bull; Date: {excludeModalSubmission.submittedAt}
+                <strong>Student Roll:</strong> {showStudentId ? excludeModalSubmission.studentRoll : 'Anonymous Student'} &bull; Date: {excludeModalSubmission.submittedAt}
               </p>
             </div>
 
@@ -1099,7 +1150,7 @@ export default function Index({
               <p className="text-[11px] text-rose-800">
                 Selected Student Rolls: {selectedSubmissionIds.map((id) => {
                   const s = submissions.find((sub) => sub.id === id);
-                  return s ? s.studentRoll : id;
+                  return s ? (showStudentId ? s.studentRoll : 'Anonymous Student') : id;
                 }).join(', ')}
               </p>
             </div>
@@ -1165,7 +1216,7 @@ export default function Index({
                   This complete feedback submission will be included in {includeModalSubmission.facultyName}'s overall evaluation and question statistics.
                 </p>
                 <p className="text-[11px] text-emerald-800">
-                  Student Roll {includeModalSubmission.studentRoll}'s ratings will be added back into all aggregate metrics.
+                  Student Roll {showStudentId ? includeModalSubmission.studentRoll : 'Anonymous Student'}'s ratings will be added back into all aggregate metrics.
                 </p>
               </div>
             </div>

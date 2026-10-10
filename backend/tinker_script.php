@@ -1,0 +1,1 @@
+App\Models\FeedbackResponse::whereNotNull('overall_remark')->with('answers')->take(5)->get()->each(function($r){ echo 'response '.$r->id.': remark='.json_encode($r->overall_remark).PHP_EOL; foreach($r->answers as $a) echo '  ans '.$a->id.' q'.$a->question_id.' text='.json_encode($a->text_value).PHP_EOL; });

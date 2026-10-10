@@ -264,10 +264,11 @@ export default function Show() {
     try {
       const { api } = await import('../../../lib/api');
       await api.post(`/student/feedback-forms/${numericFormId}/submit`, {
-        overall_remark: Object.values(questionComments).filter(Boolean).join('; ') || 'Submitted via portal',
+        overall_remark: 'Submitted via portal',
         answers: questions.map((q) => ({
           question_id: Number(q.id),
           rating_value: ratings[String(q.id)] || 5,
+          text_value: questionComments[String(q.id)] || null,
         })),
       });
 

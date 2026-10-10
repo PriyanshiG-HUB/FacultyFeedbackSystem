@@ -11,9 +11,26 @@ class FeedbackResponseResource extends JsonResource
     {
         $user = $request->user();
         $isAnonymousForm = $this->feedbackForm?->is_anonymous ?? true;
-        
-        // Hide student identity if form is anonymous and user is not SUPER_ADMIN/ADMIN
-        $canViewStudentIdentity = $user && ($user->role === 'SUPER_ADMIN' || !$isAnonymousForm);
+
+        $isAuthorized = $user && in_array($user->role, ['SUPER_ADMIN', 'ADMIN', 'HOD']);
+        $canViewStudentIdentity = $isAuthorized || !$isAnonymousForm;
+
+        // Reconstruct per-answer text from overall_remark for legacy submissions
+        // where text was joined into overall_remark instead of stored per text_value.
+        $answers = $this->whenLoaded('answers');
+        if ($answers instanceof \Illuminate\Support\Collection || is_iterable($answers)) {
+            $answersCollection = collect($answers);
+            $allNullText = $answersCollection->every(fn($a) => is_null($a->text_value));
+
+            if ($allNullText && !empty($this->overall_remark) && $this->overall_remark !== 'Submitted via portal') {
+                $parts = array_map('trim', explode(';', $this->overall_remark));
+                $answersCollection->values()->each(function ($answer, $index) use ($parts) {
+                    if (isset($parts[$index]) && $parts[$index] !== '') {
+                        $answer->text_value = $parts[$index];
+                    }
+                });
+            }
+        }
 
         return [
             'id' => $this->id,
