@@ -86,11 +86,11 @@ export default function Login({ status }: FacultyLoginProps) {
         
         <div className="text-center mb-8">
           {/* Official Logo */}
-          <div className="w-24 h-24 mx-auto bg-white rounded-full flex items-center justify-center shadow-sm border border-slate-100 mb-5 overflow-hidden">
+          <div className="w-full px-[5px] mb-5 flex items-center justify-center">
              <img 
               src="/main_logo.png" 
               alt="CHARUSAT Logo" 
-              className="w-[120%] h-[120%] object-contain" 
+              className="w-full h-auto max-h-24 object-contain" 
              />
           </div>
           
