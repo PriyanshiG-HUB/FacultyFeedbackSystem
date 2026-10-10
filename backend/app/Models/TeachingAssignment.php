@@ -125,4 +125,31 @@ class TeachingAssignment extends Model
     {
         return !is_null($this->division_id) && !is_null($this->section_id);
     }
+
+    /**
+     * Get the count of eligible / enrolled students for this assignment.
+     */
+    public function getEligibleStudentsCount(): int
+    {
+        if ($this->subject && $this->subject->course_type === 'ELECTIVE') {
+            return \App\Models\StudentElectiveEnrollment::where('status', 'ENROLLED')
+                ->whereHas('subjectOffering', function ($sq) {
+                    $sq->where('subject_id', $this->subject_id)
+                       ->where('batch_id', $this->batch_id);
+                })
+                ->count();
+        }
+
+        $query = \App\Models\Student::where('batch_id', $this->batch_id);
+
+        if (!is_null($this->division_id)) {
+            $query->where('division_id', $this->division_id);
+        }
+
+        if (!is_null($this->section_id)) {
+            $query->where('section_id', $this->section_id);
+        }
+
+        return $query->count();
+    }
 }

@@ -27,6 +27,7 @@ class TeachingAssignmentResource extends JsonResource
             'section' => new SectionResource($this->whenLoaded('section')),
             'academic_year' => new AcademicYearResource($this->whenLoaded('academicYear')),
             'semester' => new SemesterResource($this->whenLoaded('semester')),
+            'total_students' => $this->getEligibleStudentsCount(),
         ];
     }
 }

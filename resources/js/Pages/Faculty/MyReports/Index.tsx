@@ -18,30 +18,66 @@ export default function Index() {
   const activeFacultyName = user?.faculty?.full_name || user?.full_name || user?.email || 'Faculty Member';
 
   useEffect(() => {
-    import('../../../lib/api').then(({ api }) => {
+    import('../../../lib/api').then(async ({ api }) => {
+      let facultyId: number | null = null;
+      try {
+        const meRes = await api.get('/auth/me');
+        if (meRes?.user?.faculty?.id) {
+          facultyId = meRes.user.faculty.id;
+        }
+      } catch (_) {}
+
       api.get('/faculty/dashboard').then((res) => {
         if (res.data) setApiDashboardStats(res.data);
       }).catch(() => {});
       
-      api.get('/faculty/feedback-forms').then((res) => {
-        const rawForms = res.data?.data || res.data || res || [];
+      try {
+        const formsRes = await api.get('/faculty/feedback-forms');
+        const rawForms = formsRes.data?.data || formsRes.data || formsRes || [];
         const formsArray = Array.isArray(rawForms) ? rawForms : (rawForms.data || []);
         
         if (Array.isArray(formsArray)) {
-          const apiReports = formsArray.map((f: any) => ({
-            id: f.id,
-            subjectName: f.teaching_assignment?.subject?.subject_name || 'Subject',
-            subjectCode: f.teaching_assignment?.subject?.subject_code || 'SUB',
-            batchName: f.teaching_assignment?.batch?.batch_title || 'Batch',
-            academicYear: f.teaching_assignment?.academic_year?.year_code || 'Year',
-            totalStudents: f.teaching_assignment?.total_students || 0,
-            respondedStudents: 0,
-            overallScore: 0,
-            status: f.is_published ? 'Published' : 'Pending Review'
-          }));
-          setReports(apiReports);
+          // If we have facultyId, fetch reports for assignments
+          const formReports = await Promise.all(
+            formsArray.map(async (f: any) => {
+              const ta = f.teaching_assignment;
+              const assignmentId = ta?.id;
+              let overallScore = 0;
+              let respondedStudents = f.responses_count || 0;
+              let totalStudents = ta?.total_students || 0;
+
+              if (facultyId && assignmentId) {
+                try {
+                  const repRes = await api.get(`/faculty-reports/report?faculty_id=${facultyId}&teaching_assignment_id=${assignmentId}`);
+                  if (repRes?.data) {
+                    overallScore = Number(repRes.data.overall_average) || 0;
+                    respondedStudents = Number(repRes.data.total_responses) || respondedStudents;
+                    if (repRes.data.total_students) {
+                      totalStudents = Number(repRes.data.total_students);
+                    }
+                  }
+                } catch (_) {}
+              }
+
+              return {
+                id: f.id,
+                teachingAssignmentId: assignmentId,
+                facultyId: facultyId,
+                subjectName: ta?.subject?.subject_name || 'Subject',
+                subjectCode: ta?.subject?.subject_code || 'SUB',
+                batchName: ta?.batch?.batch_title || 'Batch',
+                academicYear: ta?.academic_year?.year_code || 'Year',
+                totalStudents: totalStudents,
+                respondedStudents: respondedStudents,
+                overallScore: overallScore,
+                status: f.is_published ? 'Published' : 'Pending Review'
+              };
+            })
+          );
+
+          setReports(formReports);
         }
-      }).catch(() => {});
+      } catch (_) {}
     });
 
     const handleUpdate = () => {
@@ -138,8 +174,8 @@ export default function Index() {
                     <div>
                       <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">Submissions Considered</span>
                       <p className="text-base font-extrabold text-slate-900 mt-1">
-                        {courseStats.includedCount}{' '}
-                        <span className="text-xs text-slate-400 font-medium">/ {courseStats.totalSubmissions} Total</span>
+                        {report.respondedStudents > 0 ? report.respondedStudents : courseStats.includedCount}{' '}
+                        <span className="text-xs text-slate-400 font-medium">/ {report.totalStudents > 0 ? report.totalStudents : (courseStats.totalSubmissions || '—')} Enrolled</span>
                       </p>
                       {courseStats.excludedCount > 0 && (
                         <p className="text-[10px] font-bold text-rose-600 mt-1">
@@ -155,7 +191,7 @@ export default function Index() {
                       <span>HOD Moderated Score</span>
                     </div>
 
-                    <Link href={`#Faculty/MyReports/Show?subjectCode=${report.subjectCode}&subjectName=${encodeURIComponent(report.subjectName)}&overallScore=${effectiveScore.toFixed(2)}`}>
+                    <Link href={`#Faculty/MyReports/Show?facultyId=${report.facultyId || ''}&teachingAssignmentId=${report.teachingAssignmentId || ''}&subjectCode=${report.subjectCode}&subjectName=${encodeURIComponent(report.subjectName)}&batchName=${encodeURIComponent(report.batchName)}&academicYear=${encodeURIComponent(report.academicYear)}&overallScore=${effectiveScore.toFixed(2)}&totalStudents=${report.totalStudents}&respondedStudents=${report.respondedStudents}`}>
                       <Button variant="primary" size="sm" className="bg-brand-primary hover:bg-brand-navy border-brand-primary focus:ring-brand-primary shadow-brand-primary/20 text-xs px-4">
                         <span>View Detailed Report</span>
                         <ArrowRight className="w-3.5 h-3.5 ml-1.5" />

@@ -99,6 +99,8 @@ class FacultyDashboardController extends Controller
         $forms = FeedbackForm::with([
             'teachingAssignment.subject',
             'teachingAssignment.batch',
+            'teachingAssignment.academicYear',
+            'teachingAssignment.semester',
             'questions.category',
         ])->whereHas('teachingAssignment', function ($q) use ($faculty) {
             $q->where('faculty_id', $faculty->id);

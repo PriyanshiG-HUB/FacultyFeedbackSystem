@@ -159,6 +159,7 @@ class FacultyReportController extends Controller
                 'semester_no' => $ta->semester?->semester_no ?? $ta->semester_id,
                 'display_label' => "{$subjectName} [{$ta->subject?->subject_code}]{$divSecStr} - AY {$ta->academicYear?->year_code}",
                 'total_responses' => $responseCount,
+                'total_students' => $ta->getEligibleStudentsCount(),
             ];
         });
 
@@ -344,6 +345,24 @@ class FacultyReportController extends Controller
             ? $departmentName
             : "Department of {$departmentName}";
 
+        // Compute total eligible students and response rate
+        $totalStudents = $assignments->sum(fn($a) => $a->getEligibleStudentsCount());
+        if ($totalStudents === 0 && $totalResponses > 0) {
+            $totalStudents = $totalResponses;
+        }
+        $responseRate = $totalStudents > 0 ? (float)round(($totalResponses / $totalStudents) * 100, 1) : 0.0;
+
+        // Compute Category Metrics Breakdown
+        $categoryGroups = collect($questionStats)->groupBy('category_name');
+        $categoryMetrics = [];
+        foreach ($categoryGroups as $catName => $qList) {
+            $catAvg = round($qList->avg('avg_score'), 2);
+            $categoryMetrics[] = [
+                'category' => $catName,
+                'score' => $catAvg,
+            ];
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -364,6 +383,8 @@ class FacultyReportController extends Controller
                 ],
                 'generated_date' => date('F j, Y'),
                 'total_responses' => $totalResponses,
+                'total_students' => $totalStudents,
+                'response_rate' => $responseRate,
                 'overall_average' => $overallAvgScore,
                 'overall_percentage' => $overallAvgPct,
                 'distribution' => [
@@ -373,6 +394,8 @@ class FacultyReportController extends Controller
                     'disagree' => $dist2,
                     'strongly_disagree' => $dist1,
                 ],
+                'category_metrics' => $categoryMetrics,
+                'metrics' => $categoryMetrics,
                 'question_statistics' => $questionStats,
                 'comment_cards' => $commentCards,
             ],
