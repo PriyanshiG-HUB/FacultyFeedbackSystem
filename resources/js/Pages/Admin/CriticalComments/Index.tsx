@@ -6,7 +6,6 @@ import { Button } from '../../../Components/ui/Button';
 import { Card } from '../../../Components/ui/Card';
 import { Modal } from '../../../Components/ui/Modal';
 import {
-  SYSTEM_QUESTIONS,
   calculateFacultyOverallScore,
   calculateQuestionDistribution,
 } from '../../../utils/feedbackCalculations';
@@ -103,8 +102,8 @@ export default function Index({
   const [selectedBatch, setSelectedBatch] = useState<string>('ALL');
   const [selectedDivision, setSelectedDivision] = useState<string>('ALL');
   const [selectedSection, setSelectedSection] = useState<string>('ALL');
-  const [selectedQuestionFilter, setSelectedQuestionFilter] = useState<number | 'ALL'>(1); // Default Q1
-  const [selectedRatingFilter, setSelectedRatingFilter] = useState<number | 'ALL'>(1); // Default 1 (Strongly Disagree)
+  const [selectedQuestionFilter, setSelectedQuestionFilter] = useState<number | 'ALL'>('ALL');
+  const [selectedRatingFilter, setSelectedRatingFilter] = useState<number | 'ALL'>('ALL');
 
   // Selection state for bulk actions
   const [selectedSubmissionIds, setSelectedSubmissionIds] = useState<string[]>([]);
@@ -167,6 +166,21 @@ export default function Index({
       return true;
     });
   }, [submissions, selectedFaculty, selectedSubject, selectedAcademicYear, selectedSemester, selectedBatch, selectedDivision, selectedSection, assignedDepartmentCode, userRole]);
+
+  // Extract Questions Dynamically from Submissions
+  const dynamicQuestions = useMemo(() => {
+    const qMap = new Map<number, string>();
+    scopedSubmissions.forEach((sub) => {
+      sub.answers.forEach((a) => {
+        if (!qMap.has(a.questionId)) {
+          qMap.set(a.questionId, a.questionText);
+        }
+      });
+    });
+    return Array.from(qMap.entries())
+      .map(([id, text]) => ({ id, text }))
+      .sort((a, b) => a.id - b.id);
+  }, [scopedSubmissions]);
 
   // Calculate Overall Faculty Score (Included Complete Submissions Only)
   const facultyOverallStats = useMemo(() => {
@@ -578,7 +592,7 @@ export default function Index({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {SYSTEM_QUESTIONS.map((q) => {
+            {dynamicQuestions.map((q: any, idx: number) => {
               // Recalculates dynamically using ONLY INCLUDED submissions
               const dist = calculateQuestionDistribution(scopedSubmissions, q.id);
               const isSelectedQ = selectedQuestionFilter === q.id;
@@ -595,7 +609,7 @@ export default function Index({
                   <div className="space-y-3">
                     <div className="flex items-start justify-between gap-2">
                       <span className="font-mono text-xs font-extrabold text-brand-navy bg-brand-50 px-2 py-0.5 rounded border border-indigo-200">
-                        Q{q.id}
+                        Q{idx + 1}
                       </span>
                       <div className="flex items-center gap-1 font-bold text-xs text-slate-800 bg-slate-100 px-2 py-0.5 rounded">
                         <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
@@ -704,10 +718,10 @@ export default function Index({
                 onChange={(e) => setSelectedQuestionFilter(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
                 className="bg-slate-50 border border-slate-300 rounded-lg px-2 py-1 text-xs text-slate-800 font-semibold focus:outline-none cursor-pointer"
               >
-                <option value="ALL">All Questions (Q1-Q5)</option>
-                {SYSTEM_QUESTIONS.map((q: any) => (
+                <option value="ALL">All Questions</option>
+                {dynamicQuestions.map((q: any, idx: number) => (
                   <option key={q.id} value={q.id}>
-                    Question {q.id}
+                    Question {idx + 1}
                   </option>
                 ))}
               </select>
