@@ -91,9 +91,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath, isCollapsed = fal
     >
       {/* Brand Header & Toggle */}
       <div className="flex flex-col border-b border-brand-navy/60 bg-brand-dark pb-4 relative">
-        <div className="h-16 flex items-center justify-between px-4">
-          <div className="flex-1 flex justify-center">
-            <img src="/main_logo.png" alt="Main CHARUSAT Logo" className={`object-contain transition-all duration-300 ${isCollapsed ? 'h-10 w-10 rounded-full' : 'h-14 w-14 mt-4 bg-white p-1 rounded-sm shadow-md shadow-brand-navy/50'}`} />
+        <div className={`flex items-center justify-between ${isCollapsed ? 'h-16 px-4' : 'w-full pt-4 pb-2 relative'}`}>
+          <div className={`flex-1 flex justify-center ${isCollapsed ? '' : 'px-[2px]'}`}>
+            <img src="/main_logo.png" alt="Main CHARUSAT Logo" className={`object-contain bg-white p-1 rounded-sm transition-all duration-300 ${isCollapsed ? 'h-10 w-10' : 'w-full'}`} />
           </div>
           {/* Sidebar Toggle Button */}
           {onToggleCollapse && !isCollapsed && (
