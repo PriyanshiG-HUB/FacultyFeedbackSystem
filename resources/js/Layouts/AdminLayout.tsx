@@ -75,7 +75,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           departmentScope={resolvedDept}
         />
 
-        <main className="flex-1 p-6 sm:p-8 space-y-6 max-w-7xl w-full mx-auto">
+        <main className="flex-1 px-2 sm:px-3 py-3 space-y-3 w-full">
           {children}
         </main>
       </div>

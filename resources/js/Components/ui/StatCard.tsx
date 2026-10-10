@@ -8,6 +8,7 @@ interface StatCardProps {
   isPositive?: boolean;
   icon?: 'users' | 'building' | 'star' | 'check-circle' | 'book-open' | 'clock' | string;
   className?: string;
+  compact?: boolean;
 }
 
 export const StatCard: React.FC<StatCardProps> = ({
@@ -17,6 +18,7 @@ export const StatCard: React.FC<StatCardProps> = ({
   isPositive = true,
   icon = 'star',
   className = '',
+  compact = false,
 }) => {
   // Semantic Accent Colors for CHARUSAT theme
   const getPalette = () => {
@@ -105,30 +107,30 @@ export const StatCard: React.FC<StatCardProps> = ({
 
   return (
     <div
-      className={`group relative flex flex-col bg-white border ${palette.border} ${palette.hoverBorder} rounded-[14px] p-5 shadow-sm hover:shadow-md hover:-translate-y-[2px] transition-all duration-300 h-full ${className}`}
+      className={`group relative flex flex-col bg-white border ${palette.border} ${palette.hoverBorder} ${compact ? 'rounded-xl p-3' : 'rounded-[14px] p-5'} shadow-sm hover:shadow-md hover:-translate-y-[2px] transition-all duration-300 h-full ${className}`}
     >
-      <div className="flex items-start justify-between gap-3 mb-4">
-        <h3 className="text-[12px] font-semibold uppercase tracking-wider text-slate-500 leading-snug">
+      <div className={`flex items-start justify-between gap-2 ${compact ? 'mb-2' : 'mb-4'}`}>
+        <h3 className={`${compact ? 'text-[11px]' : 'text-[12px]'} font-semibold uppercase tracking-wider text-slate-500 leading-snug line-clamp-2`}>
           {label}
         </h3>
         <div
-          className={`flex items-center justify-center w-10 h-10 rounded-lg shrink-0 ${palette.iconBg} group-hover:scale-105 transition-transform duration-300`}
+          className={`flex items-center justify-center ${compact ? 'w-8 h-8 rounded-md' : 'w-10 h-10 rounded-lg'} shrink-0 ${palette.iconBg} group-hover:scale-105 transition-transform duration-300`}
         >
-          {getIcon(`w-5 h-5 ${palette.iconText}`)}
+          {getIcon(`${compact ? 'w-4 h-4' : 'w-5 h-5'} ${palette.iconText}`)}
         </div>
       </div>
 
       <div className="mb-auto">
-        <div className={`text-[30px] font-extrabold tracking-tight ${palette.text} leading-none`}>
+        <div className={`${compact ? 'text-[22px] sm:text-[24px]' : 'text-[30px]'} font-extrabold tracking-tight ${palette.text} leading-none`}>
           {value}
         </div>
       </div>
 
       {change && (
-        <div className="mt-4 flex items-center gap-2">
+        <div className={`${compact ? 'mt-2' : 'mt-4'} flex items-center gap-1.5`}>
           {icon === 'check-circle' && label.toLowerCase().includes('critical') && isPositive ? (
             <div className="flex items-center justify-center rounded-full p-0.5 bg-emerald-100/60 text-emerald-700">
-               <TrendingDown className="w-3.5 h-3.5" />
+               <TrendingDown className="w-3 h-3" />
             </div>
           ) : (
             <div
@@ -137,13 +139,13 @@ export const StatCard: React.FC<StatCardProps> = ({
               }`}
             >
               {isPositive ? (
-                <TrendingUp className="w-3.5 h-3.5" />
+                <TrendingUp className="w-3 h-3" />
               ) : (
-                <TrendingDown className="w-3.5 h-3.5" />
+                <TrendingDown className="w-3 h-3" />
               )}
             </div>
           )}
-          <span className="text-[12px] font-medium text-slate-500 leading-tight">
+          <span className={`${compact ? 'text-[10px]' : 'text-[12px]'} font-medium text-slate-500 leading-tight truncate`}>
             {change}
           </span>
         </div>
