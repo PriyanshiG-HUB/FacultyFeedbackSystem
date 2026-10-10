@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Link from '../Components/shared/Link';
 import { GraduationCap, LogOut, FileText, User, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { getStoredUserInfo } from '../lib/api';
 
 interface FacultyLayoutProps {
   children: React.ReactNode;
@@ -11,7 +12,18 @@ export const FacultyLayout: React.FC<FacultyLayoutProps> = ({
   children,
 }) => {
   const { user, logout } = useAuth();
-  const facultyName = user?.faculty?.full_name || user?.full_name || user?.email || 'Faculty';
+
+  // Resolve faculty name: prefer live AuthContext user, fall back to localStorage for instant display
+  const storedUser = getStoredUserInfo();
+  const facultyName =
+    user?.faculty?.full_name ||
+    user?.full_name ||
+    user?.email ||
+    (storedUser as any)?.faculty?.full_name ||
+    storedUser?.full_name ||
+    storedUser?.email ||
+    'Faculty Member';
+
   const [isLoggingOut, setIsLoggingOut] = useState<boolean>(false);
 
   const onLogoutClick = async (e?: React.MouseEvent) => {
